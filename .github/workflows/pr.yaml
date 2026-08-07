@@ -35,8 +35,11 @@ jobs:
 
     env:
       PREVIEW_URL: https://${{ github.event.pull_request.number }}-jobtology.coolify.yeongmin.net
+      COOLIFY_URL: ${{ secrets.COOLIFY_URL }}
+      COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+      COOLIFY_APP_UUID: ${{ secrets.COOLIFY_APP_UUID }}
 
-    timeout-minutes: 10
+    timeout-minutes: 20
 
     steps:
       - uses: actions/checkout@v4
@@ -47,7 +50,60 @@ jobs:
 
       - run: npm ci
 
-      - name: Wait for automated Coolify preview
+      - name: Trigger Coolify preview deployment
+        id: deploy
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          if [ -z "$COOLIFY_URL" ] || [ -z "$COOLIFY_TOKEN" ] || [ -z "$COOLIFY_APP_UUID" ]; then
+            echo "COOLIFY_URL, COOLIFY_TOKEN, and COOLIFY_APP_UUID must be configured as repository secrets."
+            exit 1
+          fi
+
+          RESPONSE=$(curl --fail-with-body -sS \
+            "$COOLIFY_URL/api/v1/deploy?uuid=$COOLIFY_APP_UUID&pr=$PR_NUMBER" \
+            -H "Authorization: Bearer $COOLIFY_TOKEN")
+
+          DEPLOYMENT_UUID=$(echo "$RESPONSE" | jq -r '.deployments[0].deployment_uuid')
+
+          if [ -z "$DEPLOYMENT_UUID" ] || [ "$DEPLOYMENT_UUID" = "null" ]; then
+            echo "Could not obtain the Coolify preview deployment UUID"
+            echo "$RESPONSE"
+            exit 1
+          fi
+
+          echo "deployment_uuid=$DEPLOYMENT_UUID" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for Coolify deployment
+        env:
+          DEPLOYMENT_UUID: ${{ steps.deploy.outputs.deployment_uuid }}
+        run: |
+          for i in {1..120}; do
+            RESPONSE=$(curl --fail-with-body -sS --connect-timeout 5 --max-time 15 \
+              "$COOLIFY_URL/api/v1/deployments/$DEPLOYMENT_UUID" \
+              -H "Authorization: Bearer $COOLIFY_TOKEN")
+
+            STATUS=$(echo "$RESPONSE" | jq -r '.status')
+            echo "Coolify preview deployment status: $STATUS"
+
+            case "$STATUS" in
+              finished)
+                exit 0
+                ;;
+              failed|cancelled|cancelled-by-user)
+                echo "Coolify preview deployment failed: $STATUS"
+                exit 1
+                ;;
+              *)
+                sleep 5
+                ;;
+            esac
+          done
+
+          echo "Timed out waiting for the Coolify preview deployment"
+          exit 1
+
+      - name: Wait for Coolify preview endpoint
         run: |
           echo "Waiting for $PREVIEW_URL"
 
