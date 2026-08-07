@@ -5,10 +5,17 @@ on:
     branches:
       - main
 
+permissions: {}
+
+concurrency:
+  group: coolify-production-deploy
+  cancel-in-progress: false
+
 jobs:
   deploy:
     name: Deploy to Coolify
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Trigger Coolify deployment
@@ -18,10 +25,11 @@ jobs:
           COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
           COOLIFY_APP_UUID: ${{ secrets.COOLIFY_APP_UUID }}
         run: |
-          RESPONSE=$(curl --fail-with-body -sS \
-            -X GET \
-            "$COOLIFY_URL/api/v1/deploy?uuid=$COOLIFY_APP_UUID" \
-            -H "Authorization: Bearer $COOLIFY_TOKEN")
+          RESPONSE=$(curl --fail-with-body -sS --connect-timeout 10 --max-time 60 \
+            -X POST "$COOLIFY_URL/api/v1/deploy" \
+            -H "Authorization: Bearer $COOLIFY_TOKEN" \
+            -H "Content-Type: application/json" \
+            --data "$(jq --null-input --arg uuid "$COOLIFY_APP_UUID" '{uuid: $uuid}')")
 
           echo "$RESPONSE"
 
@@ -41,7 +49,7 @@ jobs:
           DEPLOYMENT_UUID: ${{ steps.deploy.outputs.deployment_uuid }}
         run: |
           for i in {1..120}; do
-            RESPONSE=$(curl --fail-with-body -sS \
+            RESPONSE=$(curl --fail-with-body -sS --connect-timeout 10 --max-time 60 \
               "$COOLIFY_URL/api/v1/deployments/$DEPLOYMENT_UUID" \
               -H "Authorization: Bearer $COOLIFY_TOKEN")
 
