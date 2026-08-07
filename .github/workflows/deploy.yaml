@@ -49,9 +49,37 @@ jobs:
           DEPLOYMENT_UUID: ${{ steps.deploy.outputs.deployment_uuid }}
         run: |
           for i in {1..120}; do
-            RESPONSE=$(curl --fail-with-body -sS --connect-timeout 10 --max-time 60 \
+            if RESPONSE_WITH_STATUS=$(curl --fail-with-body -sS --connect-timeout 10 --max-time 60 \
+              --write-out '\n%{http_code}' \
               "$COOLIFY_URL/api/v1/deployments/$DEPLOYMENT_UUID" \
-              -H "Authorization: Bearer $COOLIFY_TOKEN")
+              -H "Authorization: Bearer $COOLIFY_TOKEN"); then
+              CURL_EXIT_CODE=0
+            else
+              CURL_EXIT_CODE=$?
+            fi
+
+            HTTP_STATUS="${RESPONSE_WITH_STATUS##*$'\n'}"
+            RESPONSE="${RESPONSE_WITH_STATUS%$'\n'*}"
+
+            if [ "$CURL_EXIT_CODE" -ne 0 ]; then
+              case "$HTTP_STATUS" in
+                429|5??|000)
+                  echo "Transient Coolify API failure (HTTP $HTTP_STATUS); retrying..."
+                  sleep 5
+                  continue
+                  ;;
+                4??)
+                  echo "Coolify API request failed permanently (HTTP $HTTP_STATUS)"
+                  echo "$RESPONSE"
+                  exit 1
+                  ;;
+                *)
+                  echo "Coolify API request failed before receiving a response; retrying..."
+                  sleep 5
+                  continue
+                  ;;
+              esac
+            fi
 
             STATUS=$(echo "$RESPONSE" | jq -r '.status')
 
