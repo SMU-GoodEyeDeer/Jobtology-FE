@@ -35,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      PREVIEW_URL: https://${{ github.event.pull_request.number }}-jobtology.yeongmin.net
+      PREVIEW_URL: https://${{ github.event.pull_request.number }}.test.yeongmin.net
 
     timeout-minutes: 25
 
