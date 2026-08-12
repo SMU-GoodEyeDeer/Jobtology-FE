@@ -1,5 +1,5 @@
 :root {
-  font-family: "Roboto", sans-serif;
+  font-family: Roboto, sans-serif;
 
   --btn-text: #ffffff;
   --btn-bg: #4e46e5;
@@ -13,6 +13,5 @@
 }
 
 body {
-  width: 100vw;
   min-height: 100vh;
 }
