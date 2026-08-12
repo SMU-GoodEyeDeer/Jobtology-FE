@@ -15,19 +15,19 @@ npm run dev
 npm test
 npm run build
 ```
-## 프로젝트 구조                                                                                                                                  
-                                                                                                                                                       
+## 프로젝트 구조 
+
 ```
   src/
     assets/              -> 이미지, 아이콘 등 정적 파일
-	                                                                                                  
+                                             
     components/          -> 공용 컴포넌트  
       logo.svg           -> 대표로고
 
-    pages/                                                                                                                                             
-      Onboarding/                                                                                                                                      
-        Onboarding.tsx   -> 온보딩 (최초 화면)                                                                                                         
-        Onboarding.css
+    pages/
+		Onboarding/
+		Onboarding.tsx   -> 온보딩 (최초 화면)
+		Onboarding.css
 
     App.css              -> 전역 스타일 (CSS 변수, body 등)
     App.tsx              -> 라우터
