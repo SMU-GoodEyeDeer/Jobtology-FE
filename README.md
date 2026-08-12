@@ -18,35 +18,18 @@ npm run build
 ## 프로젝트 구조                                                                                                                                  
                                                                                                                                                        
 ```
-  src/                                                                                                                                                 
-    App.css        -> 전역 스타일 (CSS 변수, body 등)                                                                                                  
-    App.tsx        -> 라우터                                                                                                                           
-    main.tsx       -> 앱 진입점                                                                                                                        
-                                                                                                                                                       
-    assets/        -> 이미지, 아이콘 등 정적 파일                                                                                                      
-                                                                                                                                                       
+  src/
+    assets/        -> 이미지, 아이콘 등 정적 파일
+	                                                                                                  
     components/    -> 공용 컴포넌트                                                                                                                    
-                                                                                                                                                       
+      logo.svg     -> 대표로고
     pages/                                                                                                                                             
       Onboarding/                                                                                                                                      
         Onboarding.tsx   -> 온보딩 (최초 화면)                                                                                                         
-        Onboarding.css  
-
-css
-	style.css -> 공용 스타일
-	각 css 파일은 html 파일 이름으로
-js
-	main.js
-	
-pages
-  	reservation.html -> 예약 완료
-images
-	example.png
-
-index.html
-
-.gitignore
-	.env
+        Onboarding.css
+App.css        -> 전역 스타일 (CSS 변수, body 등)                                                                                                  
+    App.tsx        -> 라우터                                                                                                                           
+    main.tsx       -> 앱 진입점         
 ```
 
 - **main** : 배포 브랜치. CI/CD가 연결되어 있어 머지되면 테스트 후 자동 배포됩니다.
