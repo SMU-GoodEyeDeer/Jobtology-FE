@@ -17,16 +17,16 @@ npm run build
 ```
 ## 프로젝트 구조                                                                                                                                  
                                                                                                                                                        
-  src/                                                                                                                                                 
-  ├── pages/                  # 페이지 컴포넌트
-  │   └── 페이지명/                                                                                                                                    
-  │       ├── 페이지명.tsx                                  
-  │       └── 페이지명.css
-  ├── components/             # 재사용 컴포넌트
-  ├── assets/                 # 이미지, 아이콘 등 정적 파일
-  ├── App.tsx                 # 라우터
-  ├── App.css                 # 전역 스타일 (CSS 변수, body 등)
-  └── main.tsx                # 앱 진입점
+src/
+├── pages/                  # 페이지 컴포넌트
+│   └── 페이지명/
+│       ├── 페이지명.tsx
+│       └── 페이지명.css
+├── components/             # 재사용 컴포넌트
+├── assets/                 # 이미지, 아이콘 등 정적 파일
+├── App.tsx                 # 라우터
+├── App.css                 # 전역 스타일 (CSS 변수, body 등)
+└── main.tsx                # 앱 진입점
 ## Branch 전략
 
 - **main** : 배포 브랜치. CI/CD가 연결되어 있어 머지되면 테스트 후 자동 배포됩니다.
