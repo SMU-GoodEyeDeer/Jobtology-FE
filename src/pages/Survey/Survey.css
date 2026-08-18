@@ -1,0 +1,360 @@
+/* 전체 배경 */
+.survey-page {
+  min-height: 100vh;
+  background: #f3f4f6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+}
+
+/* 헤더 */
+.survey-header {
+  display: flex;
+  /* align-items: center; */
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.survey-header img {
+  width: 34px;
+  height: 34px;
+  border-radius: 5px;
+}
+
+.survey-header h1 {
+  font-size: 32px;
+  font-weight: 700;
+  color: #1e1b4b;
+}
+
+/* 카드 */
+.survey-card {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  padding: 2rem;
+  width: 100%;
+  max-width: 720px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+/* STEP 레이블 */
+.survey-step {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #6366f1;
+  margin-bottom: 0.5rem;
+}
+
+/* 질문 제목 */
+.survey-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 0.3rem;
+}
+
+/* 질문 설명 */
+.survey-subtitle {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-bottom: 1rem;
+}
+
+/* 버튼 행 */
+.survey-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1.5rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.survey-actions.single {
+  justify-content: stretch;
+}
+
+/* 공통 버튼 */
+.btn-prev {
+  background: #ffffff;
+  border: 1.5px solid #6366f1;
+  color: #6366f1;
+  border-radius: 8px;
+  width: 150px;
+  height: 56px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.btn-next {
+  background: #4f46e5;
+  border: none;
+  color: #ffffff;
+  border-radius: 8px;
+  width: 150px;
+  height: 56px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.btn-next:disabled {
+  background: #c7d2fe;
+  cursor: not-allowed;
+}
+
+.btn-next.full-width {
+  width: 100%;
+  height: 56px;
+  flex-shrink: 0;
+  margin-top: 1.5rem;
+  box-sizing: border-box;
+}
+
+/* ── Survey1: 선택지 그리드 ── */
+.option-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+.option-btn {
+  width: 100%;
+  height: 70px;
+  box-sizing: border-box;
+  background: #ffffff;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111827;
+  cursor: pointer;
+  font-family: inherit;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+
+.option-btn.selected {
+  border-color: #6366f1;
+  background: #ede9fe;
+  color: #4f46e5;
+}
+
+/* ── Survey2: 입력 폼 ── */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1.25rem;
+  align-self: center;
+}
+
+.form-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.form-input {
+  width: 100%;
+  max-width: 648px;
+  height: 70px;
+  box-sizing: border-box;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 0 1rem;
+  font-size: 1rem;
+  font-family: inherit;
+  color: #111827;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.form-input:focus {
+  border-color: #6366f1;
+}
+
+.form-select {
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 0.8rem 1rem;
+  font-size: 1rem;
+  font-family: inherit;
+  color: #111827;
+  background: #ffffff;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  outline: none;
+  cursor: pointer;
+}
+
+.form-select:focus {
+  border-color: #6366f1;
+}
+
+/* ── 커스텀 드롭다운 ── */
+.custom-select {
+  position: relative;
+}
+
+.custom-select-trigger {
+  width: 100%;
+  max-width: 648px;
+  height: 70px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 0 1rem;
+  font-size: 1rem;
+  font-family: inherit;
+  color: #111827;
+  background: #ffffff;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s;
+}
+
+.custom-select-trigger.open,
+.custom-select-trigger:focus {
+  border-color: #6366f1;
+  outline: none;
+}
+
+.custom-select-trigger .placeholder {
+  color: #9ca3af;
+}
+
+.custom-select-trigger svg {
+  flex-shrink: 0;
+  transition: transform 0.2s;
+}
+
+.custom-select-trigger.open svg {
+  transform: rotate(180deg);
+}
+
+.custom-select-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  list-style: none;
+  overflow: hidden;
+  z-index: 10;
+}
+
+.custom-select-option {
+  padding: 0.8rem 1rem;
+  font-size: 1rem;
+  color: #111827;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.custom-select-option:hover {
+  background: #f3f4f6;
+}
+
+.custom-select-option.selected {
+  background: #ede9fe;
+  color: #4f46e5;
+  font-weight: 600;
+}
+
+/* ── Survey3: 토글 리스트 ── */
+.toggle-section-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.75rem;
+}
+
+.toggle-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 2.1rem;
+}
+
+.toggle-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.toggle-label {
+  font-size: 1rem;
+  color: #111827;
+}
+
+/* 커스텀 토글 스위치 */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-track {
+  position: absolute;
+  inset: 0;
+  background: #d1d5db;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.toggle-track::after {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  background: #ffffff;
+  border-radius: 50%;
+  top: 3px;
+  left: 3px;
+  transition: transform 0.2s;
+}
+
+.toggle-switch input:checked + .toggle-track {
+  background: #4f46e5;
+}
+
+.toggle-switch input:checked + .toggle-track::after {
+  transform: translateX(20px);
+}
+
+@media (max-width: 480px) {
+  .option-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .btn-prev,
+  .btn-next {
+    width: 48%;
+  }
+}
