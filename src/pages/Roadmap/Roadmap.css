@@ -1,0 +1,416 @@
+/* ── 섹션 공통 ── */
+.rm-section {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 20px 24px;
+  border: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.rm-section-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rm-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.rm-section-sub {
+  font-size: 12px;
+  color: #9ca3af;
+  margin: 0;
+}
+
+/* ── 조건 칩 ── */
+.rm-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rm-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  border-radius: 99px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  font-size: 13px;
+  color: #374151;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+}
+
+.rm-chip:not(.rm-chip--active):hover {
+  background: #f3f4f6;
+}
+
+.rm-chip--active {
+  background: #4f46e5;
+  border-color: #4f46e5;
+  color: #ffffff;
+}
+
+.rm-chip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #9ca3af;
+  flex-shrink: 0;
+}
+
+.rm-chip--active .rm-chip-dot {
+  background: #ffffff;
+}
+
+/* ── 경로 카드 ── */
+.rm-card {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 20px 24px;
+  border: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.rm-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.rm-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rm-card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.rm-card-sub {
+  font-size: 12px;
+  color: #9ca3af;
+  margin: -8px 0 0;
+}
+
+.rm-save-btn {
+  padding: 7px 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #ffffff;
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+
+.rm-save-btn:hover {
+  background: #f9fafb;
+}
+
+/* ── 배지 ── */
+.rm-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.rm-badge--profile {
+  background: #eef2ff;
+  color: #4f46e5;
+}
+
+.rm-badge--done {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.rm-badge--now {
+  background: #fce7f3;
+  color: #db2777;
+}
+
+/* ── 로드맵 스텝 아이템 ── */
+.rm-step-item {
+  background: #f9fafb;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rm-step-item--current {
+  background: #fff0f6;
+  border-color: #e11d48;
+}
+
+.rm-step-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.rm-step-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rm-step-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.rm-step-desc {
+  font-size: 12px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.rm-link {
+  color: #4f46e5;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.rm-why-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: none;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  background: #eef2ff;
+  color: #4f46e5;
+  cursor: pointer;
+}
+
+.rm-completed-badge {
+  font-size: 12px;
+  font-weight: 600;
+  color: #16a34a;
+}
+
+.rm-complete-btn {
+  align-self: flex-start;
+  padding: 1px 10px;
+  border-radius: 8px;
+  border: 1.5px solid #22c55e;
+  background: #f0fdf4;
+  color: #16a34a;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.rm-complete-btn:hover {
+  background: #dcfce7;
+}
+
+/* ── 지금 가장 먼저 할 일 ── */
+.rm-priority-section {
+  background: #181b29;
+  border-radius: 14px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.rm-priority-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+}
+
+.rm-priority-sub {
+  font-size: 12px;
+  color: #a5b4fc;
+  margin: 0;
+}
+
+.rm-priority-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rm-priority-cards {
+  display: flex;
+  gap: 12px;
+}
+
+.rm-priority-card {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    transform 0.15s;
+}
+
+.rm-priority-card:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: scale(1.03);
+}
+
+.rm-priority-num {
+  font-size: 16px;
+  font-weight: 700;
+  color: #818cf8;
+}
+
+.rm-priority-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.rm-priority-desc {
+  font-size: 12px;
+  color: #9aa1b9;
+  margin: 0;
+}
+
+/* ── 저장한 커리어 경로 ── */
+.rm-saved-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rm-saved-card {
+  background: #f9fafb;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  padding: 16px 18px;
+}
+
+.rm-saved-top {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rm-saved-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 6px;
+}
+
+.rm-saved-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.rm-saved-sub {
+  font-size: 12px;
+  color: #6b7280;
+  margin: 2px 0 0;
+}
+
+.rm-edit-btn {
+  font-size: 13px;
+  color: #6b7280;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+
+.rm-saved-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.rm-saved-btn {
+  padding: 5px 14px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.rm-saved-btn:hover {
+  background: #f3f4f6;
+}
+
+.rm-saved-btn--delete {
+  border-color: #fca5a5;
+  color: #dc2626;
+  background: #fff;
+}
+
+.rm-saved-btn--delete:hover {
+  background: #fef2f2;
+}
+
+/* ── 하단 버튼 ── */
+.rm-bottom-btns {
+  display: flex;
+  gap: 12px;
+}
+
+.rm-bottom-btn {
+  padding: 7px 20px;
+  border-radius: 10px;
+  border: 1.5px solid #e5e7eb;
+  background: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+
+.rm-bottom-btn:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
