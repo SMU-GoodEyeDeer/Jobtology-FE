@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import "./Home.css";
 import logoIcon from "../../assets/logo1.svg";
 import homeIcon from "../../assets/Home .svg";
@@ -8,16 +9,47 @@ import analysisIcon from "../../assets/Bar chart.svg";
 import progressIcon from "../../assets/today.svg";
 import userIcon from "../../assets/User.svg";
 import arrowIcon from "../../assets/→.svg";
-import refreshIcon from "../../assets/Refresh ccw.svg";
-import checkIcon from "../../assets/Check circle.svg";
+import chevronDownIcon from "../../assets/Chevron down.svg";
+import notificationsIcon from "../../assets/notifications.svg";
+import clockIcon from "../../assets/Clock.svg";
+import checkIcon from "../../assets/check.svg";
 
 const NAV_ITEMS = [
-  { icon: homeIcon, label: "홈" },
-  { icon: chatIcon, label: "AI 커리어 챗봇" },
-  { icon: roadmapIcon, label: "내 로드맵" },
-  { icon: analysisIcon, label: "역량 분석" },
-  { icon: progressIcon, label: "진행 상황" },
-  { icon: userIcon, label: "내 정보" },
+  { icon: homeIcon, label: "홈", path: "/home" },
+  { icon: chatIcon, label: "AI 커리어 챗봇", path: "/chat" },
+  { icon: roadmapIcon, label: "내 로드맵", path: "/roadmap" },
+  { icon: analysisIcon, label: "역량 분석", path: "" },
+  { icon: progressIcon, label: "진행 상황", path: "" },
+  { icon: userIcon, label: "내 정보", path: "" },
+];
+
+const GOAL_GROUPS = [
+  {
+    label: "AI·데이터",
+    items: [
+      { name: "AI 엔지니어", count: "500" },
+      { name: "데이터 분석", count: "680" },
+      { name: "데이터 엔지니어", count: "430" },
+      { name: "ML 엔지니어", count: "310" },
+    ],
+  },
+  {
+    label: "개발",
+    items: [
+      { name: "백엔드 개발", count: "1,240" },
+      { name: "프론트엔드", count: "720" },
+      { name: "풀스택 개발", count: "540" },
+      { name: "안드로이드", count: "290" },
+    ],
+  },
+  {
+    label: "인프라·보안",
+    items: [
+      { name: "DevOps", count: "388" },
+      { name: "클라우드 엔지니어", count: "260" },
+      { name: "정보보안", count: "248" },
+    ],
+  },
 ];
 
 const BRIEFING_ITEMS = [
@@ -35,7 +67,21 @@ const ACTIVITY_ITEMS = [
 ];
 
 export function Home() {
+  const navigate = useNavigate();
   const [activeNav, setActiveNav] = useState("홈");
+  const [goalOpen, setGoalOpen] = useState(false);
+  const [selectedGoal, setSelectedGoal] = useState("AI 엔지니어");
+  const goalRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (goalRef.current && !goalRef.current.contains(e.target as Node)) {
+        setGoalOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
     <div className="home-layout">
@@ -47,11 +93,11 @@ export function Home() {
         </div>
 
         <nav className="sidebar-nav">
-          {NAV_ITEMS.map(({ icon, label }) => (
+          {NAV_ITEMS.map(({ icon, label, path }) => (
             <button
               key={label}
               className={`nav-item ${activeNav === label ? "nav-item--active" : ""}`}
-              onClick={() => setActiveNav(label)}
+              onClick={() => { setActiveNav(label); if (path) navigate(path); }}
             >
               <img src={icon} alt={label} className="nav-icon" />
               <span>{label}</span>
@@ -84,9 +130,30 @@ export function Home() {
       <div className="main-area">
         <header className="main-header">
           <h2 className="main-title">홈</h2>
-          <button className="goal-button">
-            목표 AI 엔지니어 <span className="goal-arrow">∨</span>
-          </button>
+          <div className="goal-wrapper" ref={goalRef}>
+            <button className="goal-button" onClick={() => setGoalOpen((v) => !v)}>
+              목표 {selectedGoal} <img src={chevronDownIcon} alt="▾" className="goal-arrow" />
+            </button>
+            {goalOpen && (
+              <div className="goal-dropdown">
+                {GOAL_GROUPS.map((group) => (
+                  <div key={group.label}>
+                    <p className="goal-dropdown-group-label">{group.label}</p>
+                    {group.items.map((item) => (
+                      <div
+                        key={item.name}
+                        className={`goal-dropdown-item${selectedGoal === item.name ? " selected" : ""}`}
+                        onClick={() => { setSelectedGoal(item.name); setGoalOpen(false); }}
+                      >
+                        <span>{item.name}</span>
+                        <span className="goal-dropdown-count">공고 {item.count}건</span>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </header>
 
         <main className="main-content">
@@ -125,7 +192,9 @@ export function Home() {
             {/* Briefing card */}
             <div className="info-card">
               <div className="info-card-header">
-                <img src={refreshIcon} alt="브리핑" className="info-card-icon" />
+                <div className="briefing-icon-box">
+                  <img src={notificationsIcon} alt="브리핑" className="briefing-icon" />
+                </div>
                 <div>
                   <p className="info-card-title">오늘의 커리어 브리핑</p>
                   <p className="info-card-sub">최근 활동을 분석했어요</p>
@@ -149,7 +218,9 @@ export function Home() {
             {/* Activity card */}
             <div className="info-card">
               <div className="info-card-header">
-                <img src={progressIcon} alt="활동" className="info-card-icon" />
+                <div className="briefing-icon-box">
+                  <img src={clockIcon} alt="활동" className="briefing-icon" />
+                </div>
                 <div>
                   <p className="info-card-title">최근 활동</p>
                   <p className="info-card-sub">최근 학습 및 입력 히스토리</p>
