@@ -10,12 +10,12 @@ import progressIcon from "../../assets/today.svg";
 import userIcon from "../../assets/User.svg";
 
 const NAV_ITEMS = [
-  { icon: homeIcon, label: "홈" },
-  { icon: chatIcon, label: "AI 커리어 챗봇" },
-  { icon: roadmapIcon, label: "내 로드맵" },
-  { icon: analysisIcon, label: "역량 분석" },
-  { icon: progressIcon, label: "진행 상황" },
-  { icon: userIcon, label: "내 정보" },
+  { icon: homeIcon, label: "홈", path: "/home" },
+  { icon: chatIcon, label: "AI 커리어 챗봇", path: "/chat" },
+  { icon: roadmapIcon, label: "내 로드맵", path: "/roadmap" },
+  { icon: analysisIcon, label: "역량 분석", path: "/analysis" },
+  { icon: progressIcon, label: "진행 상황", path: "/progress" },
+  { icon: userIcon, label: "내 정보", path: "/myinfo" },
 ];
 
 export function HomeFirst() {
@@ -32,11 +32,11 @@ export function HomeFirst() {
         </div>
 
         <nav className="sidebar-nav">
-          {NAV_ITEMS.map(({ icon, label }) => (
+          {NAV_ITEMS.map(({ icon, label, path }) => (
             <button
               key={label}
               className={`nav-item ${activeNav === label ? "nav-item--active" : ""}`}
-              onClick={() => setActiveNav(label)}
+              onClick={() => { setActiveNav(label); if (path) navigate(path); }}
             >
               <img src={icon} alt={label} className="nav-icon" />
               <span>{label}</span>

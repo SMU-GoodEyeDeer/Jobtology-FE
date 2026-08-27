@@ -14,9 +14,9 @@ const NAV_ITEMS = [
   { icon: homeIcon, label: "홈", path: "/home" },
   { icon: chatIcon, label: "AI 커리어 챗봇", path: "/chat" },
   { icon: roadmapIcon, label: "내 로드맵", path: "/roadmap" },
-  { icon: analysisIcon, label: "역량 분석", path: "" },
-  { icon: progressIcon, label: "진행 상황", path: "" },
-  { icon: userIcon, label: "내 정보", path: "" },
+  { icon: analysisIcon, label: "역량 분석", path: "/analysis" },
+  { icon: progressIcon, label: "진행 상황", path: "/progress" },
+  { icon: userIcon, label: "내 정보", path: "/myinfo" },
 ];
 
 const GOAL_GROUPS = [
@@ -278,7 +278,7 @@ export function Chat() {
           <h2 className="chat-title">AI 커리어 추천</h2>
           <div className="goal-wrapper" ref={goalRef}>
             <button className="goal-button" onClick={() => setGoalOpen((v) => !v)}>
-              목표 {selectedGoal}
+              {selectedGoal}
               <img src={chevronDownIcon} alt="▾" className="goal-arrow" />
             </button>
             {goalOpen && (
