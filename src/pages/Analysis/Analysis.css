@@ -1,0 +1,310 @@
+/* ── Fulfillment top card ── */
+.an-fulfillment-card {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 24px;
+  border: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.an-fulfillment-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.an-fulfillment-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.an-expand-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.an-expand-btn:hover {
+  background: #f3f4f6;
+}
+
+.an-expand-icon {
+  width: 28px;
+  height: 28px;
+  opacity: 0.5;
+  transition: transform 0.2s ease;
+}
+
+.an-expand-icon--open {
+  transform: rotate(180deg);
+}
+
+/* 목표 달성률 expanded section */
+.an-goal-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 0 0;
+}
+
+.an-goal-progress-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.an-goal-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.an-goal-stage {
+  font-size: 12px;
+  font-weight: 400;
+  color: #9ca3af;
+  margin-left: 6px;
+}
+
+.an-goal-pct {
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.an-goal-bar {
+  height: 8px;
+}
+
+.an-goal-fill {
+  background: linear-gradient(to right, #4f46e5, #22c55e);
+  height: 100%;
+  border-radius: 99px;
+}
+
+.an-fulfillment-body {
+  display: flex;
+  align-items: stretch;
+}
+
+.an-fulfillment-half {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-right: 32px;
+}
+
+.an-fulfillment-half:last-child {
+  padding-right: 0;
+  padding-left: 32px;
+}
+
+.an-fulfillment-divider {
+  width: 1px;
+  background: #e5e7eb;
+  flex-shrink: 0;
+  align-self: stretch;
+}
+
+.an-half-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+  margin: 0;
+}
+
+.an-fulfillment-pct {
+  font-size: 36px;
+  font-weight: 700;
+  color: #4f46e5;
+  margin: 0;
+  line-height: 1.1;
+}
+
+.an-fulfillment-pct--green {
+  color: #22c55e;
+}
+
+.an-fulfillment-sub {
+  font-size: 12px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.an-fulfillment-count {
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 4px;
+}
+
+/* ── Skills table card ── */
+.an-skills-card {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 24px;
+  border: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header row */
+.an-skills-header-row {
+  display: flex;
+  align-items: center;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 4px;
+}
+
+.an-skills-header-row .an-col {
+  font-size: 12px;
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+/* Data row */
+.an-skill-row {
+  display: flex;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.an-skill-row:last-child {
+  border-bottom: none;
+}
+
+/* Column base */
+.an-col {
+  display: flex;
+  align-items: center;
+}
+
+/* Column widths */
+.an-col--name   { flex: 2; }
+.an-col--demand { flex: 3; }
+.an-col--diff   { flex: 2; flex-direction: column; align-items: flex-start; gap: 3px; }
+.an-col--achieve { flex: 2.5; justify-content: space-between; gap: 12px; }
+
+/* Name column */
+.an-skill-name-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.an-skill-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.an-skill-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  width: fit-content;
+}
+
+.an-skill-badge--required {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+.an-skill-badge--preferred {
+  background: #eef2ff;
+  color: #4f46e5;
+}
+
+/* Demand bar column */
+.an-demand-bar-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  padding-right: 16px;
+}
+
+.an-demand-bar {
+  width: 100%;
+}
+
+.an-demand-label {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* Difficulty column */
+.an-difficulty {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.an-experienced-sub {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+/* Achievement column */
+.an-achievement {
+  font-size: 13px;
+  color: #374151;
+  flex: 1;
+}
+
+.an-roadmap-btn {
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1.5px solid #4f46e5;
+  background: transparent;
+  color: #4f46e5;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+
+.an-roadmap-btn:hover {
+  background: #4f46e5;
+  color: #ffffff;
+}
+
+/* ── Bottom action ── */
+.an-bottom-actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.an-goto-roadmap-btn {
+  padding: 9px 24px;
+  border-radius: 10px;
+  border: 1.5px solid #e5e7eb;
+  background: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.an-goto-roadmap-btn:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}

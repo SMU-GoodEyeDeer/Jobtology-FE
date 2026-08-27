@@ -1,0 +1,361 @@
+/* ── Two column layout ── */
+.mi-two-col {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+/* ── Shared card base ── */
+.mi-profile-card,
+.mi-spec-card {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 24px;
+  border: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.mi-profile-card {
+  flex: 1.1;
+}
+
+.mi-spec-card {
+  flex: 1;
+}
+
+/* ── Card header ── */
+.mi-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mi-card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.mi-save-btn {
+  padding: 6px 16px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.mi-save-btn:hover {
+  background: #f3f4f6;
+}
+
+/* ── Fields ── */
+.mi-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mi-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.mi-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #111827;
+  background: #ffffff;
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+
+.mi-input:focus {
+  border-color: #4f46e5;
+}
+
+.mi-input--disabled {
+  background: #f9fafb;
+  color: #6b7280;
+  cursor: default;
+}
+
+/* ── Chips ── */
+.mi-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mi-chip {
+  padding: 7px 14px;
+  border-radius: 20px;
+  border: 1.5px solid #e5e7eb;
+  background: #ffffff;
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.mi-chip:hover {
+  border-color: #4f46e5;
+  color: #4f46e5;
+}
+
+.mi-chip--active {
+  background: #1e1b4b;
+  border-color: #1e1b4b;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.mi-chip--active:hover {
+  background: #1e1b4b;
+  color: #ffffff;
+}
+
+/* ── Radio grid ── */
+.mi-radio-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 16px;
+}
+
+.mi-radio-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.mi-radio-dot {
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  border-radius: 50%;
+  border: 2px solid #d1d5db;
+  background: #ffffff;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.mi-radio-dot--active {
+  border-color: #4f46e5;
+  background: #4f46e5;
+  box-shadow: inset 0 0 0 3px #ffffff;
+}
+
+.mi-radio-label {
+  font-size: 13px;
+  color: #374151;
+}
+
+/* ── 내 로드맵 보기 button ── */
+.mi-roadmap-btn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 10px;
+  background: #4f46e5;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+  margin-top: 4px;
+}
+
+.mi-roadmap-btn:hover {
+  background: #4338ca;
+}
+
+/* ── 내 스펙 ── */
+.mi-spec-sub {
+  font-size: 12px;
+  color: #9ca3af;
+  margin: -12px 0 0;
+}
+
+.mi-spec-tab-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.mi-spec-tab {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  background: #f3f4f6;
+  color: #6b7280;
+  transition: background 0.15s, color 0.15s;
+}
+
+.mi-spec-tab--active {
+  background: #111827;
+  color: #ffffff;
+}
+
+.mi-spec-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.mi-spec-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.mi-spec-item:last-child {
+  border-bottom: none;
+}
+
+.mi-spec-item-label {
+  font-size: 14px;
+  color: #111827;
+  font-weight: 500;
+}
+
+.mi-spec-remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  color: #9ca3af;
+  padding: 0 4px;
+  line-height: 1;
+  transition: color 0.15s;
+}
+
+.mi-spec-remove:hover {
+  color: #374151;
+}
+
+.mi-spec-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.mi-spec-input {
+  flex: 1;
+}
+
+.mi-add-btn {
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1.5px solid #4f46e5;
+  background: transparent;
+  color: #4f46e5;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+
+.mi-add-btn:hover {
+  background: #4f46e5;
+  color: #ffffff;
+}
+
+/* ── 적합 직무 찾기 ── */
+.mi-job-match-card {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 20px 24px;
+  border: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.mi-job-match-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mi-job-match-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.mi-job-match-btn {
+  padding: 6px 16px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.mi-job-match-btn:hover {
+  background: #f3f4f6;
+}
+
+.mi-job-match-results {
+  display: flex;
+  gap: 16px;
+}
+
+.mi-job-match-item {
+  flex: 1;
+  background: #f9fafb;
+  border-radius: 10px;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mi-job-match-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mi-job-match-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.mi-job-match-pct {
+  font-size: 15px;
+  font-weight: 700;
+  color: #4f46e5;
+}
+
+.mi-match-bar {
+  height: 6px;
+}

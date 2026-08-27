@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import "./Home.css";
+import "../Home/Home.css";
+import "./Analysis.css";
 import logoIcon from "../../assets/logo1.svg";
 import homeIcon from "../../assets/Home .svg";
 import chatIcon from "../../assets/Message circle.svg";
@@ -8,11 +9,7 @@ import roadmapIcon from "../../assets/Trending up.svg";
 import analysisIcon from "../../assets/Bar chart.svg";
 import progressIcon from "../../assets/today.svg";
 import userIcon from "../../assets/User.svg";
-import arrowIcon from "../../assets/→.svg";
 import chevronDownIcon from "../../assets/Chevron down.svg";
-import notificationsIcon from "../../assets/notifications.svg";
-import clockIcon from "../../assets/Clock.svg";
-import checkIcon from "../../assets/check.svg";
 
 const NAV_ITEMS = [
   { icon: homeIcon, label: "홈", path: "/home" },
@@ -52,23 +49,31 @@ const GOAL_GROUPS = [
   },
 ];
 
-const BRIEFING_ITEMS = [
-  "프로젝트 1개가 역량 분석에 반영됐어요",
-  "목표 적합도가 14% → 17%로 올랐어요",
-  "로드맵이 최신 상태로 업데이트됐어요",
+type SkillType = "필수" | "우대";
+type Difficulty = "높음" | "보통";
+
+interface Skill {
+  name: string;
+  type: SkillType;
+  demandPct: number;
+  barColor: string;
+  difficulty: Difficulty;
+  experiencedPct: number;
+  achievement: string;
+}
+
+const SKILLS: Skill[] = [
+  { name: "PyTorch", type: "필수", demandPct: 82, barColor: "#ef4444", difficulty: "높음", experiencedPct: 34, achievement: "840시간 과정" },
+  { name: "Docker", type: "필수", demandPct: 72, barColor: "#f59e0b", difficulty: "보통", experiencedPct: 51, achievement: "120시간 과정" },
+  { name: "AWS", type: "우대", demandPct: 64, barColor: "#4f46e5", difficulty: "보통", experiencedPct: 63, achievement: "자격증 평균 3개월" },
+  { name: "MLOps", type: "우대", demandPct: 38, barColor: "#9ca3af", difficulty: "높음", experiencedPct: 78, achievement: "연결된 과정 없음" },
+  { name: "Kubernetes", type: "필수", demandPct: 55, barColor: "#ef4444", difficulty: "보통", experiencedPct: 47, achievement: "200시간 과정" },
+  { name: "TensorFlow", type: "우대", demandPct: 45, barColor: "#f59e0b", difficulty: "높음", experiencedPct: 60, achievement: "500시간 과정" },
 ];
 
-const BRIEFING_TAGS = ["데이터 근거", "프로젝트 업로드", "역량 분석 결과"];
-
-const ACTIVITY_ITEMS = [
-  { label: "Python 프로젝트 등록", date: "2일 전" },
-  { label: "AI 이력서 분석 완료", date: "4일 전" },
-  { label: "AI 면접 2회 진행", date: "1주 전" },
-];
-
-export function Home() {
+export function Analysis() {
   const navigate = useNavigate();
-  const [activeNav, setActiveNav] = useState("홈");
+  const [activeNav, setActiveNav] = useState("역량 분석");
   const [goalOpen, setGoalOpen] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState("AI 엔지니어");
   const goalRef = useRef<HTMLDivElement>(null);
@@ -129,7 +134,7 @@ export function Home() {
       {/* Main area */}
       <div className="main-area">
         <header className="main-header">
-          <h2 className="main-title">홈</h2>
+          <h2 className="main-title">역량 분석</h2>
           <div className="goal-wrapper" ref={goalRef}>
             <button className="goal-button" onClick={() => setGoalOpen((v) => !v)}>
               {selectedGoal} <img src={chevronDownIcon} alt="▾" className="goal-arrow" />
@@ -157,108 +162,81 @@ export function Home() {
         </header>
 
         <main className="main-content">
-          {/* Hero card */}
-          <section className="hero-card">
-            <div className="hero-left">
-              <span className="hero-badge">MY CAREER NAVIGATOR</span>
-              <h1 className="hero-name">안녕하세요, 예은님</h1>
-              <p className="hero-role">AI 엔지니어</p>
-              <p className="hero-sub">오늘도 목표를 향해 성장하고 있어요.</p>
-              <button className="hero-btn">이어서 진행하기</button>
-            </div>
-            <div className="hero-right">
-              <div className="progress-circle">
-                <svg viewBox="0 0 80 80" className="circle-svg">
-                  <circle cx="40" cy="40" r="32" className="circle-bg" />
-                  <circle
-                    cx="40"
-                    cy="40"
-                    r="32"
-                    className="circle-fg"
-                    strokeDasharray={`${2 * Math.PI * 32 * 0.17} ${2 * Math.PI * 32 * 0.83}`}
-                    strokeDashoffset={2 * Math.PI * 32 * 0.25}
-                  />
-                </svg>
-                <div className="circle-label">
-                  <span className="circle-pct">17%</span>
-                  <span className="circle-sub">진행률</span>
+          {/* 충족률 card */}
+          <section className="an-fulfillment-card">
+            <p className="an-fulfillment-title">AI 엔지니어 충족률</p>
+            <div className="an-fulfillment-body">
+              <div className="an-fulfillment-half">
+                <p className="an-half-label">필수 역량</p>
+                <p className="an-fulfillment-pct">54%</p>
+                <p className="an-fulfillment-sub">거의 모든 공고가 요구하는 역량</p>
+                <p className="an-fulfillment-count">7개 중 4개</p>
+                <div className="progress-bar">
+                  <div className="progress-fill progress-fill--blue" style={{ width: "54%" }} />
+                </div>
+              </div>
+              <div className="an-fulfillment-divider" />
+              <div className="an-fulfillment-half">
+                <p className="an-half-label">우대 역량</p>
+                <p className="an-fulfillment-pct an-fulfillment-pct--green">24%</p>
+                <p className="an-fulfillment-sub">있으면 유리한 역량</p>
+                <p className="an-fulfillment-count">5개 중 1개</p>
+                <div className="progress-bar">
+                  <div className="progress-fill progress-fill--green" style={{ width: "24%" }} />
                 </div>
               </div>
             </div>
           </section>
 
-          {/* Two cards row */}
-          <div className="card-row">
-            {/* Briefing card */}
-            <div className="info-card">
-              <div className="info-card-header">
-                <div className="briefing-icon-box">
-                  <img src={notificationsIcon} alt="브리핑" className="briefing-icon" />
-                </div>
-                <div>
-                  <p className="info-card-title">오늘의 커리어 브리핑</p>
-                  <p className="info-card-sub">최근 활동을 분석했어요</p>
-                </div>
-              </div>
-              <ul className="check-list">
-                {BRIEFING_ITEMS.map((item) => (
-                  <li key={item} className="check-item">
-                    <img src={checkIcon} alt="체크" className="check-icon" />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-              <div className="tag-row">
-                {BRIEFING_TAGS.map((tag) => (
-                  <span key={tag} className="tag">{tag}</span>
-                ))}
-              </div>
+          {/* 부족한 역량 table */}
+          <section className="an-skills-card">
+            <div className="an-skills-header-row">
+              <span className="an-col an-col--name">부족한 역량</span>
+              <span className="an-col an-col--demand">공고의 요구 정도</span>
+              <span className="an-col an-col--diff">난이도</span>
+              <span className="an-col an-col--achieve">달성 방법</span>
             </div>
-
-            {/* Activity card */}
-            <div className="info-card">
-              <div className="info-card-header">
-                <div className="briefing-icon-box">
-                  <img src={clockIcon} alt="활동" className="briefing-icon" />
+            {SKILLS.map((skill) => (
+              <div key={skill.name} className="an-skill-row">
+                <div className="an-col an-col--name">
+                  <div className="an-skill-name-wrap">
+                    <span className="an-skill-name">{skill.name}</span>
+                    <span className={`an-skill-badge ${skill.type === "필수" ? "an-skill-badge--required" : "an-skill-badge--preferred"}`}>
+                      {skill.type}
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <p className="info-card-title">최근 활동</p>
-                  <p className="info-card-sub">최근 학습 및 입력 히스토리</p>
-                </div>
-              </div>
-              <ul className="activity-list">
-                {ACTIVITY_ITEMS.map(({ label, date }) => (
-                  <li key={label} className="activity-item">
-                    <div className="activity-left">
-                      <img src={checkIcon} alt="체크" className="check-icon" />
-                      <span>{label}</span>
+                <div className="an-col an-col--demand">
+                  <div className="an-demand-bar-wrap">
+                    <div className="progress-bar an-demand-bar">
+                      <div
+                        className="progress-fill"
+                        style={{ width: `${skill.demandPct}%`, background: skill.barColor }}
+                      />
                     </div>
-                    <span className="activity-date">{date}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          {/* Continue section */}
-          <section className="continue-section">
-            <div className="continue-header">
-              <p className="continue-title">이어서 진행하기</p>
-              <p className="continue-sub">AI 엔지니어 로드맵</p>
-            </div>
-            <div className="continue-steps">
-              <div className="step-box step-box--current">
-                <p className="step-label">현재</p>
-                <p className="step-name">Python</p>
+                    <span className="an-demand-label">공고 {skill.demandPct}%가 요구</span>
+                  </div>
+                </div>
+                <div className="an-col an-col--diff">
+                  <span className="an-difficulty">{skill.difficulty}</span>
+                  <span className="an-experienced-sub">경력자 요구 {skill.experiencedPct}%</span>
+                </div>
+                <div className="an-col an-col--achieve">
+                  <span className="an-achievement">{skill.achievement}</span>
+                  <button className="an-roadmap-btn" onClick={() => navigate("/roadmap")}>
+                    로드맵 보기
+                  </button>
+                </div>
               </div>
-              <img src={arrowIcon} alt="다음" className="step-arrow" />
-              <div className="step-box step-box--next">
-                <p className="step-label">다음</p>
-                <p className="step-name">실무 교육 과정</p>
-              </div>
-            </div>
-            <button className="continue-btn">이어서 학습</button>
+            ))}
           </section>
+
+          {/* Bottom action */}
+          <div className="an-bottom-actions">
+            <button className="an-goto-roadmap-btn" onClick={() => navigate("/roadmap")}>
+              로드맵으로
+            </button>
+          </div>
         </main>
       </div>
     </div>
