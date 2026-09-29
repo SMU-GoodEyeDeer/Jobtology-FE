@@ -2,11 +2,20 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Survey.css";
 import logoIcon from "../../assets/logo.svg";
+import { useSurvey } from "../../context/SurveyContext";
 
 const GRADES = ["1학년", "2학년", "3학년", "4학년"];
+const GRADE_TO_YEAR: Record<string, number> = {
+  "1학년": 1,
+  "2학년": 2,
+  "3학년": 3,
+  "4학년": 4,
+};
 
 export function Survey2() {
   const navigate = useNavigate();
+  const { update } = useSurvey();
+  const [major, setMajor] = useState("");
   const [grade, setGrade] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -20,6 +29,14 @@ export function Survey2() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  function handleNext() {
+    update({
+      majorRaw: major || "미입력",
+      year: grade ? GRADE_TO_YEAR[grade] : null,
+    });
+    navigate("/survey/3");
+  }
 
   return (
     <div className="survey-page">
@@ -39,6 +56,8 @@ export function Survey2() {
             className="form-input"
             type="text"
             placeholder="휴먼AI공학과"
+            value={major}
+            onChange={(e) => setMajor(e.target.value)}
           />
         </div>
 
@@ -77,7 +96,7 @@ export function Survey2() {
           <button className="btn-prev" onClick={() => navigate("/survey/1")}>
             이전
           </button>
-          <button className="btn-next" onClick={() => navigate("/survey/3")}>
+          <button className="btn-next" onClick={handleNext}>
             다음
           </button>
         </div>
