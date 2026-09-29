@@ -2,19 +2,48 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Survey.css";
 import logoIcon from "../../assets/logo.svg";
+import { useSurvey } from "../../context/SurveyContext";
+import { useOccupations } from "../../context/OccupationsContext";
 
-const OPTIONS = [
+const FALLBACK_OPTIONS = [
   "AI 엔지니어",
   "백엔드 개발자",
   "프론트엔드 개발자",
   "데이터 분석",
   "기획 설계",
-  "아직 모르겠어요",
 ];
+
+const DISCOVERY_LABEL = "아직 모르겠어요";
 
 export function Survey1() {
   const navigate = useNavigate();
+  const { update } = useSurvey();
+  const { occupations, loading: occLoading } = useOccupations();
   const [selected, setSelected] = useState<string | null>(null);
+
+  // Use API occupations if available, otherwise fallback
+  const options: Array<{ label: string; id: string | null }> = occLoading || occupations.length === 0
+    ? FALLBACK_OPTIONS.map((label) => ({ label, id: null }))
+    : occupations.map((o) => ({ label: o.name, id: o.occupation_id }));
+
+  // Always append discovery option
+  const allOptions = [...options, { label: DISCOVERY_LABEL, id: null }];
+
+  function handleNext() {
+    if (!selected) return;
+
+    if (selected === DISCOVERY_LABEL) {
+      update({ occupationId: null, occupationName: null });
+    } else {
+      const match = allOptions.find((o) => o.label === selected);
+      update({
+        occupationId: match?.id ?? null,
+        occupationName: selected,
+      });
+    }
+
+    navigate("/survey/2");
+  }
 
   return (
     <div className="survey-page">
@@ -30,14 +59,20 @@ export function Survey1() {
           아직 정하지 않았어도 괜찮아요. 프로필을 보고 찾아드릴게요.
         </p>
 
+        {occLoading && (
+          <p style={{ color: "#9ca3af", fontSize: 13, textAlign: "center", margin: "8px 0" }}>
+            직무 목록 불러오는 중...
+          </p>
+        )}
+
         <div className="option-grid">
-          {OPTIONS.map((opt) => (
+          {allOptions.map(({ label }) => (
             <button
-              key={opt}
-              className={`option-btn${selected === opt ? " selected" : ""}`}
-              onClick={() => setSelected(opt)}
+              key={label}
+              className={`option-btn${selected === label ? " selected" : ""}`}
+              onClick={() => setSelected(label)}
             >
-              {opt}
+              {label}
             </button>
           ))}
         </div>
@@ -45,7 +80,7 @@ export function Survey1() {
         <button
           className="btn-next full-width"
           disabled={selected === null}
-          onClick={() => navigate("/survey/2")}
+          onClick={handleNext}
         >
           다음
         </button>

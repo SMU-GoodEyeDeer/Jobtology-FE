@@ -81,7 +81,7 @@ export function HomeFirst() {
               <span className="hero-badge">WELCOME TO CAREER NAVIGATOR</span>
               <h1 className="hero-name">반가워요! 첫 커리어 여정을 시작해볼까요?</h1>
               <p className="hero-sub">나에게 딱 맞는 AI 기반 커리어 로드맵과 필요한 역량을 지금 진단해 보세요.</p>
-              <button className="hero-btn hero-btn--filled">목표 직무 설정하기 →</button>
+              <button className="hero-btn hero-btn--filled" onClick={() => navigate("/survey/1")}>목표 직무 설정하기 →</button>
             </div>
           </section>
 
@@ -103,7 +103,7 @@ export function HomeFirst() {
                 어떤 직무가 나에게 어울릴지 고민이신가요?<br />
                 채용 공고 데이터 기반 AI 추천을 받아보세요.
               </p>
-              <button className="action-btn">상담 시작하기</button>
+              <button className="action-btn" onClick={() => navigate("/chat")}>상담 시작하기</button>
             </div>
 
             <div className="action-card">
@@ -113,7 +113,7 @@ export function HomeFirst() {
                 보유한 기술 스택이나 프로젝트를 입력하면<br />
                 현재 나의 목표 직무 적합도를 바로 계산해 드려요.
               </p>
-              <button className="action-btn">내 정보 입력하기</button>
+              <button className="action-btn" onClick={() => navigate("/myinfo")}>내 정보 입력하기</button>
             </div>
           </div>
         </main>

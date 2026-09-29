@@ -10,6 +10,8 @@ import analysisIcon from "../../assets/Bar chart.svg";
 import progressIcon from "../../assets/today.svg";
 import userIcon from "../../assets/User.svg";
 import chevronDownIcon from "../../assets/Chevron down.svg";
+import { profileApi, capabilitiesApi } from "../../services/api";
+import { useGoals } from "../../hooks/useGoals";
 
 const NAV_ITEMS = [
   { icon: homeIcon, label: "홈", path: "/home" },
@@ -20,103 +22,131 @@ const NAV_ITEMS = [
   { icon: userIcon, label: "내 정보", path: "/myinfo" },
 ];
 
-const GOAL_GROUPS = [
-  {
-    label: "AI·데이터",
-    items: [
-      { name: "AI 엔지니어", count: "500" },
-      { name: "데이터 분석", count: "680" },
-      { name: "데이터 엔지니어", count: "430" },
-      { name: "ML 엔지니어", count: "310" },
-    ],
-  },
-  {
-    label: "개발",
-    items: [
-      { name: "백엔드 개발", count: "1,240" },
-      { name: "프론트엔드", count: "720" },
-      { name: "풀스택 개발", count: "540" },
-      { name: "안드로이드", count: "290" },
-    ],
-  },
-  {
-    label: "인프라·보안",
-    items: [
-      { name: "DevOps", count: "388" },
-      { name: "클라우드 엔지니어", count: "260" },
-      { name: "정보보안", count: "248" },
-    ],
-  },
-];
-
-const GOAL_JOB_OPTIONS = ["AI 엔지니어", "백엔드 개발", "프론트엔드", "데이터 분석"];
-const PRIORITY_OPTIONS = ["빠르게 취업", "대기업", "스타트업"];
-const SITUATION_OPTIONS = [
-  "교육비 부담이 커요",
-  "학업·알바와 병행해야 해요",
-  "최대한 빨리 취업하고 싶어요",
-  "내세울 프로젝트·경험이 부족해요",
-  "전공과 다른 직무로 가려고 해요",
-];
 const SPEC_TABS = ["언어·도구", "자격증", "어학", "경력·활동"] as const;
 type SpecTab = typeof SPEC_TABS[number];
 
-const JOB_MATCHES = [
-  { label: "데이터 분석", pct: 71 },
-  { label: "AI 엔지니어", pct: 54 },
-  { label: "백엔드 개발", pct: 46 },
-];
+const TAB_TO_CATEGORY: Record<SpecTab, string> = {
+  "언어·도구": "LANGUAGE_TOOL",
+  "자격증": "CERTIFICATE",
+  "어학": "LANGUAGE",
+  "경력·활동": "EXPERIENCE",
+};
+
+interface CapabilityItem {
+  capability_id: string;
+  raw_text: string;
+  category: string;
+}
+
+const GRADES = ["1학년", "2학년", "3학년", "4학년"];
+const GRADE_TO_YEAR: Record<string, number> = { "1학년": 1, "2학년": 2, "3학년": 3, "4학년": 4 };
+const YEAR_TO_GRADE: Record<number, string> = { 1: "1학년", 2: "2학년", 3: "3학년", 4: "4학년" };
 
 export function MyInfo() {
   const navigate = useNavigate();
   const [activeNav, setActiveNav] = useState("내 정보");
   const [goalOpen, setGoalOpen] = useState(false);
-  const [selectedGoal, setSelectedGoal] = useState("AI 엔지니어");
   const goalRef = useRef<HTMLDivElement>(null);
+  const gradeDropdownRef = useRef<HTMLDivElement>(null);
 
-  const [major, setMajor] = useState("휴먼지능정보공학과");
-  const [goalJobs, setGoalJobs] = useState<string[]>(["AI 엔지니어"]);
-  const [priorities, setPriorities] = useState<string[]>(["빠르게 취업"]);
-  const [situation, setSituation] = useState("교육비 부담이 커요");
+  const { goals, selectedGoalId, setSelectedGoalId, selectedGoalName, getGoalName } = useGoals();
 
+  // Profile state
+  const [major, setMajor] = useState("");
+  const [grade, setGrade] = useState<string | null>(null);
+  const [gradeOpen, setGradeOpen] = useState(false);
+  const [profileVersion, setProfileVersion] = useState(1);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileSaved, setProfileSaved] = useState(false);
+
+  // Capabilities state
+  const [capabilities, setCapabilities] = useState<CapabilityItem[]>([]);
   const [specTab, setSpecTab] = useState<SpecTab>("언어·도구");
-  const [specItems, setSpecItems] = useState<Record<SpecTab, string[]>>({
-    "언어·도구": ["Python", "Java", "Git"],
-    "자격증": [],
-    "어학": [],
-    "경력·활동": [],
-  });
   const [specInput, setSpecInput] = useState("");
+  const [addingSpec, setAddingSpec] = useState(false);
 
-  const [jobMatchOpen, setJobMatchOpen] = useState(false);
+  // Load profile on mount
+  useEffect(() => {
+    profileApi.get().then((p) => {
+      setMajor(p.major_raw ?? "");
+      setGrade(p.year ? YEAR_TO_GRADE[p.year] ?? null : null);
+      setProfileVersion(p.version);
+    }).catch(console.error);
+  }, []);
+
+  // Load capabilities on mount
+  useEffect(() => {
+    capabilitiesApi.list().then((res) => {
+      setCapabilities(res.items as CapabilityItem[]);
+    }).catch(console.error);
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (goalRef.current && !goalRef.current.contains(e.target as Node)) {
         setGoalOpen(false);
       }
+      if (gradeDropdownRef.current && !gradeDropdownRef.current.contains(e.target as Node)) {
+        setGradeOpen(false);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  function toggleChip(list: string[], setList: (v: string[]) => void, value: string) {
-    setList(list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
+  async function handleSaveProfile() {
+    setSavingProfile(true);
+    try {
+      const updated = await profileApi.update({
+        expected_profile_version: profileVersion,
+        major_raw: major || "미입력",
+        ...(grade ? { year: GRADE_TO_YEAR[grade] } : {}),
+      });
+      setProfileVersion(updated.version);
+      setProfileSaved(true);
+      setTimeout(() => setProfileSaved(false), 2000);
+    } catch (err) {
+      console.error("Profile save failed:", err);
+    } finally {
+      setSavingProfile(false);
+    }
   }
 
-  function addSpecItem() {
+  async function handleAddSpec() {
     const trimmed = specInput.trim();
     if (!trimmed) return;
-    setSpecItems((prev) => ({ ...prev, [specTab]: [...prev[specTab], trimmed] }));
-    setSpecInput("");
+    setAddingSpec(true);
+    try {
+      const profile = await profileApi.get();
+      setProfileVersion(profile.version);
+      const created = await capabilitiesApi.create({
+        expected_profile_version: profile.version,
+        category: TAB_TO_CATEGORY[specTab],
+        raw_text: trimmed,
+      }) as CapabilityItem;
+      setCapabilities((prev) => [...prev, created]);
+      setSpecInput("");
+    } catch (err) {
+      console.error("Add capability failed:", err);
+    } finally {
+      setAddingSpec(false);
+    }
   }
 
-  function removeSpecItem(index: number) {
-    setSpecItems((prev) => ({
-      ...prev,
-      [specTab]: prev[specTab].filter((_, i) => i !== index),
-    }));
+  async function handleRemoveSpec(capabilityId: string) {
+    try {
+      const profile = await profileApi.get();
+      setProfileVersion(profile.version);
+      await capabilitiesApi.delete(capabilityId, { expected_profile_version: profile.version });
+      setCapabilities((prev) => prev.filter((c) => c.capability_id !== capabilityId));
+    } catch (err) {
+      console.error("Remove capability failed:", err);
+    }
   }
+
+  const filteredCaps = capabilities.filter(
+    (c) => c.category === TAB_TO_CATEGORY[specTab]
+  );
 
   return (
     <div className="home-layout">
@@ -142,20 +172,10 @@ export function MyInfo() {
 
         <div className="sidebar-bottom">
           <div className="satisfaction-card">
-            <p className="satisfaction-title">AI 엔지니어 충족률</p>
+            <p className="satisfaction-title">{selectedGoalName} 충족률</p>
             <div className="satisfaction-row">
-              <span className="satisfaction-label">필수 역량</span>
-              <span className="satisfaction-pct">54%</span>
-            </div>
-            <div className="progress-bar">
-              <div className="progress-fill progress-fill--blue" style={{ width: "54%" }} />
-            </div>
-            <div className="satisfaction-row" style={{ marginTop: "10px" }}>
-              <span className="satisfaction-label">우대 역량</span>
-              <span className="satisfaction-pct">24%</span>
-            </div>
-            <div className="progress-bar">
-              <div className="progress-fill progress-fill--green" style={{ width: "24%" }} />
+              <span className="satisfaction-label">역량</span>
+              <span className="satisfaction-pct">{capabilities.length}개 등록됨</span>
             </div>
           </div>
         </div>
@@ -167,23 +187,19 @@ export function MyInfo() {
           <h2 className="main-title">내 정보</h2>
           <div className="goal-wrapper" ref={goalRef}>
             <button className="goal-button" onClick={() => setGoalOpen((v) => !v)}>
-              {selectedGoal} <img src={chevronDownIcon} alt="▾" className="goal-arrow" />
+              {selectedGoalName}
+              <img src={chevronDownIcon} alt="▾" className="goal-arrow" />
             </button>
             {goalOpen && (
               <div className="goal-dropdown">
-                {GOAL_GROUPS.map((group) => (
-                  <div key={group.label}>
-                    <p className="goal-dropdown-group-label">{group.label}</p>
-                    {group.items.map((item) => (
-                      <div
-                        key={item.name}
-                        className={`goal-dropdown-item${selectedGoal === item.name ? " selected" : ""}`}
-                        onClick={() => { setSelectedGoal(item.name); setGoalOpen(false); }}
-                      >
-                        <span>{item.name}</span>
-                        <span className="goal-dropdown-count">공고 {item.count}건</span>
-                      </div>
-                    ))}
+                {goals.map((goal) => (
+                  <div
+                    key={goal.goal_id}
+                    className={`goal-dropdown-item${selectedGoalId === goal.goal_id ? " selected" : ""}`}
+                    onClick={() => { setSelectedGoalId(goal.goal_id); setGoalOpen(false); }}
+                  >
+                    <span>{getGoalName(goal)}</span>
+                    <span className="goal-dropdown-count">{goal.status}</span>
                   </div>
                 ))}
               </div>
@@ -198,7 +214,13 @@ export function MyInfo() {
             <div className="mi-profile-card">
               <div className="mi-card-header">
                 <p className="mi-card-title">내 프로필</p>
-                <button className="mi-save-btn">저장</button>
+                <button
+                  className="mi-save-btn"
+                  onClick={handleSaveProfile}
+                  disabled={savingProfile}
+                >
+                  {savingProfile ? "저장 중..." : profileSaved ? "저장됨!" : "저장"}
+                </button>
               </div>
 
               <div className="mi-field">
@@ -207,53 +229,37 @@ export function MyInfo() {
                   className="mi-input"
                   value={major}
                   onChange={(e) => setMajor(e.target.value)}
+                  placeholder="학과를 입력해주세요"
                 />
               </div>
 
               <div className="mi-field">
-                <label className="mi-label">현재 상태</label>
-                <input className="mi-input mi-input--disabled" value="학부 4학년" readOnly />
-              </div>
-
-              <div className="mi-field">
-                <label className="mi-label">목표 직무</label>
-                <div className="mi-chip-row">
-                  {GOAL_JOB_OPTIONS.map((opt) => (
-                    <button
-                      key={opt}
-                      className={`mi-chip ${goalJobs.includes(opt) ? "mi-chip--active" : ""}`}
-                      onClick={() => toggleChip(goalJobs, setGoalJobs, opt)}
-                    >
-                      {opt}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mi-field">
-                <label className="mi-label">무엇을 우선하나요</label>
-                <div className="mi-chip-row">
-                  {PRIORITY_OPTIONS.map((opt) => (
-                    <button
-                      key={opt}
-                      className={`mi-chip ${priorities.includes(opt) ? "mi-chip--active" : ""}`}
-                      onClick={() => toggleChip(priorities, setPriorities, opt)}
-                    >
-                      {opt}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mi-field">
-                <label className="mi-label">지금 내 상황</label>
-                <div className="mi-radio-grid">
-                  {SITUATION_OPTIONS.map((opt) => (
-                    <label key={opt} className="mi-radio-item" onClick={() => setSituation(opt)}>
-                      <span className={`mi-radio-dot ${situation === opt ? "mi-radio-dot--active" : ""}`} />
-                      <span className="mi-radio-label">{opt}</span>
-                    </label>
-                  ))}
+                <label className="mi-label">학년</label>
+                <div className="custom-select" ref={gradeDropdownRef}>
+                  <button
+                    className={`custom-select-trigger${gradeOpen ? " open" : ""}`}
+                    onClick={() => setGradeOpen((v) => !v)}
+                    type="button"
+                    style={{ width: "100%" }}
+                  >
+                    <span className={grade ? "" : "placeholder"}>{grade ?? "학년 선택"}</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                  </button>
+                  {gradeOpen && (
+                    <ul className="custom-select-list">
+                      {GRADES.map((g) => (
+                        <li
+                          key={g}
+                          className={`custom-select-option${grade === g ? " selected" : ""}`}
+                          onClick={() => { setGrade(g); setGradeOpen(false); }}
+                        >
+                          {g}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               </div>
 
@@ -262,7 +268,7 @@ export function MyInfo() {
               </button>
             </div>
 
-            {/* 내 스펙 */}
+            {/* 내 스펙 (Capabilities) */}
             <div className="mi-spec-card">
               <p className="mi-card-title">내 스펙</p>
               <p className="mi-spec-sub">추가한 항목은 경로 추천에 함께 반영돼요</p>
@@ -280,10 +286,10 @@ export function MyInfo() {
               </div>
 
               <ul className="mi-spec-list">
-                {specItems[specTab].map((item, i) => (
-                  <li key={i} className="mi-spec-item">
-                    <span className="mi-spec-item-label">{item}</span>
-                    <button className="mi-spec-remove" onClick={() => removeSpecItem(i)}>×</button>
+                {filteredCaps.map((cap) => (
+                  <li key={cap.capability_id} className="mi-spec-item">
+                    <span className="mi-spec-item-label">{cap.raw_text}</span>
+                    <button className="mi-spec-remove" onClick={() => handleRemoveSpec(cap.capability_id)}>×</button>
                   </li>
                 ))}
               </ul>
@@ -294,43 +300,16 @@ export function MyInfo() {
                   placeholder={`${specTab} 추가 (예: TensorFlow)`}
                   value={specInput}
                   onChange={(e) => setSpecInput(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") addSpecItem(); }}
+                  onKeyDown={(e) => { if (e.key === "Enter") handleAddSpec(); }}
+                  disabled={addingSpec}
                 />
-                <button className="mi-add-btn" onClick={addSpecItem}>추가</button>
+                <button className="mi-add-btn" onClick={handleAddSpec} disabled={addingSpec}>
+                  {addingSpec ? "..." : "추가"}
+                </button>
               </div>
             </div>
 
           </div>
-
-          {/* 적합 직무 찾기 */}
-          <section className="mi-job-match-card">
-            <div className="mi-job-match-header">
-              <p className="mi-job-match-title">어떤 직무가 맞을지 모르겠다면</p>
-              <button
-                className="mi-job-match-btn"
-                onClick={() => setJobMatchOpen((v) => !v)}
-              >
-                {jobMatchOpen ? "닫기" : "적합 직무 찾기"}
-              </button>
-            </div>
-
-            {jobMatchOpen && (
-              <div className="mi-job-match-results">
-                {JOB_MATCHES.map(({ label, pct }) => (
-                  <div key={label} className="mi-job-match-item">
-                    <div className="mi-job-match-row">
-                      <span className="mi-job-match-label">{label}</span>
-                      <span className="mi-job-match-pct">{pct}%</span>
-                    </div>
-                    <div className="progress-bar mi-match-bar">
-                      <div className="progress-fill progress-fill--blue" style={{ width: `${pct}%` }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-
         </main>
       </div>
     </div>

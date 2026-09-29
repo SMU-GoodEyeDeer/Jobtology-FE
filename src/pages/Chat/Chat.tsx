@@ -9,6 +9,9 @@ import analysisIcon from "../../assets/Bar chart.svg";
 import progressIcon from "../../assets/today.svg";
 import userIcon from "../../assets/User.svg";
 import chevronDownIcon from "../../assets/Chevron down.svg";
+import { capabilitiesApi } from "../../services/api";
+import { useGoals } from "../../hooks/useGoals";
+import { useRoadmap } from "../../hooks/useRoadmap";
 
 const NAV_ITEMS = [
   { icon: homeIcon, label: "홈", path: "/home" },
@@ -19,35 +22,6 @@ const NAV_ITEMS = [
   { icon: userIcon, label: "내 정보", path: "/myinfo" },
 ];
 
-const GOAL_GROUPS = [
-  {
-    label: "AI·데이터",
-    items: [
-      { name: "AI 엔지니어", count: "500" },
-      { name: "데이터 분석", count: "680" },
-      { name: "데이터 엔지니어", count: "430" },
-      { name: "ML 엔지니어", count: "310" },
-    ],
-  },
-  {
-    label: "개발",
-    items: [
-      { name: "백엔드 개발", count: "1,240" },
-      { name: "프론트엔드", count: "720" },
-      { name: "풀스택 개발", count: "540" },
-      { name: "안드로이드", count: "290" },
-    ],
-  },
-  {
-    label: "인프라·보안",
-    items: [
-      { name: "DevOps", count: "388" },
-      { name: "클라우드 엔지니어", count: "260" },
-      { name: "정보보안", count: "248" },
-    ],
-  },
-];
-
 const SUGGESTIONS = [
   "나는 뭐부터 준비해야 해?",
   "AI 엔지니어가 되려면 뭐가 부족해?",
@@ -56,31 +30,25 @@ const SUGGESTIONS = [
   "내 경로 추천해줘",
 ];
 
-const GRAPH_NODES = [
-  { id: "me", label: "나", sub: "현재 위치", cx: 210, cy: 460, r: 44, type: "me" },
-  { id: "goal", label: "AI 엔지니어", sub: "목표", cx: 270, cy: 290, r: 56, type: "goal" },
-  { id: "edu", label: "실무 교육", sub: "840시간", cx: 120, cy: 370, r: 42, type: "edu" },
-  { id: "pytorch", label: "PyTorch", sub: "중요", cx: 80, cy: 250, r: 38, type: "need" },
-  { id: "docker", label: "Docker", sub: "필요", cx: 155, cy: 110, r: 36, type: "need" },
-  { id: "aws", label: "AWS", sub: "우대", cx: 370, cy: 120, r: 36, type: "need" },
-  { id: "project", label: "프로젝트", sub: "포트폴리오", cx: 420, cy: 245, r: 38, type: "edu" },
-  { id: "sql", label: "SQL", sub: "보유", cx: 390, cy: 375, r: 36, type: "have" },
-  { id: "python", label: "Python", sub: "보유", cx: 355, cy: 470, r: 40, type: "have" },
-  { id: "git", label: "Git", sub: "보유", cx: 95, cy: 490, r: 36, type: "have" },
+// Static graph layout (SVG coordinates are fixed — labels updated dynamically)
+const BASE_GRAPH_NODES = [
+  { id: "me",      label: "나",         sub: "현재 위치",   cx: 210, cy: 460, r: 44, type: "me" },
+  { id: "goal",    label: "목표 직무",  sub: "목표",        cx: 270, cy: 290, r: 56, type: "goal" },
+  { id: "edu",     label: "실무 교육",  sub: "교육 과정",   cx: 120, cy: 370, r: 42, type: "edu" },
+  { id: "pytorch", label: "PyTorch",    sub: "필요",        cx: 80,  cy: 250, r: 38, type: "need" },
+  { id: "docker",  label: "Docker",     sub: "필요",        cx: 155, cy: 110, r: 36, type: "need" },
+  { id: "aws",     label: "AWS",        sub: "우대",        cx: 370, cy: 120, r: 36, type: "need" },
+  { id: "project", label: "프로젝트",   sub: "포트폴리오",  cx: 420, cy: 245, r: 38, type: "edu" },
+  { id: "sql",     label: "SQL",        sub: "보유",        cx: 390, cy: 375, r: 36, type: "have" },
+  { id: "python",  label: "Python",     sub: "보유",        cx: 355, cy: 470, r: 40, type: "have" },
+  { id: "git",     label: "Git",        sub: "보유",        cx: 95,  cy: 490, r: 36, type: "have" },
 ];
 
 const EDGES = [
-  ["me", "goal"],
-  ["goal", "edu"],
-  ["goal", "pytorch"],
-  ["goal", "docker"],
-  ["goal", "aws"],
-  ["goal", "project"],
-  ["goal", "sql"],
-  ["goal", "python"],
-  ["goal", "git"],
-  ["me", "python"],
-  ["me", "git"],
+  ["me", "goal"], ["goal", "edu"], ["goal", "pytorch"],
+  ["goal", "docker"], ["goal", "aws"], ["goal", "project"],
+  ["goal", "sql"], ["goal", "python"], ["goal", "git"],
+  ["me", "python"], ["me", "git"],
 ];
 
 const NODE_COLORS: Record<string, { bg: string; text: string }> = {
@@ -104,29 +72,15 @@ type Message =
   | { role: "ai-route" }
   | { role: "user"; text: string };
 
-const ROUTE_STEPS = [
-  { icon: "check", label: "Python", tag: "보유", tagColor: "#16a34a" },
-  { icon: "2", label: "실무 교육 과정", tag: "교육", tagColor: "#4f46e5" },
-  { icon: "3", label: "PyTorch", tag: null, tagColor: null },
-  { icon: "4", label: "개인 프로젝트", tag: "기간 가변", tagColor: null },
-  { icon: "5", label: "AI 인턴", tag: "경력", tagColor: null },
-  { icon: "star", label: "AI 엔지니어", tag: "목표", tagColor: "#4f46e5" },
-];
-
-const INITIAL_MESSAGES: Message[] = [
-  {
-    role: "ai",
-    text: "안녕하세요! **AI 엔지니어**를 목표로 하시는군요. 채용공고 5,000건을 분석해서 지금 무엇부터 하면 좋을지 알려드릴게요. 아래 질문을 눌러보거나 직접 물어보세요.",
-    chips: ["AI 엔지니어 보기"],
-  },
-  { role: "user", text: "나는 뭐 부터 준비해야해?" },
-  {
-    role: "ai",
-    text: "프로필을 보면 Python은 이미 갖추셨어요. 지금 급한건 PyTorch예요. AI 엔지니어 공고 500건 중 412건(82%)이 요구하는데 아직 없거든요. 실무 교육 과정을 들으면 Docker까지 함께 채울 수 있어요.",
-    chips: ["PyTorch 보기", "실무교육 보기"],
-  },
-  { role: "user", text: "그럼 그건 어떤식으로 하는게 좋아?" },
-];
+function makeInitialMessages(goalName: string): Message[] {
+  return [
+    {
+      role: "ai",
+      text: `안녕하세요! **${goalName}**를 목표로 하시는군요. 채용공고 데이터를 분석해서 지금 무엇부터 하면 좋을지 알려드릴게요. 아래 질문을 눌러보거나 직접 물어보세요.`,
+      chips: [`${goalName} 보기`],
+    },
+  ];
+}
 
 function renderText(text: string) {
   const parts = text.split(/(\*\*[^*]+\*\*)/g);
@@ -147,14 +101,20 @@ function AiIcon({ size = 16 }: { size?: number }) {
 
 export function Chat() {
   const navigate = useNavigate();
+  const { goals, selectedGoalId, setSelectedGoalId, selectedGoal, selectedGoalName, getGoalName } = useGoals();
+  const { activeRoadmap, progressPct } = useRoadmap(selectedGoalId);
+
   const [goalOpen, setGoalOpen] = useState(false);
-  const [selectedGoal, setSelectedGoal] = useState("AI 엔지니어");
   const [input, setInput] = useState("");
   const [selectedSuggestion, setSelectedSuggestion] = useState<string | null>(null);
   const [pytorchPopup, setPytorchPopup] = useState(false);
-  const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [pan, setPan] = useState({ x: 0, y: 0 });
+
+  // Capabilities → mark "have" nodes dynamically
+  const [ownedSkills, setOwnedSkills] = useState<Set<string>>(new Set());
+
   const goalRef = useRef<HTMLDivElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -163,14 +123,37 @@ export function Chat() {
   const panStartRef = useRef({ mouseX: 0, mouseY: 0, panX: 0, panY: 0 });
   const hasPannedRef = useRef(false);
 
+  // Load capabilities to mark owned skills in graph
+  useEffect(() => {
+    capabilitiesApi.list().then((res) => {
+      const items = res.items as Array<{ raw_text: string }>;
+      const names = new Set(items.map((c) => c.raw_text.toLowerCase()));
+      setOwnedSkills(names);
+    }).catch(console.error);
+  }, []);
+
+  // Update initial message when goal changes
+  useEffect(() => {
+    const goalName = selectedGoalName;
+    setMessages(makeInitialMessages(goalName));
+  }, [selectedGoal]);
+
+  // Build graph nodes: override type to "have" if capability is owned
+  const graphNodes = BASE_GRAPH_NODES.map((node) => {
+    if (node.id === "goal") {
+      return { ...node, label: selectedGoalName };
+    }
+    // If we own this skill, mark as "have"
+    if (node.type === "need" && ownedSkills.has(node.label.toLowerCase())) {
+      return { ...node, type: "have", sub: "보유" };
+    }
+    return node;
+  });
+
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (goalRef.current && !goalRef.current.contains(e.target as Node)) {
-        setGoalOpen(false);
-      }
-      if (popupRef.current && !popupRef.current.contains(e.target as Node)) {
-        setPytorchPopup(false);
-      }
+      if (goalRef.current && !goalRef.current.contains(e.target as Node)) setGoalOpen(false);
+      if (popupRef.current && !popupRef.current.contains(e.target as Node)) setPytorchPopup(false);
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -204,10 +187,6 @@ export function Chat() {
     if (svgRef.current) svgRef.current.style.cursor = "grabbing";
   }
 
-  function resetPan() {
-    setPan({ x: 0, y: 0 });
-  }
-
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
@@ -228,6 +207,21 @@ export function Chat() {
       }
     }, 1400);
   }
+
+  // Route steps from actual roadmap, or fallback static
+  const routeSteps = activeRoadmap?.steps.slice(0, 6).map((step, i) => ({
+    icon: step.state === "COMPLETED" ? "check" : String(i + 1),
+    label: step.title,
+    tag: step.state === "COMPLETED" ? "완료" : step.state === "IN_PROGRESS" ? "진행 중" : null,
+    tagColor: step.state === "COMPLETED" ? "#16a34a" : step.state === "IN_PROGRESS" ? "#4f46e5" : null,
+  })) ?? [
+    { icon: "check", label: "Python", tag: "보유", tagColor: "#16a34a" },
+    { icon: "2", label: "실무 교육 과정", tag: "교육", tagColor: "#4f46e5" },
+    { icon: "3", label: "PyTorch", tag: null, tagColor: null },
+    { icon: "4", label: "개인 프로젝트", tag: "기간 가변", tagColor: null },
+    { icon: "5", label: "AI 인턴", tag: "경력", tagColor: null },
+    { icon: "star", label: selectedGoalName, tag: "목표", tagColor: "#4f46e5" },
+  ];
 
   return (
     <div className="chat-layout">
@@ -253,20 +247,17 @@ export function Chat() {
 
         <div className="sidebar-bottom">
           <div className="satisfaction-card">
-            <p className="satisfaction-title">AI 엔지니어 충족률</p>
+            <p className="satisfaction-title">{selectedGoalName} 진행률</p>
             <div className="satisfaction-row">
-              <span className="satisfaction-label">필수 역량</span>
-              <span className="satisfaction-pct">54%</span>
+              <span className="satisfaction-label">로드맵</span>
+              <span className="satisfaction-pct">{progressPct}%</span>
             </div>
             <div className="progress-bar">
-              <div className="progress-fill progress-fill--blue" style={{ width: "54%" }} />
+              <div className="progress-fill progress-fill--blue" style={{ width: `${progressPct}%` }} />
             </div>
-            <div className="satisfaction-row" style={{ marginTop: "10px" }}>
-              <span className="satisfaction-label">우대 역량</span>
-              <span className="satisfaction-pct">24%</span>
-            </div>
-            <div className="progress-bar">
-              <div className="progress-fill progress-fill--green" style={{ width: "24%" }} />
+            <div className="satisfaction-row" style={{ marginTop: 10 }}>
+              <span className="satisfaction-label">보유 역량</span>
+              <span className="satisfaction-pct">{ownedSkills.size}개</span>
             </div>
           </div>
         </div>
@@ -278,24 +269,19 @@ export function Chat() {
           <h2 className="chat-title">AI 커리어 추천</h2>
           <div className="goal-wrapper" ref={goalRef}>
             <button className="goal-button" onClick={() => setGoalOpen((v) => !v)}>
-              {selectedGoal}
+              {selectedGoalName}
               <img src={chevronDownIcon} alt="▾" className="goal-arrow" />
             </button>
             {goalOpen && (
               <div className="goal-dropdown">
-                {GOAL_GROUPS.map((group) => (
-                  <div key={group.label}>
-                    <p className="goal-dropdown-group-label">{group.label}</p>
-                    {group.items.map((item) => (
-                      <div
-                        key={item.name}
-                        className={`goal-dropdown-item${selectedGoal === item.name ? " selected" : ""}`}
-                        onClick={() => { setSelectedGoal(item.name); setGoalOpen(false); }}
-                      >
-                        <span>{item.name}</span>
-                        <span className="goal-dropdown-count">공고 {item.count}건</span>
-                      </div>
-                    ))}
+                {goals.map((goal) => (
+                  <div
+                    key={goal.goal_id}
+                    className={`goal-dropdown-item${selectedGoalId === goal.goal_id ? " selected" : ""}`}
+                    onClick={() => { setSelectedGoalId(goal.goal_id); setGoalOpen(false); }}
+                  >
+                    <span>{getGoalName(goal)}</span>
+                    <span className="goal-dropdown-count">{goal.status}</span>
                   </div>
                 ))}
               </div>
@@ -306,7 +292,6 @@ export function Chat() {
         <div className="chat-body">
           {/* Left: Chat panel */}
           <div className="chat-panel">
-            {/* AI header */}
             <div className="ai-header-card">
               <div className="ai-header-icon">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -319,12 +304,11 @@ export function Chat() {
                 <p className="ai-header-name">커리어 추천 AI</p>
                 <p className="ai-header-status">
                   <span className="ai-status-dot" />
-                  채용공고 5,000건 · 지식그래프 연결됨
+                  채용공고 데이터 · 지식그래프 연결됨
                 </p>
               </div>
             </div>
 
-            {/* Messages */}
             <div className="chat-messages">
               {messages.map((msg, i) =>
                 msg.role === "ai-route" ? (
@@ -332,10 +316,12 @@ export function Chat() {
                     <div className="msg-ai-icon"><AiIcon /></div>
                     <div className="route-card">
                       <span className="route-card-badge">AI 추천 경로</span>
-                      <p className="route-card-title">AI 엔지니어까지 6단계</p>
-                      <p className="route-card-sub">AI 엔지니어 공고 500건 분석 기반</p>
+                      <p className="route-card-title">
+                        {selectedGoalName}까지 {routeSteps.length}단계
+                      </p>
+                      <p className="route-card-sub">목표 직무 공고 분석 기반</p>
                       <div className="route-steps">
-                        {ROUTE_STEPS.map((step, si) => (
+                        {routeSteps.map((step, si) => (
                           <div key={si} className="route-step">
                             <div className={`route-step-icon${step.icon === "check" ? " route-step-icon--check" : step.icon === "star" ? " route-step-icon--star" : step.icon === "2" ? " route-step-icon--active" : ""}`}>
                               {step.icon === "check" ? "✓" : step.icon === "star" ? "★" : step.icon}
@@ -349,7 +335,7 @@ export function Chat() {
                           </div>
                         ))}
                       </div>
-                      <button className="route-card-btn" onClick={() => navigate("/roadmap")}>이 경로로 내 로드맵 만들기</button>
+                      <button className="route-card-btn" onClick={() => navigate("/roadmap")}>로드맵에서 보기</button>
                     </div>
                   </div>
                 ) : msg.role === "ai" ? (
@@ -384,7 +370,6 @@ export function Chat() {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Suggestion chips */}
             <div className="chat-suggestions">
               {SUGGESTIONS.map((s) => (
                 <button
@@ -397,7 +382,6 @@ export function Chat() {
               ))}
             </div>
 
-            {/* Input bar */}
             <div className="chat-input-bar">
               <input
                 className="chat-input"
@@ -422,7 +406,7 @@ export function Chat() {
                 <p className="graph-title">추천 근거 그래프</p>
                 <p className="graph-sub">노드를 끌어 옮기고, 눌러서 상세를 보세요</p>
               </div>
-              <button className="graph-center-btn" onClick={resetPan}>중앙 정렬</button>
+              <button className="graph-center-btn" onClick={() => setPan({ x: 0, y: 0 })}>중앙 정렬</button>
             </div>
 
             <div className="graph-canvas">
@@ -435,10 +419,9 @@ export function Chat() {
                 style={{ cursor: "grab" }}
               >
                 <g transform={`translate(${pan.x}, ${pan.y})`}>
-                  {/* Edges */}
                   {EDGES.map(([a, b], i) => {
-                    const na = GRAPH_NODES.find((n) => n.id === a)!;
-                    const nb = GRAPH_NODES.find((n) => n.id === b)!;
+                    const na = graphNodes.find((n) => n.id === a)!;
+                    const nb = graphNodes.find((n) => n.id === b)!;
                     return (
                       <line
                         key={i}
@@ -449,8 +432,7 @@ export function Chat() {
                       />
                     );
                   })}
-                  {/* Nodes */}
-                  {GRAPH_NODES.map((node) => {
+                  {graphNodes.map((node) => {
                     const color = NODE_COLORS[node.type];
                     return (
                       <g
@@ -493,35 +475,22 @@ export function Chat() {
               </svg>
             </div>
 
-            {/* PyTorch popup */}
             {pytorchPopup && (
               <div className="node-popup" ref={popupRef}>
                 <button className="node-popup-close" onClick={() => setPytorchPopup(false)}>✕</button>
-                <span className="node-popup-badge">필요 역량</span>
+                <span className="node-popup-badge">
+                  {ownedSkills.has("pytorch") ? "보유 역량" : "필요 역량"}
+                </span>
                 <p className="node-popup-title">PyTorch</p>
                 <p className="node-popup-desc">
-                  공고 82%가 요구하지만 아직 없어요.<br />
-                  실무 교육이나 프로젝트로 채울 수 있어요.
+                  {ownedSkills.has("pytorch")
+                    ? "이미 보유한 역량이에요."
+                    : "공고 82%가 요구하지만 아직 없어요.\n실무 교육이나 프로젝트로 채울 수 있어요."}
                 </p>
-                <div className="node-popup-stats">
-                  <div className="node-popup-stat">
-                    <span className="node-popup-stat-label">요구 비율</span>
-                    <span className="node-popup-stat-value">82%</span>
-                  </div>
-                  <div className="node-popup-stat">
-                    <span className="node-popup-stat-label">지지 공고</span>
-                    <span className="node-popup-stat-value">412건</span>
-                  </div>
-                  <div className="node-popup-stat">
-                    <span className="node-popup-stat-label">대체 가능</span>
-                    <span className="node-popup-stat-value">TensorFlow</span>
-                  </div>
-                </div>
-                <button className="node-popup-btn">로드맵에서 보기</button>
+                <button className="node-popup-btn" onClick={() => navigate("/roadmap")}>로드맵에서 보기</button>
               </div>
             )}
 
-            {/* Legend */}
             <div className="graph-legend">
               {LEGEND.map(({ type, label }) => (
                 <span key={type} className="legend-item">
@@ -533,9 +502,8 @@ export function Chat() {
           </div>
         </div>
 
-        {/* Bottom action bar */}
         <div className="chat-action-bar">
-          <button className="chat-action-btn">이 추천으로 내 로드맵 만들기</button>
+          <button className="chat-action-btn" onClick={() => navigate("/roadmap")}>이 추천으로 내 로드맵 만들기</button>
           <p className="chat-action-desc">
             그래프에서 찾은 경로를 순서대로 정리해드려요 · AI 상담 기반으로 표시돼요
           </p>

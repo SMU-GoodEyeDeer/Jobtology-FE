@@ -406,3 +406,24 @@
   color: #9ca3af;
   margin: 0;
 }
+
+/* ── Step list in expanded view ── */
+.pg-fulfillment-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 14px;
+}
+.pg-step-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.pg-step-dot--completed { background: #22c55e; }
+.pg-step-dot--in_progress { background: #3b82f6; }
+.pg-step-dot--todo { background: #d1d5db; }
+.pg-step-name { flex: 1; color: #374151; }
+.pg-step-state { font-size: 12px; color: #9ca3af; }
