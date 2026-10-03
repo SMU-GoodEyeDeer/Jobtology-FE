@@ -10,8 +10,10 @@ import analysisIcon from "../../assets/Bar chart.svg";
 import progressIcon from "../../assets/today.svg";
 import userIcon from "../../assets/User.svg";
 import chevronDownIcon from "../../assets/Chevron down.svg";
-import { profileApi, capabilitiesApi } from "../../services/api";
+import { profileApi, capabilitiesApi, authApi, goalsApi } from "../../services/api";
 import { useGoals } from "../../hooks/useGoals";
+import type { GoalStatus } from "../../services/types";
+import { useSession } from "../../context/SessionContext";
 
 const NAV_ITEMS = [
   { icon: homeIcon, label: "홈", path: "/home" },
@@ -44,7 +46,12 @@ const YEAR_TO_GRADE: Record<number, string> = { 1: "1학년", 2: "2학년", 3: "
 
 export function MyInfo() {
   const navigate = useNavigate();
+  const { session, loading: sessionLoading } = useSession();
   const [activeNav, setActiveNav] = useState("내 정보");
+
+  useEffect(() => {
+    if (!sessionLoading && !session) navigate("/");
+  }, [session, sessionLoading, navigate]);
   const [goalOpen, setGoalOpen] = useState(false);
   const goalRef = useRef<HTMLDivElement>(null);
   const gradeDropdownRef = useRef<HTMLDivElement>(null);
@@ -58,6 +65,33 @@ export function MyInfo() {
   const [profileVersion, setProfileVersion] = useState(1);
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
+
+  // Goal edit state
+  const [updatingGoalId, setUpdatingGoalId] = useState<string | null>(null);
+
+  async function handleGoalStatusChange(goalId: string, newStatus: GoalStatus) {
+    const goal = goals.find((g) => g.goal_id === goalId);
+    if (!goal) return;
+    setUpdatingGoalId(goalId);
+    try {
+      const profile = await profileApi.get();
+      await goalsApi.update(goalId, {
+        expected_profile_version: profile.version,
+        goal_mode: goal.goal_mode,
+        target_by: goal.target_by,
+        timezone: goal.timezone,
+        original_time_phrase: goal.original_time_phrase,
+        ...(goal.occupation_id ? { occupation_id: goal.occupation_id } : {}),
+        status: newStatus,
+      });
+      // goals는 useGoals hook이 관리 — 페이지 새로고침으로 반영
+      window.location.reload();
+    } catch (err) {
+      console.error("Goal update failed:", err);
+    } finally {
+      setUpdatingGoalId(null);
+    }
+  }
 
   // Capabilities state
   const [capabilities, setCapabilities] = useState<CapabilityItem[]>([]);
@@ -178,6 +212,9 @@ export function MyInfo() {
               <span className="satisfaction-pct">{capabilities.length}개 등록됨</span>
             </div>
           </div>
+          <button className="sidebar-logout-btn" onClick={async () => { await authApi.logout(); navigate("/"); }}>
+            로그아웃
+          </button>
         </div>
       </aside>
 
@@ -208,6 +245,43 @@ export function MyInfo() {
         </header>
 
         <main className="main-content">
+          {/* 목표 관리 */}
+          {goals.length > 0 && (
+            <div className="mi-goals-card">
+              <p className="mi-card-title">내 목표</p>
+              {goals.map((goal) => (
+                <div key={goal.goal_id} className="mi-goal-item">
+                  <div className="mi-goal-info">
+                    <span className="mi-goal-name">{getGoalName(goal)}</span>
+                    <span className={`mi-goal-badge mi-goal-badge--${goal.status.toLowerCase()}`}>
+                      {goal.status === "ACTIVE" ? "활성" : goal.status === "ARCHIVED" ? "보관됨" : "임시저장"}
+                    </span>
+                  </div>
+                  <div className="mi-goal-actions">
+                    {goal.status === "ACTIVE" && (
+                      <button
+                        className="mi-goal-archive-btn"
+                        disabled={updatingGoalId === goal.goal_id}
+                        onClick={() => handleGoalStatusChange(goal.goal_id, "ARCHIVED")}
+                      >
+                        {updatingGoalId === goal.goal_id ? "..." : "보관"}
+                      </button>
+                    )}
+                    {goal.status === "ARCHIVED" && (
+                      <button
+                        className="mi-goal-archive-btn"
+                        disabled={updatingGoalId === goal.goal_id}
+                        onClick={() => handleGoalStatusChange(goal.goal_id, "ACTIVE")}
+                      >
+                        {updatingGoalId === goal.goal_id ? "..." : "활성화"}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className="mi-two-col">
 
             {/* 내 프로필 */}

@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Survey.css";
 import logoIcon from "../../assets/logo.svg";
 import { useSurvey } from "../../context/SurveyContext";
 import { useOccupations } from "../../context/OccupationsContext";
+import { useSession } from "../../context/SessionContext";
 
 const FALLBACK_OPTIONS = [
   "AI 엔지니어",
@@ -17,8 +18,13 @@ const DISCOVERY_LABEL = "아직 모르겠어요";
 
 export function Survey1() {
   const navigate = useNavigate();
+  const { session, loading: sessionLoading } = useSession();
   const { update } = useSurvey();
   const { occupations, loading: occLoading } = useOccupations();
+
+  useEffect(() => {
+    if (!sessionLoading && !session) navigate("/");
+  }, [session, sessionLoading, navigate]);
   const [selected, setSelected] = useState<string | null>(null);
 
   // Use API occupations if available, otherwise fallback

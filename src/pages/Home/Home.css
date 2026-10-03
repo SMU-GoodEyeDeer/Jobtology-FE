@@ -98,6 +98,28 @@
 /* Sidebar bottom */
 .sidebar-bottom {
   padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sidebar-logout-btn {
+  width: 100%;
+  padding: 10px;
+  background: none;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  color: #6b7280;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.15s, color 0.15s;
+}
+
+.sidebar-logout-btn:hover {
+  background: #fee2e2;
+  color: #ef4444;
+  border-color: #fca5a5;
 }
 
 .satisfaction-card {

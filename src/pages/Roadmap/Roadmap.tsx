@@ -10,10 +10,11 @@ import analysisIcon from "../../assets/Bar chart.svg";
 import progressIcon from "../../assets/today.svg";
 import userIcon from "../../assets/User.svg";
 import chevronDownIcon from "../../assets/Chevron down.svg";
-import { routePrefsApi, profileApi, roadmapsApi } from "../../services/api";
+import { routePrefsApi, profileApi, roadmapsApi, catalogV2Api, authApi } from "../../services/api";
 import { useGoals } from "../../hooks/useGoals";
 import { useRoadmap } from "../../hooks/useRoadmap";
-import type { StepState } from "../../services/types";
+import { useSession } from "../../context/SessionContext";
+import type { StepState, Neo4jPublicationResponse } from "../../services/types";
 
 const NAV_ITEMS = [
   { icon: homeIcon, label: "홈", path: "/home" },
@@ -34,7 +35,12 @@ const CONDITION_CHIP_KEYS = [
 
 export function Roadmap() {
   const navigate = useNavigate();
+  const { session, loading: sessionLoading } = useSession();
   const [activeNav, setActiveNav] = useState("내 로드맵");
+
+  useEffect(() => {
+    if (!sessionLoading && !session) navigate("/");
+  }, [session, sessionLoading, navigate]);
   const [goalOpen, setGoalOpen] = useState(false);
   const goalRef = useRef<HTMLDivElement>(null);
 
@@ -44,6 +50,15 @@ export function Roadmap() {
   const [activeChips, setActiveChips] = useState<Set<string>>(new Set());
   const [savingPrefs, setSavingPrefs] = useState(false);
   const [editingRoadmapId, setEditingRoadmapId] = useState<string | null>(null);
+
+  // v2 publications (route_planning 가능한 것만)
+  const [routePublications, setRoutePublications] = useState<Neo4jPublicationResponse[]>([]);
+
+  useEffect(() => {
+    catalogV2Api.listPublications({ limit: 100 }).then((list) => {
+      setRoutePublications(list.filter((p) => p.capabilities.route_planning));
+    }).catch(console.error);
+  }, []);
 
   // Load route preferences to populate chips
   useEffect(() => {
@@ -151,6 +166,9 @@ export function Roadmap() {
               <div className="progress-fill progress-fill--blue" style={{ width: `${progressPct}%` }} />
             </div>
           </div>
+          <button className="sidebar-logout-btn" onClick={async () => { await authApi.logout(); navigate("/"); }}>
+            로그아웃
+          </button>
         </div>
       </aside>
 
@@ -304,6 +322,35 @@ export function Roadmap() {
                       </button>
                     </div>
                   )}
+                </div>
+              ))}
+            </section>
+          )}
+
+          {/* 로드맵 활용 가능한 학습 자료 */}
+          {routePublications.length > 0 && (
+            <section className="rm-card">
+              <div className="rm-saved-header">
+                <p className="rm-section-title">활용 가능한 학습 자료</p>
+                <p className="rm-section-sub">로드맵 경로 계획에 활용할 수 있는 자료예요.</p>
+              </div>
+              {routePublications.map((pub) => (
+                <div key={pub.publication_id} className="rm-saved-card">
+                  <div className="rm-saved-top">
+                    <div>
+                      <span className={`rm-badge ${pub.source_state === "ACTIVE" ? "rm-badge--profile" : ""}`}>
+                        {pub.source_state}
+                      </span>
+                      <div className="rm-saved-title-row">
+                        <p className="rm-saved-title" style={{ fontSize: 13 }}>{pub.publication_id}</p>
+                        <div style={{ display: "flex", gap: 4 }}>
+                          {pub.capabilities.editorial_analysis && (
+                            <span className="rm-badge" style={{ fontSize: 11 }}>역량 분석</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               ))}
             </section>
