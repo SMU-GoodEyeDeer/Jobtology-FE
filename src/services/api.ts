@@ -18,6 +18,9 @@ import type {
   RoadmapListResponse,
   RoadmapDetailResponse,
   RoadmapResponse,
+  Neo4jOccupationResponse,
+  Neo4jPublicationResponse,
+  Neo4jNcsAlignmentResponse,
 } from "./types";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "https://jobtology.yeongmin.net/api";
@@ -154,6 +157,24 @@ export const roadmapsApi = {
     expected_roadmap_version: number;
     expected_profile_version: number;
   }) => patch<RoadmapResponse>(`/v1/roadmaps/${roadmapId}/steps/${stepId}`, body),
+};
+
+// ─── v2 Catalog ──────────────────────────────────────────────────────────────
+function buildQs(params?: { limit?: number; offset?: number }) {
+  const qs = new URLSearchParams();
+  if (params?.limit != null) qs.set("limit", String(params.limit));
+  if (params?.offset != null) qs.set("offset", String(params.offset));
+  const s = qs.toString();
+  return s ? `?${s}` : "";
+}
+
+export const catalogV2Api = {
+  listOccupations: (params?: { limit?: number; offset?: number }) =>
+    get<Neo4jOccupationResponse[]>(`/v2/occupations${buildQs(params)}`),
+  listPublications: (params?: { limit?: number; offset?: number }) =>
+    get<Neo4jPublicationResponse[]>(`/v2/publications${buildQs(params)}`),
+  listAlignments: (publicationId: string, params?: { limit?: number; offset?: number }) =>
+    get<Neo4jNcsAlignmentResponse[]>(`/v2/publications/${publicationId}/alignments${buildQs(params)}`),
 };
 
 // ─── Capabilities ────────────────────────────────────────────────────────────

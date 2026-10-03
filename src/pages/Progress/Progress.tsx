@@ -12,6 +12,8 @@ import userIcon from "../../assets/User.svg";
 import chevronDownIcon from "../../assets/Chevron down.svg";
 import { useGoals } from "../../hooks/useGoals";
 import { useRoadmap } from "../../hooks/useRoadmap";
+import { useSession } from "../../context/SessionContext";
+import { authApi } from "../../services/api";
 
 const NAV_ITEMS = [
   { icon: homeIcon, label: "홈", path: "/home" },
@@ -27,7 +29,12 @@ type SummaryTab = typeof SUMMARY_TABS[number];
 
 export function Progress() {
   const navigate = useNavigate();
+  const { session, loading: sessionLoading } = useSession();
   const [activeNav, setActiveNav] = useState("진행 상황");
+
+  useEffect(() => {
+    if (!sessionLoading && !session) navigate("/");
+  }, [session, sessionLoading, navigate]);
   const [goalOpen, setGoalOpen] = useState(false);
   const [fulfillmentExpanded, setFulfillmentExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState<SummaryTab>("이력서·포트폴리오");
@@ -98,6 +105,9 @@ export function Progress() {
               <div className="progress-fill progress-fill--blue" style={{ width: `${progressPct}%` }} />
             </div>
           </div>
+          <button className="sidebar-logout-btn" onClick={async () => { await authApi.logout(); navigate("/"); }}>
+            로그아웃
+          </button>
         </div>
       </aside>
 

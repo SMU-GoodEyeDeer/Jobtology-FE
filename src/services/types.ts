@@ -158,6 +158,43 @@ export interface RoadmapListResponse {
   items: RoadmapResponse[];
 }
 
+// ─── v2 Catalog ──────────────────────────────────────────────────────────────
+export interface Neo4jOccupationResponse {
+  id: string;
+  code: string;
+  kind: string;
+  name: string;
+}
+
+export interface SourceCapabilities {
+  source: boolean;
+  catalog: boolean;
+  editorial_analysis: boolean;
+  route_planning: boolean;
+}
+
+export interface Neo4jPublicationResponse {
+  publication_id: string;
+  source_state: string;
+  capabilities: SourceCapabilities;
+}
+
+export interface Neo4jNcsCompetencyResponse {
+  id: string;
+  code: string;
+  kind: string;
+  name: string;
+}
+
+export interface Neo4jNcsAlignmentResponse {
+  publication_id: string;
+  source_enrichment_id: string;
+  source_posting_id: string;
+  source_current: boolean;
+  accepted: boolean;
+  competency: Neo4jNcsCompetencyResponse;
+}
+
 // ─── API Error ────────────────────────────────────────────────────────────────
 export interface ApiError {
   status: number;

@@ -9,9 +9,10 @@ import analysisIcon from "../../assets/Bar chart.svg";
 import progressIcon from "../../assets/today.svg";
 import userIcon from "../../assets/User.svg";
 import chevronDownIcon from "../../assets/Chevron down.svg";
-import { capabilitiesApi } from "../../services/api";
+import { capabilitiesApi, authApi } from "../../services/api";
 import { useGoals } from "../../hooks/useGoals";
 import { useRoadmap } from "../../hooks/useRoadmap";
+import { useSession } from "../../context/SessionContext";
 
 const NAV_ITEMS = [
   { icon: homeIcon, label: "홈", path: "/home" },
@@ -101,7 +102,12 @@ function AiIcon({ size = 16 }: { size?: number }) {
 
 export function Chat() {
   const navigate = useNavigate();
+  const { session, loading: sessionLoading } = useSession();
   const { goals, selectedGoalId, setSelectedGoalId, selectedGoal, selectedGoalName, getGoalName } = useGoals();
+
+  useEffect(() => {
+    if (!sessionLoading && !session) navigate("/");
+  }, [session, sessionLoading, navigate]);
   const { activeRoadmap, progressPct } = useRoadmap(selectedGoalId);
 
   const [goalOpen, setGoalOpen] = useState(false);
@@ -260,6 +266,9 @@ export function Chat() {
               <span className="satisfaction-pct">{ownedSkills.size}개</span>
             </div>
           </div>
+          <button className="sidebar-logout-btn" onClick={async () => { await authApi.logout(); navigate("/"); }}>
+            로그아웃
+          </button>
         </div>
       </aside>
 

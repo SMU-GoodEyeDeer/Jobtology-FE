@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import "./Survey.css";
 import logoIcon from "../../assets/logo.svg";
 import { useSurvey } from "../../context/SurveyContext";
+import { useSession } from "../../context/SessionContext";
 
 const GRADES = ["1학년", "2학년", "3학년", "4학년"];
 const GRADE_TO_YEAR: Record<string, number> = {
@@ -14,7 +15,12 @@ const GRADE_TO_YEAR: Record<string, number> = {
 
 export function Survey2() {
   const navigate = useNavigate();
+  const { session, loading: sessionLoading } = useSession();
   const { update } = useSurvey();
+
+  useEffect(() => {
+    if (!sessionLoading && !session) navigate("/");
+  }, [session, sessionLoading, navigate]);
   const [major, setMajor] = useState("");
   const [grade, setGrade] = useState<string | null>(null);
   const [open, setOpen] = useState(false);

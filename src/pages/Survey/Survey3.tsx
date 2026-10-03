@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Survey.css";
 import logoIcon from "../../assets/logo.svg";
@@ -33,6 +33,11 @@ export function Survey3() {
   );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const { loading: sessionLoading } = useSession();
+  useEffect(() => {
+    if (!sessionLoading && !session) navigate("/");
+  }, [session, sessionLoading, navigate]);
 
   const toggle = (key: string) =>
     setToggles((prev) => ({ ...prev, [key]: !prev[key] }));

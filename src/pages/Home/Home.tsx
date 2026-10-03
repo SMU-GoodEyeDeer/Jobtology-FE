@@ -13,7 +13,7 @@ import chevronDownIcon from "../../assets/Chevron down.svg";
 import notificationsIcon from "../../assets/notifications.svg";
 import clockIcon from "../../assets/Clock.svg";
 import checkIcon from "../../assets/check.svg";
-import { dashboardApi } from "../../services/api";
+import { dashboardApi, authApi } from "../../services/api";
 import type { DashboardResponse } from "../../services/types";
 import { useSession } from "../../context/SessionContext";
 import { useGoals } from "../../hooks/useGoals";
@@ -29,7 +29,11 @@ const NAV_ITEMS = [
 
 export function Home() {
   const navigate = useNavigate();
-  const { session } = useSession();
+  const { session, loading: sessionLoading } = useSession();
+
+  useEffect(() => {
+    if (!sessionLoading && !session) navigate("/");
+  }, [session, sessionLoading, navigate]);
   const [activeNav, setActiveNav] = useState("홈");
   const [goalOpen, setGoalOpen] = useState(false);
   const [dashboard, setDashboard] = useState<DashboardResponse | null>(null);
@@ -90,6 +94,9 @@ export function Home() {
               <div className="progress-fill progress-fill--blue" style={{ width: `${progressPct}%` }} />
             </div>
           </div>
+          <button className="sidebar-logout-btn" onClick={async () => { await authApi.logout(); navigate("/"); }}>
+            로그아웃
+          </button>
         </div>
       </aside>
 

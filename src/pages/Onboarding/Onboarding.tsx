@@ -1,11 +1,27 @@
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Onboarding.css";
 import UsersIcon from "../../assets/Users.svg";
 import CheckCircleIcon from "../../assets/Check circle.svg";
 import RefreshCcwIcon from "../../assets/Refresh ccw.svg";
+import { useSession } from "../../context/SessionContext";
+import { profileApi } from "../../services/api";
+
+const GOOGLE_LOGIN_URL = "https://jobtology.yeongmin.net/api/v1/auth/google/login";
 
 export function Onboarding() {
   const navigate = useNavigate();
+  const { session, loading } = useSession();
+
+  useEffect(() => {
+    if (loading || !session) return;
+    profileApi.get().then((profile) => {
+      navigate(profile.major_raw ? "/home" : "/survey/1");
+    }).catch(() => navigate("/survey/1"));
+  }, [session, loading, navigate]);
+
+  if (loading || session) return null;
+
   return (
     <div className="onboarding">
       <div className="hero">
@@ -19,7 +35,7 @@ export function Onboarding() {
           채용공고 데이터를 근거로, 내 상황에 맞는 목표 직무까지의 경로를
           제시하는 AI 커리어 내비게이션이에요!
         </p>
-        <button className="cta-btn" onClick={() => navigate("/survey/1")}>1분 만에 내 경로 찾기</button>
+        <button className="cta-btn" onClick={() => { window.location.href = GOOGLE_LOGIN_URL; }}>1분 만에 내 경로 찾기</button>
         <p className="caption">빠른 설문조사로 간편하게!</p>
       </div>
 

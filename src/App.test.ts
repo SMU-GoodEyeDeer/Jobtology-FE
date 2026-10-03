@@ -1,8 +1,12 @@
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter } from 'react-router-dom'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { Onboarding } from './pages/Onboarding/Onboarding'
+
+vi.mock('./context/SessionContext', () => ({
+  useSession: () => ({ session: null, loading: false, error: null, refresh: async () => {} }),
+}))
 
 describe('Onboarding page', () => {
   it('renders the hero section', () => {

@@ -10,9 +10,10 @@ import analysisIcon from "../../assets/Bar chart.svg";
 import progressIcon from "../../assets/today.svg";
 import userIcon from "../../assets/User.svg";
 import chevronDownIcon from "../../assets/Chevron down.svg";
-import { analysisApi, profileApi } from "../../services/api";
+import { analysisApi, profileApi, catalogV2Api, authApi } from "../../services/api";
 import { useGoals } from "../../hooks/useGoals";
-import type { AnalysisResponse } from "../../services/types";
+import { useSession } from "../../context/SessionContext";
+import type { AnalysisResponse, Neo4jPublicationResponse, Neo4jNcsAlignmentResponse } from "../../services/types";
 
 const NAV_ITEMS = [
   { icon: homeIcon, label: "홈", path: "/home" },
@@ -27,7 +28,12 @@ type PollState = "idle" | "pending" | "running" | "completed" | "failed";
 
 export function Analysis() {
   const navigate = useNavigate();
+  const { session, loading: sessionLoading } = useSession();
   const [activeNav, setActiveNav] = useState("역량 분석");
+
+  useEffect(() => {
+    if (!sessionLoading && !session) navigate("/");
+  }, [session, sessionLoading, navigate]);
   const [goalOpen, setGoalOpen] = useState(false);
   const goalRef = useRef<HTMLDivElement>(null);
 
@@ -36,6 +42,36 @@ export function Analysis() {
   const [pollState, setPollState] = useState<PollState>("idle");
   const [analysisResult, setAnalysisResult] = useState<AnalysisResponse | null>(null);
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // v2 publications (editorial_analysis 가능한 것만)
+  const [publications, setPublications] = useState<Neo4jPublicationResponse[]>([]);
+  const [selectedPubId, setSelectedPubId] = useState<string | null>(null);
+  const [alignments, setAlignments] = useState<Neo4jNcsAlignmentResponse[]>([]);
+  const [alignmentsLoading, setAlignmentsLoading] = useState(false);
+
+  useEffect(() => {
+    catalogV2Api.listPublications({ limit: 100 }).then((list) => {
+      setPublications(list.filter((p) => p.capabilities.editorial_analysis));
+    }).catch(console.error);
+  }, []);
+
+  async function loadAlignments(pubId: string) {
+    if (selectedPubId === pubId) {
+      setSelectedPubId(null);
+      setAlignments([]);
+      return;
+    }
+    setSelectedPubId(pubId);
+    setAlignmentsLoading(true);
+    try {
+      const data = await catalogV2Api.listAlignments(pubId, { limit: 100 });
+      setAlignments(data.filter((a) => a.accepted));
+    } catch {
+      setAlignments([]);
+    } finally {
+      setAlignmentsLoading(false);
+    }
+  }
 
   // Trigger analysis for selected goal
   const triggerAnalysis = useCallback(async () => {
@@ -154,6 +190,9 @@ export function Analysis() {
               <div className="progress-fill progress-fill--green" style={{ width: `${preferred_pct ?? 0}%` }} />
             </div>
           </div>
+          <button className="sidebar-logout-btn" onClick={async () => { await authApi.logout(); navigate("/"); }}>
+            로그아웃
+          </button>
         </div>
       </aside>
 
@@ -273,6 +312,64 @@ export function Analysis() {
               </div>
             )}
           </section>
+
+          {/* NCS 연계 학습 자료 */}
+          {publications.length > 0 && (
+            <section className="an-skills-card">
+              <div className="an-skills-header-row" style={{ marginBottom: 8 }}>
+                <span className="an-col" style={{ fontWeight: 600 }}>NCS 연계 학습 자료</span>
+                <span style={{ fontSize: 12, color: "#9ca3af" }}>항목을 클릭하면 연계 역량을 볼 수 있어요</span>
+              </div>
+              {publications.map((pub) => (
+                <div key={pub.publication_id}>
+                  <div
+                    className="an-skill-row"
+                    style={{ cursor: "pointer" }}
+                    onClick={() => loadAlignments(pub.publication_id)}
+                  >
+                    <div className="an-col an-col--name">
+                      <span className="an-skill-name" style={{ fontSize: 13 }}>{pub.publication_id}</span>
+                      <span className={`an-skill-badge ${pub.capabilities.route_planning ? "an-skill-badge--required" : "an-skill-badge--preferred"}`}>
+                        {pub.capabilities.route_planning ? "로드맵 활용 가능" : "분석용"}
+                      </span>
+                    </div>
+                    <div className="an-col" style={{ color: "#6b7280", fontSize: 12 }}>
+                      {pub.source_state}
+                    </div>
+                    <div className="an-col" style={{ color: "#3b82f6", fontSize: 12 }}>
+                      {selectedPubId === pub.publication_id ? "▲ 접기" : "▼ 역량 보기"}
+                    </div>
+                  </div>
+                  {selectedPubId === pub.publication_id && (
+                    <div style={{ padding: "8px 16px 12px", background: "#f9fafb", borderRadius: 8, margin: "0 0 8px" }}>
+                      {alignmentsLoading ? (
+                        <span style={{ color: "#9ca3af", fontSize: 13 }}>불러오는 중...</span>
+                      ) : alignments.length === 0 ? (
+                        <span style={{ color: "#9ca3af", fontSize: 13 }}>연계된 NCS 역량이 없어요.</span>
+                      ) : (
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                          {alignments.map((a) => (
+                            <span
+                              key={a.source_enrichment_id}
+                              style={{
+                                background: "#dbeafe",
+                                color: "#1d4ed8",
+                                borderRadius: 12,
+                                padding: "2px 10px",
+                                fontSize: 12,
+                              }}
+                            >
+                              {a.competency.name}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </section>
+          )}
 
           <div className="an-bottom-actions">
             <button className="an-goto-roadmap-btn" onClick={() => navigate("/roadmap")}>
