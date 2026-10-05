@@ -19,9 +19,10 @@ describe("SurveyCapabilities checklist step", () => {
     expect(html).toContain("항목을 불러오는 중");
   });
 
-  it("always offers a skip and labels answers as self-reported", () => {
+  it("marks the step as required and does not offer a free skip", () => {
     const html = renderStep();
-    expect(html).toContain("건너뛸게요");
+    expect(html).toContain("필수");
+    expect(html).not.toContain("건너뛸게요");
     expect(html).toContain("본인 응답으로 저장");
   });
 

@@ -37,10 +37,16 @@ export function Survey2() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const missing = [
+    ...(major.trim() ? [] : ["학과"]),
+    ...(grade ? [] : ["학년"]),
+  ];
+
   function handleNext() {
+    if (missing.length > 0 || !grade) return;
     update({
-      majorRaw: major || "미입력",
-      year: grade ? GRADE_TO_YEAR[grade] : null,
+      majorRaw: major.trim(),
+      year: GRADE_TO_YEAR[grade],
     });
     navigate("/survey/4");
   }
@@ -54,11 +60,11 @@ export function Survey2() {
 
       <div className="survey-card">
         <p className="survey-step">{hasChecklistStep ? "STEP 3 / 4" : "STEP 2 / 3"}</p>
-        <p className="survey-title">현재 상황을 알려주세요</p>
+        <p className="survey-title">현재 상황을 알려주세요 <span className="required-badge">필수</span></p>
         <p className="survey-subtitle">경로를 계산할 때 쓰여요</p>
 
         <div className="form-group">
-          <label className="form-label">학과</label>
+          <label className="form-label">학과 <span className="required-mark">*</span></label>
           <input
             className="form-input"
             type="text"
@@ -69,7 +75,7 @@ export function Survey2() {
         </div>
 
         <div className="form-group">
-          <label className="form-label">학년</label>
+          <label className="form-label">학년 <span className="required-mark">*</span></label>
           <div className="custom-select" ref={dropdownRef}>
             <button
               className={`custom-select-trigger${open ? " open" : ""}`}
@@ -99,11 +105,15 @@ export function Survey2() {
           </div>
         </div>
 
+        {missing.length > 0 && (
+          <p className="required-hint">{missing.join("·")}을(를) 입력해야 다음으로 넘어갈 수 있어요.</p>
+        )}
+
         <div className="survey-actions">
           <button className="btn-prev" onClick={() => navigate(hasChecklistStep ? "/survey/2" : "/survey/1")}>
             이전
           </button>
-          <button className="btn-next" onClick={handleNext}>
+          <button className="btn-next" onClick={handleNext} disabled={missing.length > 0}>
             다음
           </button>
         </div>

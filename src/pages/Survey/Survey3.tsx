@@ -27,10 +27,12 @@ export function Survey3() {
   const { data, update } = useSurvey();
   const { session, refresh: refreshSession } = useSession();
 
-  // Initialize toggles from context (all true by default)
-  const [toggles, setToggles] = useState<Record<string, boolean>>(
-    Object.fromEntries(CONDITIONS.map((c) => [c.key, true]))
+  // Every condition must be answered explicitly; nothing is pre-selected.
+  const [answers, setAnswers] = useState<Record<string, boolean | null>>(
+    Object.fromEntries(CONDITIONS.map((c) => [c.key, null]))
   );
+  const unanswered = CONDITIONS.filter((c) => answers[c.key] === null).length;
+  const toggles = Object.fromEntries(CONDITIONS.map((c) => [c.key, answers[c.key] === true]));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,10 +41,11 @@ export function Survey3() {
     if (!sessionLoading && !session) navigate("/");
   }, [session, sessionLoading, navigate]);
 
-  const toggle = (key: string) =>
-    setToggles((prev) => ({ ...prev, [key]: !prev[key] }));
+  const answer = (key: string, value: boolean) =>
+    setAnswers((prev) => ({ ...prev, [key]: value }));
 
   async function handleSubmit() {
+    if (unanswered > 0) return;
     setSubmitting(true);
     setError(null);
 
@@ -144,25 +147,35 @@ export function Survey3() {
 
       <div className="survey-card">
         <p className="survey-step">{data.occupationId ? "STEP 4 / 4" : "STEP 3 / 3"}</p>
-        <p className="survey-title">원하는 조건을 알려주세요</p>
-        <p className="survey-subtitle">맞지 않는 조건은 빼고 경로를 만들어요.</p>
+        <p className="survey-title">원하는 조건을 알려주세요 <span className="required-badge">필수</span></p>
+        <p className="survey-subtitle">모든 조건에 예/아니오로 답해주세요. 답에 맞춰 경로를 만들어요.</p>
 
         <p className="toggle-section-label">조건</p>
         <div className="toggle-list">
           {CONDITIONS.map(({ label, key }) => (
             <div className="toggle-item" key={key}>
               <span className="toggle-label">{label}</span>
-              <label className="toggle-switch">
-                <input
-                  type="checkbox"
-                  checked={toggles[key]}
-                  onChange={() => toggle(key)}
-                />
-                <span className="toggle-track" />
-              </label>
+              <div className="yesno" role="radiogroup" aria-label={label}>
+                {([true, false] as const).map((value) => (
+                  <button
+                    key={String(value)}
+                    type="button"
+                    role="radio"
+                    aria-checked={answers[key] === value}
+                    className={`yesno-btn${answers[key] === value ? " selected" : ""}`}
+                    onClick={() => answer(key, value)}
+                  >
+                    {value ? "예" : "아니오"}
+                  </button>
+                ))}
+              </div>
             </div>
           ))}
         </div>
+
+        {unanswered > 0 && (
+          <p className="required-hint">답하지 않은 조건이 {unanswered}개 있어요. 모두 답해야 시작할 수 있어요.</p>
+        )}
 
         {error && <p className="survey-error">{error}</p>}
 
@@ -170,7 +183,7 @@ export function Survey3() {
           <button className="btn-prev" onClick={() => navigate("/survey/3")} disabled={submitting}>
             이전
           </button>
-          <button className="btn-next" onClick={handleSubmit} disabled={submitting}>
+          <button className="btn-next" onClick={handleSubmit} disabled={submitting || unanswered > 0}>
             {submitting ? "저장 중..." : "시작하기"}
           </button>
         </div>

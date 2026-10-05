@@ -18,6 +18,8 @@ export function SurveyCapabilities() {
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [selected, setSelected] = useState<Set<string>>(() => new Set(data.capabilityItemIds));
   const [attempt, setAttempt] = useState(0);
+  const [noneYet, setNoneYet] = useState(data.capabilityAnswered && data.capabilityItemIds.length === 0);
+  const answered = selected.size > 0 || noneYet;
 
   useEffect(() => {
     if (!sessionLoading && !session) navigate("/");
@@ -46,6 +48,7 @@ export function SurveyCapabilities() {
   }, [occupationId, attempt, navigate]);
 
   function toggle(itemId: string) {
+    setNoneYet(false);
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(itemId)) next.delete(itemId);
@@ -54,7 +57,13 @@ export function SurveyCapabilities() {
     });
   }
 
+  function chooseNoneYet() {
+    setSelected(new Set());
+    setNoneYet((prev) => !prev);
+  }
+
   function handleNext() {
+    if (!answered) return;
     const visible = new Set(groups.flatMap((group) => group.items.map((item) => item.item_id)));
     update({
       capabilityItemIds: [...selected].filter((id) => visible.has(id)),
@@ -63,6 +72,8 @@ export function SurveyCapabilities() {
     navigate("/survey/3");
   }
 
+  // Only offered when the checklist cannot be loaded, so a server outage never
+  // blocks onboarding; earlier answers are kept.
   function handleSkip() {
     update({ capabilityItemIds: [], capabilityAnswered: false });
     navigate("/survey/3");
@@ -77,10 +88,10 @@ export function SurveyCapabilities() {
 
       <div className="survey-card">
         <p className="survey-step">STEP 2 / 4</p>
-        <p className="survey-title">이미 해본 것을 골라주세요</p>
+        <p className="survey-title">이미 해본 것을 골라주세요 <span className="required-badge">필수</span></p>
         <p className="survey-subtitle">
           {data.occupationName ? `${data.occupationName} 기준이에요. ` : ""}
-          잘 모르겠으면 고르지 않아도 괜찮아요.
+          해본 것을 모두 고르고, 없다면 "아직 해본 것이 없어요"를 골라주세요.
         </p>
 
         {loadState === "loading" && <p className="checklist-status">항목을 불러오는 중...</p>}
@@ -90,6 +101,9 @@ export function SurveyCapabilities() {
             <p>지금은 체크 항목을 불러올 수 없어요. 건너뛰고 나중에 내 정보에서 입력할 수 있어요.</p>
             <button type="button" className="btn-prev" onClick={() => setAttempt((n) => n + 1)}>
               다시 불러오기
+            </button>
+            <button type="button" className="checklist-skip" onClick={handleSkip}>
+              건너뛰고 나중에 입력할게요
             </button>
           </div>
         )}
@@ -114,19 +128,23 @@ export function SurveyCapabilities() {
                 ))}
               </section>
             ))}
+            <label className={`checklist-item checklist-none${noneYet ? " selected" : ""}`}>
+              <input type="checkbox" checked={noneYet} onChange={chooseNoneYet} />
+              <span>아직 해본 것이 없어요</span>
+            </label>
           </div>
         )}
 
         <p className="checklist-note">본인 응답으로 저장되며, 내 정보에서 언제든 수정할 수 있어요.</p>
-        <button type="button" className="checklist-skip" onClick={handleSkip}>
-          잘 모르겠어요, 건너뛸게요
-        </button>
+        {loadState === "ready" && !answered && (
+          <p className="required-hint">하나 이상 고르거나 "아직 해본 것이 없어요"를 골라야 넘어갈 수 있어요.</p>
+        )}
 
         <div className="survey-actions">
           <button className="btn-prev" onClick={() => navigate("/survey/1")}>
             이전
           </button>
-          <button className="btn-next" onClick={handleNext} disabled={loadState !== "ready"}>
+          <button className="btn-next" onClick={handleNext} disabled={loadState !== "ready" || !answered}>
             다음{selected.size > 0 ? ` (${selected.size})` : ""}
           </button>
         </div>

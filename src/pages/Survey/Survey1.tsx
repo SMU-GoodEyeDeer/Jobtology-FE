@@ -58,7 +58,7 @@ export function Survey1() {
 
       <div className="survey-card">
         <p className="survey-step">STEP 1 / {selected === DISCOVERY_LABEL ? 3 : 4}</p>
-        <p className="survey-title">어떤 IT 직무를 목표로 하세요?</p>
+        <p className="survey-title">어떤 IT 직무를 목표로 하세요? <span className="required-badge">필수</span></p>
         <p className="survey-subtitle">
           아직 정하지 않았어도 괜찮아요. 프로필을 보고 찾아드릴게요.
         </p>
@@ -80,6 +80,8 @@ export function Survey1() {
             </button>
           ))}
         </div>
+
+        {selected === null && <p className="required-hint">직무를 하나 선택해야 다음으로 넘어갈 수 있어요.</p>}
 
         <button
           className="btn-next full-width"

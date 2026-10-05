@@ -431,3 +431,57 @@
   text-decoration: underline;
   cursor: pointer;
 }
+
+/* ── 필수 표시 ── */
+.required-badge {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  background: #fee2e2;
+  color: #dc2626;
+  font-size: 0.75rem;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+.required-mark {
+  color: #dc2626;
+}
+
+.required-hint {
+  color: #dc2626;
+  font-size: 0.85rem;
+  margin: 0.75rem 0 0;
+}
+
+.checklist-none {
+  margin-top: 0.25rem;
+  border-style: dashed;
+}
+
+/* ── 조건 예/아니오 ── */
+.yesno {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.yesno-btn {
+  min-width: 64px;
+  height: 36px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #374151;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.yesno-btn.selected {
+  border-color: #6366f1;
+  background: #ede9fe;
+  color: #4f46e5;
+}
