@@ -16,7 +16,8 @@ const GRADE_TO_YEAR: Record<string, number> = {
 export function Survey2() {
   const navigate = useNavigate();
   const { session, loading: sessionLoading } = useSession();
-  const { update } = useSurvey();
+  const { data, update } = useSurvey();
+  const hasChecklistStep = data.occupationId !== null;
 
   useEffect(() => {
     if (!sessionLoading && !session) navigate("/");
@@ -41,7 +42,7 @@ export function Survey2() {
       majorRaw: major || "미입력",
       year: grade ? GRADE_TO_YEAR[grade] : null,
     });
-    navigate("/survey/3");
+    navigate("/survey/4");
   }
 
   return (
@@ -52,7 +53,7 @@ export function Survey2() {
       </header>
 
       <div className="survey-card">
-        <p className="survey-step">STEP 2 / 3</p>
+        <p className="survey-step">{hasChecklistStep ? "STEP 3 / 4" : "STEP 2 / 3"}</p>
         <p className="survey-title">현재 상황을 알려주세요</p>
         <p className="survey-subtitle">경로를 계산할 때 쓰여요</p>
 
@@ -99,7 +100,7 @@ export function Survey2() {
         </div>
 
         <div className="survey-actions">
-          <button className="btn-prev" onClick={() => navigate("/survey/1")}>
+          <button className="btn-prev" onClick={() => navigate(hasChecklistStep ? "/survey/2" : "/survey/1")}>
             이전
           </button>
           <button className="btn-next" onClick={handleNext}>

@@ -19,7 +19,7 @@ const DISCOVERY_LABEL = "아직 모르겠어요";
 export function Survey1() {
   const navigate = useNavigate();
   const { session, loading: sessionLoading } = useSession();
-  const { update } = useSurvey();
+  const { data, update } = useSurvey();
   const { occupations, loading: occLoading } = useOccupations();
 
   useEffect(() => {
@@ -38,17 +38,15 @@ export function Survey1() {
   function handleNext() {
     if (!selected) return;
 
-    if (selected === DISCOVERY_LABEL) {
-      update({ occupationId: null, occupationName: null });
-    } else {
-      const match = allOptions.find((o) => o.label === selected);
-      update({
-        occupationId: match?.id ?? null,
-        occupationName: selected,
-      });
-    }
-
-    navigate("/survey/2");
+    const match = selected === DISCOVERY_LABEL ? null : allOptions.find((o) => o.label === selected);
+    const occupationId = match?.id ?? null;
+    update({
+      occupationId,
+      occupationName: occupationId ? selected : null,
+      // Checklist answers belong to one occupation; changing it discards them.
+      ...(occupationId !== data.occupationId ? { capabilityItemIds: [], capabilityAnswered: false } : {}),
+    });
+    navigate(occupationId ? "/survey/2" : "/survey/3");
   }
 
   return (
@@ -59,7 +57,7 @@ export function Survey1() {
       </header>
 
       <div className="survey-card">
-        <p className="survey-step">STEP 1 / 3</p>
+        <p className="survey-step">STEP 1 / {selected === DISCOVERY_LABEL ? 3 : 4}</p>
         <p className="survey-title">어떤 IT 직무를 목표로 하세요?</p>
         <p className="survey-subtitle">
           아직 정하지 않았어도 괜찮아요. 프로필을 보고 찾아드릴게요.

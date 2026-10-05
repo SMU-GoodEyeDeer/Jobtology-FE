@@ -21,6 +21,10 @@ import type {
   Neo4jOccupationResponse,
   Neo4jPublicationResponse,
   Neo4jNcsAlignmentResponse,
+  RouteProposalSummary,
+  CapabilityChecklistResponse,
+  OnboardingCapabilitiesRequest,
+  OnboardingCapabilitiesResponse,
 } from "./types";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "https://jobtology.yeongmin.net/api";
@@ -80,7 +84,8 @@ async function request<T>(
 const get = <T>(path: string) => request<T>("GET", path);
 const post = <T>(path: string, body: unknown, headers?: Record<string, string>) =>
   request<T>("POST", path, body, headers);
-const put = <T>(path: string, body: unknown) => request<T>("PUT", path, body);
+const put = <T>(path: string, body: unknown, headers?: Record<string, string>) =>
+  request<T>("PUT", path, body, headers);
 const patch = <T>(path: string, body: unknown) => request<T>("PATCH", path, body);
 const del = <T>(path: string, body?: unknown) => request<T>("DELETE", path, body);
 
@@ -133,6 +138,11 @@ export const analysisApi = {
   poll: (recomputeRequestId: string) =>
     get<RecomputeResponse>(`/v1/recomputations/${recomputeRequestId}`),
   get: (analysisId: string) => get<AnalysisResponse>(`/v1/analyses/${analysisId}`),
+};
+
+// ─── Route Proposals ─────────────────────────────────────────────────────────
+export const proposalsApi = {
+  get: (proposalId: string) => get<RouteProposalSummary>(`/v1/route-proposals/${proposalId}`),
 };
 
 // ─── Roadmaps ────────────────────────────────────────────────────────────────
@@ -193,4 +203,12 @@ export const capabilitiesApi = {
     patch<unknown>(`/v1/me/capabilities/${capabilityId}`, body),
   delete: (capabilityId: string, body: { expected_profile_version: number }) =>
     del<unknown>(`/v1/me/capabilities/${capabilityId}`, body),
+  checklist: (occupationId: string) =>
+    get<CapabilityChecklistResponse>(`/v1/occupations/${encodeURIComponent(occupationId)}/capability-checklist`),
+  replaceOnboarding: (body: OnboardingCapabilitiesRequest, idempotencyKey?: string) =>
+    put<OnboardingCapabilitiesResponse>(
+      "/v1/me/capabilities/onboarding",
+      body,
+      idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined
+    ),
 };

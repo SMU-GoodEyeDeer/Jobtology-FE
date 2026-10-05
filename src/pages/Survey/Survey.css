@@ -359,3 +359,75 @@
 }
 
 .survey-error { color: #ef4444; font-size: 13px; margin-top: 8px; text-align: center; }
+
+/* ── 이미 해본 것 체크리스트 ── */
+.checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-height: 52vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.checklist-group-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #6b7280;
+  margin: 0 0 0.4rem;
+}
+
+.checklist-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.75rem 0.9rem;
+  margin-bottom: 0.4rem;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  color: #111827;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.checklist-item input {
+  margin-top: 0.2rem;
+  accent-color: #4f46e5;
+  flex-shrink: 0;
+}
+
+.checklist-item.selected {
+  border-color: #6366f1;
+  background: #ede9fe;
+}
+
+.checklist-status {
+  color: #6b7280;
+  font-size: 0.9rem;
+  text-align: center;
+  margin: 1rem 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.checklist-note {
+  color: #9ca3af;
+  font-size: 0.8rem;
+  margin: 1rem 0 0.25rem;
+}
+
+.checklist-skip {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  padding: 0.25rem 0;
+  color: #6366f1;
+  font-size: 0.9rem;
+  font-family: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}

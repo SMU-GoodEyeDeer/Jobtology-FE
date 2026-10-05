@@ -13,6 +13,7 @@ import chevronDownIcon from "../../assets/Chevron down.svg";
 import { routePrefsApi, profileApi, roadmapsApi, catalogV2Api, authApi } from "../../services/api";
 import { useGoals } from "../../hooks/useGoals";
 import { useRoadmap } from "../../hooks/useRoadmap";
+import { PARTIAL_ROUTE_NOTICE, usePartialRoute } from "./usePartialRoute";
 import { useSession } from "../../context/SessionContext";
 import type { StepState, Neo4jPublicationResponse } from "../../services/types";
 
@@ -130,6 +131,7 @@ export function Roadmap() {
     }
   }
 
+  const isPartialRoute = usePartialRoute(activeRoadmap?.proposal_id ?? null);
   const completedSteps = activeRoadmap?.steps.filter((s) => s.state === "COMPLETED").length ?? 0;
   const totalSteps = activeRoadmap?.steps.length ?? 0;
 
@@ -239,6 +241,7 @@ export function Roadmap() {
               <p className="rm-card-sub">
                 {completedSteps}/{totalSteps}단계 완료 · {progressPct}% 진행
               </p>
+              {isPartialRoute && <p className="rm-card-sub" role="note">{PARTIAL_ROUTE_NOTICE}</p>}
 
               {activeRoadmap.steps.map((step) => (
                 <div

@@ -148,6 +148,7 @@ export interface RoadmapResponse {
   goal_id: string;
   title: string;
   status: RoadmapStatus;
+  proposal_id?: string;
 }
 
 export interface RoadmapDetailResponse extends RoadmapResponse {
@@ -193,6 +194,44 @@ export interface Neo4jNcsAlignmentResponse {
   source_current: boolean;
   accepted: boolean;
   competency: Neo4jNcsCompetencyResponse;
+}
+
+// ─── Route Proposals ─────────────────────────────────────────────────────────
+// PARTIAL: no route covers every required capability before the target date,
+// so the proposal covers as many required capabilities as possible.
+export type RouteFeasibility = "FEASIBLE" | "RISKY" | "PARTIAL" | "INFEASIBLE";
+
+export interface RouteProposalSummary {
+  proposal_id: string;
+  feasibility: RouteFeasibility;
+}
+
+// ─── Onboarding capability checklist ────────────────────────────────────────
+export interface CapabilityChecklistItem {
+  item_id: string;
+  label: string;
+}
+
+export interface CapabilityChecklistGroup {
+  label: string;
+  items: CapabilityChecklistItem[];
+}
+
+export interface CapabilityChecklistResponse {
+  occupation_id: string;
+  checklist_version: number;
+  groups: CapabilityChecklistGroup[];
+}
+
+export interface OnboardingCapabilitiesRequest {
+  expected_profile_version: number;
+  occupation_id: string;
+  item_ids: string[];
+}
+
+export interface OnboardingCapabilitiesResponse {
+  profile_version: number;
+  saved_count: number;
 }
 
 // ─── API Error ────────────────────────────────────────────────────────────────

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import "./Survey.css";
 import logoIcon from "../../assets/logo.svg";
 import { useSurvey } from "../../context/SurveyContext";
-import { profileApi, goalsApi, routePrefsApi } from "../../services/api";
+import { profileApi, goalsApi, routePrefsApi, capabilitiesApi } from "../../services/api";
 import { useSession } from "../../context/SessionContext";
 
 interface Condition {
@@ -89,7 +89,26 @@ export function Survey3() {
 
       // Re-fetch to get next version
       const afterPrefs = await profileApi.get();
-      const versionForGoal = afterPrefs.version;
+      let versionForGoal = afterPrefs.version;
+
+      // Save the checklist answers in one request. A failure here must not
+      // block onboarding; answers can still be added later from 내 정보.
+      if (data.occupationId && data.capabilityAnswered) {
+        try {
+          const saved = await capabilitiesApi.replaceOnboarding(
+            {
+              expected_profile_version: versionForGoal,
+              occupation_id: data.occupationId,
+              item_ids: data.capabilityItemIds,
+            },
+            `onboarding-${data.occupationId}-v${versionForGoal}`
+          );
+          versionForGoal = saved.profile_version;
+        } catch (capabilityError) {
+          console.warn("Onboarding capability save skipped:", capabilityError);
+          versionForGoal = (await profileApi.get()).version;
+        }
+      }
 
       // 4. Create goal
       const targetBy = new Date();
@@ -124,7 +143,7 @@ export function Survey3() {
       </header>
 
       <div className="survey-card">
-        <p className="survey-step">STEP 3 / 3</p>
+        <p className="survey-step">{data.occupationId ? "STEP 4 / 4" : "STEP 3 / 3"}</p>
         <p className="survey-title">원하는 조건을 알려주세요</p>
         <p className="survey-subtitle">맞지 않는 조건은 빼고 경로를 만들어요.</p>
 
@@ -148,7 +167,7 @@ export function Survey3() {
         {error && <p className="survey-error">{error}</p>}
 
         <div className="survey-actions">
-          <button className="btn-prev" onClick={() => navigate("/survey/2")} disabled={submitting}>
+          <button className="btn-prev" onClick={() => navigate("/survey/3")} disabled={submitting}>
             이전
           </button>
           <button className="btn-next" onClick={handleSubmit} disabled={submitting}>

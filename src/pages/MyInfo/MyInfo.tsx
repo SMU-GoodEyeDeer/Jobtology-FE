@@ -27,6 +27,8 @@ const NAV_ITEMS = [
 const SPEC_TABS = ["언어·도구", "자격증", "어학", "경력·활동"] as const;
 type SpecTab = typeof SPEC_TABS[number];
 
+const ONBOARDING_CATEGORY = "onboarding";
+
 const TAB_TO_CATEGORY: Record<SpecTab, string> = {
   "언어·도구": "LANGUAGE_TOOL",
   "자격증": "CERTIFICATE",
@@ -181,6 +183,7 @@ export function MyInfo() {
   const filteredCaps = capabilities.filter(
     (c) => c.category === TAB_TO_CATEGORY[specTab]
   );
+  const onboardingCaps = capabilities.filter((c) => c.category === ONBOARDING_CATEGORY);
 
   return (
     <div className="home-layout">
@@ -358,6 +361,20 @@ export function MyInfo() {
                   </button>
                 ))}
               </div>
+
+              {onboardingCaps.length > 0 && (
+                <>
+                  <p className="mi-spec-sub">처음 설정할 때 고른 역량 · 본인 응답</p>
+                  <ul className="mi-spec-list">
+                    {onboardingCaps.map((cap) => (
+                      <li key={cap.capability_id} className="mi-spec-item">
+                        <span className="mi-spec-item-label">{cap.raw_text}</span>
+                        <button className="mi-spec-remove" onClick={() => handleRemoveSpec(cap.capability_id)}>×</button>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
 
               <ul className="mi-spec-list">
                 {filteredCaps.map((cap) => (

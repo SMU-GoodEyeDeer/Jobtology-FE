@@ -5,6 +5,10 @@ export interface SurveyData {
   // Survey1
   occupationId: string | null;       // null = DISCOVERY mode
   occupationName: string | null;
+  // Capability checklist step. `capabilityAnswered` is false when the step was
+  // skipped or unavailable, so a skip never overwrites earlier answers.
+  capabilityItemIds: string[];
+  capabilityAnswered: boolean;
   // Survey2
   majorRaw: string;
   year: number | null;
@@ -19,6 +23,8 @@ export interface SurveyData {
 const DEFAULT: SurveyData = {
   occupationId: null,
   occupationName: null,
+  capabilityItemIds: [],
+  capabilityAnswered: false,
   majorRaw: "",
   year: null,
   lowCostBudget: false,
