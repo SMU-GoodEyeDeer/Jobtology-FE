@@ -25,6 +25,8 @@ import type {
   CapabilityChecklistResponse,
   OnboardingCapabilitiesRequest,
   OnboardingCapabilitiesResponse,
+  ChatMessagePayload,
+  ChatReplyResponse,
 } from "./types";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "https://jobtology.yeongmin.net/api";
@@ -211,4 +213,11 @@ export const capabilitiesApi = {
       body,
       idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined
     ),
+};
+
+// ─── AI Chat ─────────────────────────────────────────────────────────────────
+export const chatApi = {
+  status: () => get<{ available: boolean }>("/v1/chat/status"),
+  send: (messages: ChatMessagePayload[]) =>
+    post<ChatReplyResponse>("/v1/chat/messages", { messages }),
 };

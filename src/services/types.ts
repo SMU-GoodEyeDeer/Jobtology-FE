@@ -100,6 +100,10 @@ export interface DashboardNextAction {
 }
 
 export interface DashboardResponse {
+  state?: string;
+  analysis_id?: string | null;
+  recompute_request_id?: string | null;
+  recompute_state?: string | null;
   next_actions: DashboardNextAction[];
   goal_id: string | null;
   profile_completion_pct: number | null;
@@ -232,6 +236,24 @@ export interface OnboardingCapabilitiesRequest {
 export interface OnboardingCapabilitiesResponse {
   profile_version: number;
   saved_count: number;
+}
+
+// ─── AI Chat ─────────────────────────────────────────────────────────────────
+export interface ChatMessagePayload {
+  role: "user" | "assistant";
+  text: string;
+}
+
+export interface ChatCapabilityCandidate {
+  entity_id: string;
+  label: string;
+  evidence_quote: string;
+}
+
+export interface ChatReplyResponse {
+  reply: string;
+  occupation_id: string | null;
+  candidates: ChatCapabilityCandidate[];
 }
 
 // ─── API Error ────────────────────────────────────────────────────────────────

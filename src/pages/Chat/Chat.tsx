@@ -9,7 +9,8 @@ import analysisIcon from "../../assets/Bar chart.svg";
 import progressIcon from "../../assets/today.svg";
 import userIcon from "../../assets/User.svg";
 import chevronDownIcon from "../../assets/Chevron down.svg";
-import { capabilitiesApi, authApi } from "../../services/api";
+import { capabilitiesApi, authApi, chatApi, profileApi } from "../../services/api";
+import type { ChatCapabilityCandidate, ChatMessagePayload } from "../../services/types";
 import { useGoals } from "../../hooks/useGoals";
 import { useRoadmap } from "../../hooks/useRoadmap";
 import { useSession } from "../../context/SessionContext";
@@ -68,8 +69,22 @@ const LEGEND = [
   { type: "edu",  label: "교육·활동" },
 ];
 
+type CandidateStatus = "saving" | "saved" | "dismissed" | "error";
+
+const MAX_HISTORY = 20;
+
+function toHistory(messages: Message[]): ChatMessagePayload[] {
+  return messages
+    .flatMap((msg): ChatMessagePayload[] =>
+      msg.role === "user" ? [{ role: "user", text: msg.text }]
+        : msg.role === "ai" ? [{ role: "assistant", text: msg.text }]
+        : []
+    )
+    .slice(-MAX_HISTORY);
+}
+
 type Message =
-  | { role: "ai"; text: string; chips?: string[] }
+  | { role: "ai"; text: string; chips?: string[]; candidates?: ChatCapabilityCandidate[] }
   | { role: "ai-route" }
   | { role: "user"; text: string };
 
@@ -116,6 +131,8 @@ export function Chat() {
   const [pytorchPopup, setPytorchPopup] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
+  const [aiAvailable, setAiAvailable] = useState(false);
+  const [candidateStatus, setCandidateStatus] = useState<Record<string, CandidateStatus>>({});
   const [pan, setPan] = useState({ x: 0, y: 0 });
 
   // Capabilities → mark "have" nodes dynamically
@@ -128,6 +145,10 @@ export function Chat() {
   const panningRef = useRef(false);
   const panStartRef = useRef({ mouseX: 0, mouseY: 0, panX: 0, panY: 0 });
   const hasPannedRef = useRef(false);
+
+  useEffect(() => {
+    chatApi.status().then((res) => setAiAvailable(res.available)).catch(() => setAiAvailable(false));
+  }, []);
 
   // Load capabilities to mark owned skills in graph
   useEffect(() => {
@@ -197,13 +218,25 @@ export function Chat() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
-  function handleSend() {
-    if (!input.trim()) return;
+  async function handleSend() {
+    if (!input.trim() || isTyping) return;
     const sentText = input.trim();
-    setMessages((prev) => [...prev, { role: "user", text: sentText }]);
+    const next: Message[] = [...messages, { role: "user", text: sentText }];
+    setMessages(next);
     setInput("");
     setSelectedSuggestion(null);
     setIsTyping(true);
+    if (aiAvailable && sentText !== "내 경로 추천해줘") {
+      try {
+        const res = await chatApi.send(toHistory(next));
+        setMessages((prev) => [...prev, { role: "ai", text: res.reply, candidates: res.candidates }]);
+      } catch {
+        setMessages((prev) => [...prev, { role: "ai", text: "지금은 AI 답변을 받을 수 없어요. 잠시 후 다시 시도해주세요." }]);
+      } finally {
+        setIsTyping(false);
+      }
+      return;
+    }
     setTimeout(() => {
       setIsTyping(false);
       if (sentText === "내 경로 추천해줘") {
@@ -212,6 +245,23 @@ export function Chat() {
         setMessages((prev) => [...prev, { role: "ai", text: "네! 더 궁금한 게 있으면 언제든지 물어보세요." }]);
       }
     }, 1400);
+  }
+
+  async function saveCandidate(key: string, candidate: ChatCapabilityCandidate) {
+    setCandidateStatus((prev) => ({ ...prev, [key]: "saving" }));
+    try {
+      const profile = await profileApi.get();
+      await capabilitiesApi.create({
+        expected_profile_version: profile.version,
+        category: "chat",
+        raw_text: candidate.label,
+        details: { source: "chat", evidence_quote: candidate.evidence_quote },
+      });
+      setOwnedSkills((prev) => new Set(prev).add(candidate.label.toLowerCase()));
+      setCandidateStatus((prev) => ({ ...prev, [key]: "saved" }));
+    } catch {
+      setCandidateStatus((prev) => ({ ...prev, [key]: "error" }));
+    }
   }
 
   // Route steps from actual roadmap, or fallback static
@@ -359,6 +409,40 @@ export function Chat() {
                           ))}
                         </div>
                       )}
+                      {msg.candidates?.map((candidate) => {
+                        const key = `${i}-${candidate.entity_id}`;
+                        const status = candidateStatus[key];
+                        if (status === "dismissed") return null;
+                        return (
+                          <div key={key} className="cap-candidate">
+                            <p className="cap-candidate-title">
+                              <strong>{candidate.label}</strong> 역량을 보유 역량에 추가할까요?
+                            </p>
+                            <p className="cap-candidate-quote">“{candidate.evidence_quote}”</p>
+                            {status === "saved" ? (
+                              <p className="cap-candidate-done">추가했어요 · 본인 응답으로 저장됨</p>
+                            ) : (
+                              <div className="cap-candidate-actions">
+                                <button
+                                  className="cap-candidate-add"
+                                  disabled={status === "saving"}
+                                  onClick={() => saveCandidate(key, candidate)}
+                                >
+                                  {status === "saving" ? "추가 중..." : "추가"}
+                                </button>
+                                <button
+                                  className="cap-candidate-skip"
+                                  disabled={status === "saving"}
+                                  onClick={() => setCandidateStatus((prev) => ({ ...prev, [key]: "dismissed" }))}
+                                >
+                                  아니요
+                                </button>
+                                {status === "error" && <span className="cap-candidate-error">저장하지 못했어요</span>}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 ) : (

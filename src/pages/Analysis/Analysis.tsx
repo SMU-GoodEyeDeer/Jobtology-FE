@@ -10,7 +10,7 @@ import analysisIcon from "../../assets/Bar chart.svg";
 import progressIcon from "../../assets/today.svg";
 import userIcon from "../../assets/User.svg";
 import chevronDownIcon from "../../assets/Chevron down.svg";
-import { analysisApi, profileApi, catalogV2Api, authApi } from "../../services/api";
+import { analysisApi, profileApi, catalogV2Api, authApi, dashboardApi } from "../../services/api";
 import { useGoals } from "../../hooks/useGoals";
 import { useSession } from "../../context/SessionContext";
 import type { AnalysisResponse, Neo4jPublicationResponse, Neo4jNcsAlignmentResponse } from "../../services/types";
@@ -117,12 +117,34 @@ export function Analysis() {
     poll();
   }
 
-  // Trigger analysis when goal changes
+  // Show the stored analysis first; only compute when none exists yet. Profile,
+  // capability, and preference changes already trigger a recompute on the server.
+  const loadAnalysis = useCallback(async () => {
+    if (!selectedGoalId) return;
+    setPollState("pending");
+    try {
+      const dashboard = await dashboardApi.get(selectedGoalId);
+      if (dashboard.state === "READY" && dashboard.analysis_id) {
+        setAnalysisResult(await analysisApi.get(dashboard.analysis_id));
+        setPollState("completed");
+        return;
+      }
+      if (dashboard.state === "RECOMPUTING" && dashboard.recompute_request_id) {
+        pollForResult(dashboard.recompute_request_id);
+        return;
+      }
+    } catch (err) {
+      console.warn("Stored analysis lookup failed:", err);
+    }
+    await triggerAnalysis();
+  }, [selectedGoalId, triggerAnalysis]);
+
   useEffect(() => {
     if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
-    if (selectedGoalId) triggerAnalysis();
+    setAnalysisResult(null);
+    loadAnalysis();
     return () => { if (pollTimerRef.current) clearTimeout(pollTimerRef.current); };
-  }, [selectedGoalId, triggerAnalysis]);
+  }, [loadAnalysis]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -200,6 +222,13 @@ export function Analysis() {
       <div className="main-area">
         <header className="main-header">
           <h2 className="main-title">역량 분석</h2>
+          <button
+            className="an-reanalyze-btn"
+            onClick={triggerAnalysis}
+            disabled={!selectedGoalId || pollState === "pending" || pollState === "running"}
+          >
+            다시 분석하기
+          </button>
           <div className="goal-wrapper" ref={goalRef}>
             <button className="goal-button" onClick={() => setGoalOpen((v) => !v)}>
               {selectedGoalName}

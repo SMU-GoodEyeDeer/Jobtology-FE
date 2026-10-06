@@ -346,3 +346,20 @@
   color: #9ca3af;
   font-size: 14px;
 }
+
+.an-reanalyze-btn {
+  margin-left: auto;
+  margin-right: 12px;
+  background: #ffffff;
+  border: 1.5px solid #6366f1;
+  color: #4f46e5;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.an-reanalyze-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

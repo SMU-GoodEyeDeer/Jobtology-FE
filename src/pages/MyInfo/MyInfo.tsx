@@ -28,6 +28,7 @@ const SPEC_TABS = ["언어·도구", "자격증", "어학", "경력·활동"] as
 type SpecTab = typeof SPEC_TABS[number];
 
 const ONBOARDING_CATEGORY = "onboarding";
+const CHAT_CATEGORY = "chat";
 
 const TAB_TO_CATEGORY: Record<SpecTab, string> = {
   "언어·도구": "LANGUAGE_TOOL",
@@ -184,6 +185,7 @@ export function MyInfo() {
     (c) => c.category === TAB_TO_CATEGORY[specTab]
   );
   const onboardingCaps = capabilities.filter((c) => c.category === ONBOARDING_CATEGORY);
+  const chatCaps = capabilities.filter((c) => c.category === CHAT_CATEGORY);
 
   return (
     <div className="home-layout">
@@ -367,6 +369,20 @@ export function MyInfo() {
                   <p className="mi-spec-sub">처음 설정할 때 고른 역량 · 본인 응답</p>
                   <ul className="mi-spec-list">
                     {onboardingCaps.map((cap) => (
+                      <li key={cap.capability_id} className="mi-spec-item">
+                        <span className="mi-spec-item-label">{cap.raw_text}</span>
+                        <button className="mi-spec-remove" onClick={() => handleRemoveSpec(cap.capability_id)}>×</button>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+
+              {chatCaps.length > 0 && (
+                <>
+                  <p className="mi-spec-sub">AI 대화에서 추가한 역량 · 본인 응답</p>
+                  <ul className="mi-spec-list">
+                    {chatCaps.map((cap) => (
                       <li key={cap.capability_id} className="mi-spec-item">
                         <span className="mi-spec-item-label">{cap.raw_text}</span>
                         <button className="mi-spec-remove" onClick={() => handleRemoveSpec(cap.capability_id)}>×</button>
