@@ -113,7 +113,23 @@ export function Survey3() {
         }
       }
 
-      // 4. Create goal
+      // 4. Only one goal can be ACTIVE, so re-onboarding archives the current
+      // one first (its roadmap stays available as an archived record).
+      const { items: existingGoals } = await goalsApi.list();
+      for (const goal of existingGoals.filter((g) => g.status === "ACTIVE")) {
+        await goalsApi.update(goal.goal_id, {
+          expected_profile_version: versionForGoal,
+          goal_mode: goal.goal_mode,
+          target_by: goal.target_by,
+          timezone: goal.timezone,
+          original_time_phrase: goal.original_time_phrase,
+          ...(goal.occupation_id ? { occupation_id: goal.occupation_id } : {}),
+          status: "ARCHIVED",
+        });
+        versionForGoal = (await profileApi.get()).version;
+      }
+
+      // 5. Create goal
       const targetBy = new Date();
       targetBy.setMonth(targetBy.getMonth() + 6);
 
