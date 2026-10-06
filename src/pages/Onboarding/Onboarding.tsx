@@ -5,7 +5,7 @@ import UsersIcon from "../../assets/Users.svg";
 import CheckCircleIcon from "../../assets/Check circle.svg";
 import RefreshCcwIcon from "../../assets/Refresh ccw.svg";
 import { useSession } from "../../context/SessionContext";
-import { profileApi } from "../../services/api";
+import { goalsApi } from "../../services/api";
 
 const GOOGLE_LOGIN_URL = "https://jobtology.yeongmin.net/api/v1/auth/google/login";
 
@@ -15,9 +15,9 @@ export function Onboarding() {
 
   useEffect(() => {
     if (loading || !session) return;
-    profileApi.get().then((profile) => {
-      navigate(profile.major_raw ? "/home" : "/survey/1");
-    }).catch(() => navigate("/survey/1"));
+    goalsApi.list().then(({ items }) => {
+      navigate(items.some((goal) => goal.status === "ACTIVE") ? "/home" : "/onboarding");
+    }).catch(() => navigate("/onboarding"));
   }, [session, loading, navigate]);
 
   if (loading || session) return null;

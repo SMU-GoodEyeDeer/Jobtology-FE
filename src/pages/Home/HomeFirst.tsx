@@ -81,7 +81,7 @@ export function HomeFirst() {
               <span className="hero-badge">WELCOME TO CAREER NAVIGATOR</span>
               <h1 className="hero-name">반가워요! 첫 커리어 여정을 시작해볼까요?</h1>
               <p className="hero-sub">나에게 딱 맞는 AI 기반 커리어 로드맵과 필요한 역량을 지금 진단해 보세요.</p>
-              <button className="hero-btn hero-btn--filled" onClick={() => navigate("/survey/1")}>목표 직무 설정하기 →</button>
+              <button className="hero-btn hero-btn--filled" onClick={() => navigate("/onboarding")}>목표 직무 설정하기 →</button>
             </div>
           </section>
 

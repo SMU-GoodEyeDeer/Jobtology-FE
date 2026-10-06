@@ -25,7 +25,7 @@ describe("chat api", () => {
     expect(url).toMatch(/\/v1\/chat\/messages$/);
     expect(init.method).toBe("POST");
     expect((init.headers as Record<string, string>)["X-CSRF-Token"]).toBe("csrf-1");
-    expect(JSON.parse(init.body as string)).toEqual({ messages: [{ role: "user", text: "Spring으로 API를 만들었어요" }] });
+    expect(JSON.parse(init.body as string)).toEqual({ messages: [{ role: "user", text: "Spring으로 API를 만들었어요" }], mode: "counsel" });
     expect(res.reply).toBe("좋아요");
   });
 

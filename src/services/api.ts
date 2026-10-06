@@ -218,6 +218,6 @@ export const capabilitiesApi = {
 // ─── AI Chat ─────────────────────────────────────────────────────────────────
 export const chatApi = {
   status: () => get<{ available: boolean }>("/v1/chat/status"),
-  send: (messages: ChatMessagePayload[]) =>
-    post<ChatReplyResponse>("/v1/chat/messages", { messages }),
+  send: (messages: ChatMessagePayload[], mode: "counsel" | "onboarding" = "counsel") =>
+    post<ChatReplyResponse>("/v1/chat/messages", { messages, mode }),
 };

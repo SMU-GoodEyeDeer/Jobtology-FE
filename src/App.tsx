@@ -1,12 +1,8 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { SessionProvider } from "./context/SessionContext";
-import { SurveyProvider } from "./context/SurveyContext";
 import { OccupationsProvider } from "./context/OccupationsContext";
 import { Onboarding } from "./pages/Onboarding/Onboarding";
-import { Survey1 } from "./pages/Survey/Survey1";
-import { Survey2 } from "./pages/Survey/Survey2";
-import { Survey3 } from "./pages/Survey/Survey3";
-import { SurveyCapabilities } from "./pages/Survey/SurveyCapabilities";
+import { OnboardingChat } from "./pages/OnboardingChat/OnboardingChat";
 import { Home } from "./pages/Home/Home";
 import { HomeFirst } from "./pages/Home/HomeFirst";
 import { Chat } from "./pages/Chat/Chat";
@@ -21,13 +17,10 @@ export function App() {
     <BrowserRouter>
       <SessionProvider>
         <OccupationsProvider>
-        <SurveyProvider>
           <Routes>
             <Route path="/" element={<Onboarding />} />
-            <Route path="/survey/1" element={<Survey1 />} />
-            <Route path="/survey/2" element={<SurveyCapabilities />} />
-            <Route path="/survey/3" element={<Survey2 />} />
-            <Route path="/survey/4" element={<Survey3 />} />
+            <Route path="/onboarding" element={<OnboardingChat />} />
+            <Route path="/survey/*" element={<Navigate to="/onboarding" replace />} />
             <Route path="/home" element={<Home />} />
             <Route path="/home/first" element={<HomeFirst />} />
             <Route path="/chat" element={<Chat />} />
@@ -36,7 +29,6 @@ export function App() {
             <Route path="/progress" element={<Progress />} />
             <Route path="/myinfo" element={<MyInfo />} />
           </Routes>
-        </SurveyProvider>
         </OccupationsProvider>
       </SessionProvider>
     </BrowserRouter>
