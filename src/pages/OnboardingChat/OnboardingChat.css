@@ -76,8 +76,8 @@
 }
 
 /* ── Brand intro overlay. Also used verbatim by the `/` splash so the
-   route change between the two is invisible. The logo's square boundary is
-   feathered away: rounded corners + radial mask + a soft navy halo behind. ── */
+   route change between the two is invisible. The mark is the background-less
+   graph (logo-mark.svg) with a faint indigo wash and a blurred glow copy. ── */
 .ob-intro {
   position: fixed;
   inset: 0;
@@ -103,32 +103,28 @@
 }
 .ob-intro-tint {
   position: absolute;
-  width: 220px;
-  height: 220px;
+  width: 240px;
+  height: 240px;
   border-radius: 50%;
   background: radial-gradient(
     closest-side,
-    rgba(79, 70, 229, 0.32),
-    rgba(99, 102, 241, 0.16) 48%,
-    rgba(129, 140, 248, 0.08) 70%,
-    transparent 84%
+    rgba(99, 102, 241, 0.14),
+    rgba(129, 140, 248, 0.06) 60%,
+    transparent 85%
   );
-  filter: blur(10px);
+  filter: blur(12px);
 }
 .ob-intro-halo {
   position: absolute;
-  width: 148px;
-  height: 148px;
-  filter: blur(36px);
-  opacity: 0.3;
+  width: 116px;
+  height: 116px;
+  filter: blur(18px);
+  opacity: 0.35;
 }
 .ob-intro-logo {
   position: relative;
-  width: 88px;
-  height: 88px;
-  border-radius: 26px;
-  -webkit-mask-image: radial-gradient(circle farthest-corner at 50% 50%, #000 48%, transparent 82%);
-  mask-image: radial-gradient(circle farthest-corner at 50% 50%, #000 48%, transparent 82%);
+  width: 116px;
+  height: 116px;
 }
 .ob-intro-word {
   font-size: 2.6rem;

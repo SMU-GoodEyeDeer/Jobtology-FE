@@ -1,7 +1,7 @@
 import { motion } from "motion/react";
 import type { Transition } from "motion/react";
 import type { ReactNode } from "react";
-import logoIcon from "../../assets/logo.svg";
+import logoMark from "../../assets/logo-mark.svg";
 import type { ProgressStep } from "./progress";
 import { OUTRO_FADE_S } from "./timings";
 
@@ -75,8 +75,8 @@ export function BrandMark() {
   return (
     <div className="ob-intro-mark" aria-hidden="true">
       <div className="ob-intro-tint" />
-      <img className="ob-intro-halo" src={logoIcon} alt="" />
-      <img className="ob-intro-logo" src={logoIcon} alt="" />
+      <img className="ob-intro-halo" src={logoMark} alt="" />
+      <img className="ob-intro-logo" src={logoMark} alt="" />
     </div>
   );
 }
