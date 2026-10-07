@@ -11,6 +11,46 @@
   gap: 3rem;
 }
 
+/* 진입 스플래시: 세션/목표 확인 중 띄우는 중앙 로고 (채팅 페이지와 동일한 배경) */
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(1200px 800px at 85% -10%, rgba(99, 102, 241, 0.16), transparent 60%),
+    radial-gradient(1000px 700px at -10% 110%, rgba(139, 92, 246, 0.12), transparent 55%),
+    linear-gradient(180deg, #0e0c1f 0%, #131029 52%, #0d0b1a 100%);
+}
+.splash-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9rem;
+  view-transition-name: jobtology-brand;
+}
+.splash-logo {
+  width: 76px;
+  height: 76px;
+  filter: drop-shadow(0 6px 30px rgba(99, 102, 241, 0.55));
+  animation: splash-breathe 2.6s ease-in-out infinite;
+}
+.splash-word {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #eceef9;
+  letter-spacing: 0.01em;
+}
+@keyframes splash-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.045); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .splash-logo { animation: none; }
+}
+
 /* 중앙 콘텐츠 */
 .hero {
   display: flex;
