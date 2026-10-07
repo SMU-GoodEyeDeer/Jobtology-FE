@@ -78,7 +78,7 @@ export function Progress() {
       <aside className="sidebar">
         <div className="sidebar-logo">
           <img src={logoIcon} alt="로고" className="sidebar-logo-icon" />
-          <span className="sidebar-logo-text">커리어 내비게이션</span>
+          <span className="sidebar-logo-text">Jobtology</span>
         </div>
 
         <nav className="sidebar-nav">
