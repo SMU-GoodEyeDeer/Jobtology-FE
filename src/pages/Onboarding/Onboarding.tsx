@@ -4,9 +4,10 @@ import "./Onboarding.css";
 import UsersIcon from "../../assets/Users.svg";
 import CheckCircleIcon from "../../assets/Check circle.svg";
 import RefreshCcwIcon from "../../assets/Refresh ccw.svg";
-import logoIcon from "../../assets/logo.svg";
 import { useSession } from "../../context/SessionContext";
 import { goalsApi } from "../../services/api";
+import { BrandMark } from "../OnboardingChat/parts";
+import { markIntroStart } from "../OnboardingChat/timings";
 
 const GOOGLE_LOGIN_URL = "https://jobtology.yeongmin.net/api/v1/auth/google/login";
 
@@ -15,6 +16,7 @@ export function Onboarding() {
   const { session, loading } = useSession();
 
   useEffect(() => {
+    if (loading || session) markIntroStart();
     if (loading || !session) return;
     goalsApi.list().then(({ items }) => {
       navigate(items.some((goal) => goal.status === "ACTIVE") ? "/home" : "/onboarding");
@@ -26,7 +28,10 @@ export function Onboarding() {
   if (loading || session) {
     return (
       <div className="ob-intro" role="status" aria-label="잡톨로지 로딩 중">
-        <img className="ob-intro-logo" src={logoIcon} alt="" />
+        <div className="ob-intro-stack">
+          <BrandMark />
+          <span className="ob-intro-word">Jobtology</span>
+        </div>
       </div>
     );
   }

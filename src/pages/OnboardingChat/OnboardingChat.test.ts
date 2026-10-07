@@ -3,7 +3,9 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { OnboardingChat, QUESTIONS, chatIntroIndex } from "./OnboardingChat";
+import { Outro } from "./parts";
 import { progressIndex, progressSteps } from "./progress";
+import { INTRO_FADE_MS, INTRO_HOLD_MS, INTRO_TOTAL_MS, introHoldMs } from "./timings";
 
 vi.mock("../../context/SessionContext", () => ({
   useSession: () => ({ session: { user_id: "u1" }, loading: false, error: null, refresh: async () => {} }),
@@ -59,6 +61,31 @@ describe("progress trail", () => {
     expect(progressIndex("occupation")).toBe(0);
     expect(progressIndex("chat")).toBe(4);
     expect(progressIndex("unknown")).toBe(-1);
+  });
+});
+
+describe("intro/outro timing", () => {
+  it("paces the intro at about 3 seconds of hold plus fade", () => {
+    expect(INTRO_HOLD_MS + INTRO_FADE_MS).toBe(INTRO_TOTAL_MS);
+    expect(INTRO_TOTAL_MS).toBeGreaterThanOrEqual(2500);
+    expect(INTRO_TOTAL_MS).toBeLessThanOrEqual(3500);
+  });
+
+  it("subtracts the time the logo already showed on `/` from the hold", () => {
+    expect(introHoldMs(0)).toBe(INTRO_HOLD_MS);
+    expect(introHoldMs(1000)).toBe(INTRO_HOLD_MS - 1000);
+    expect(introHoldMs(INTRO_HOLD_MS)).toBe(0);
+    expect(introHoldMs(99_999)).toBe(0);
+    expect(introHoldMs(-50)).toBe(INTRO_HOLD_MS);
+  });
+});
+
+describe("outro", () => {
+  it("renders a polite loading status with 로딩 중", () => {
+    const html = renderToStaticMarkup(createElement(Outro));
+    expect(html).toContain("로딩 중");
+    expect(html).toContain('role="status"');
+    expect(html).toContain('aria-live="polite"');
   });
 });
 

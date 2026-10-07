@@ -9,7 +9,8 @@ import { capabilitiesApi, chatApi } from "../../services/api";
 import { saveChatCapability, saveChecklist, saveProfile, startGoal } from "../../services/onboardingSave";
 import type { CapabilityChecklistGroup, ChatCapabilityCandidate, ChatMessagePayload } from "../../services/types";
 import { progressIndex, progressSteps } from "./progress";
-import { Chip, EASE_OUT, ProgressTrail, SPRING } from "./parts";
+import { Chip, EASE_OUT, Outro, BrandMark, ProgressTrail, SPRING } from "./parts";
+import { INTRO_FADE_S, OUTRO_MIN_MS, introElapsedMs, introHoldMs, resetIntroStart } from "./timings";
 
 export type Step = "occupation" | "major" | "grade" | "checklist" | "chat";
 
@@ -26,10 +27,6 @@ const MAX_HISTORY = 20;
 // Scripted questions get a short typing beat before they appear. Network waits
 // already show the busy indicator; LLM replies reveal as soon as they arrive.
 const SCRIPTED_TYPING_MS = 500;
-// Logo-only intro shown on /onboarding mount (and pixel-identically by the `/`
-// splash, so the redirect is seamless): hold, then cross-fade into the chat.
-const INTRO_HOLD_MS = 650;
-const INTRO_FADE_S = 0.5;
 
 export const QUESTIONS: Record<Step, string> = {
   occupation: "어떤 IT 직무를 목표로 하세요?",
@@ -62,6 +59,7 @@ export function OnboardingChat() {
   const [step, setStep] = useState<Step>("occupation");
   const [messages, setMessages] = useState<Message[]>([{ role: "ai", text: QUESTIONS.occupation }]);
   const [introVisible, setIntroVisible] = useState(!reduceMotion);
+  const [outroVisible, setOutroVisible] = useState(false);
   const [occupation, setOccupation] = useState<{ id: string; name: string } | null>(null);
   const [goalStarted, setGoalStarted] = useState(false);
   const [major, setMajor] = useState<string | null>(null);
@@ -86,7 +84,11 @@ export function OnboardingChat() {
 
   useEffect(() => {
     if (!introVisible) return;
-    const t = setTimeout(() => setIntroVisible(false), INTRO_HOLD_MS);
+    // Subtract whatever the `/` splash already showed so total logo time is
+    // INTRO_TOTAL_MS from first paint; the marker resets for the next entry.
+    const hold = introHoldMs(introElapsedMs());
+    resetIntroStart();
+    const t = setTimeout(() => setIntroVisible(false), hold);
     return () => clearTimeout(t);
   }, [introVisible]);
 
@@ -141,10 +143,22 @@ export function OnboardingChat() {
   }
 
   async function finish(savePendingMajor = false) {
-    if (!goalStarted) await startGoal(occupation?.id ?? null);
-    if (savePendingMajor && step === "grade" && major) await saveProfile(major, null);
-    await refresh();
-    navigate("/home/first");
+    setOutroVisible(true);
+    const saves = async () => {
+      if (!goalStarted) await startGoal(occupation?.id ?? null);
+      if (savePendingMajor && step === "grade" && major) await saveProfile(major, null);
+      await refresh();
+    };
+    try {
+      // Stay on the outro for OUTRO_MIN_MS while the saves run; reduced motion
+      // skips the artificial wait and leaves as soon as the saves complete.
+      if (reduceMotion) await saves();
+      else await Promise.all([saves(), wait(OUTRO_MIN_MS)]);
+      navigate("/home/first");
+    } catch (err) {
+      setOutroVisible(false);
+      throw err;
+    }
   }
 
   function chooseOccupation(id: string | null, name: string) {
@@ -245,18 +259,21 @@ export function OnboardingChat() {
                 role="status"
                 aria-label="잡톨로지"
                 exit={{ opacity: 0 }}
-                transition={{ duration: INTRO_FADE_S, ease: EASE_OUT }}
+                transition={{ duration: reduceMotion ? 0 : INTRO_FADE_S, ease: EASE_OUT }}
               >
-                <motion.img
-                  className="ob-intro-logo"
-                  src={logoIcon}
-                  alt=""
-                  exit={{ scale: 0.96, filter: "blur(10px)" }}
-                  transition={{ duration: INTRO_FADE_S, ease: EASE_OUT }}
-                />
+                <motion.div
+                  className="ob-intro-stack"
+                  exit={{ scale: 0.96, filter: "blur(8px)" }}
+                  transition={{ duration: reduceMotion ? 0 : INTRO_FADE_S, ease: EASE_OUT }}
+                >
+                  <BrandMark />
+                  <span className="ob-intro-word">Jobtology</span>
+                </motion.div>
               </motion.div>
             )}
           </AnimatePresence>
+
+          <AnimatePresence>{outroVisible && <Outro reduceMotion={reduceMotion} />}</AnimatePresence>
 
           <header className="ob-header">
             <div className="ob-header-inner">

@@ -75,21 +75,106 @@
   to { transform: translate3d(-5vmax, -3vmax, 0) scale(1); }
 }
 
-/* ── Logo-only intro overlay. Also used verbatim by the `/` splash so the
-   route change between the two is invisible. ─────────────────────────────── */
+/* ── Brand intro overlay. Also used verbatim by the `/` splash so the
+   route change between the two is invisible. The logo's square boundary is
+   feathered away: rounded corners + radial mask + a soft navy halo behind. ── */
 .ob-intro {
   position: fixed;
   inset: 0;
   z-index: 60;
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   background: linear-gradient(180deg, #f7f8ff 0%, #edf0ff 100%);
 }
+.ob-intro-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.85rem;
+}
+.ob-intro-mark {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 260px;
+  height: 260px;
+}
+.ob-intro-tint {
+  position: absolute;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    rgba(79, 70, 229, 0.32),
+    rgba(99, 102, 241, 0.16) 48%,
+    rgba(129, 140, 248, 0.08) 70%,
+    transparent 84%
+  );
+  filter: blur(10px);
+}
+.ob-intro-halo {
+  position: absolute;
+  width: 148px;
+  height: 148px;
+  filter: blur(36px);
+  opacity: 0.3;
+}
 .ob-intro-logo {
+  position: relative;
   width: 88px;
   height: 88px;
-  filter: drop-shadow(0 10px 32px rgba(99, 102, 241, 0.26));
+  border-radius: 26px;
+  -webkit-mask-image: radial-gradient(circle farthest-corner at 50% 50%, #000 48%, transparent 82%);
+  mask-image: radial-gradient(circle farthest-corner at 50% 50%, #000 48%, transparent 82%);
 }
+.ob-intro-word {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1e1b4b;
+  letter-spacing: 0.18em;
+  text-indent: 0.18em;
+  white-space: nowrap;
+}
+
+/* ── Outro overlay: same light field, brand mark + polite 로딩 중 indicator. */
+.ob-outro {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.6rem;
+  background: linear-gradient(180deg, #f7f8ff 0%, #edf0ff 100%);
+}
+.ob-outro-loading {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.ob-outro-text {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #475569;
+}
+.ob-outro-dots {
+  display: inline-flex;
+  gap: 5px;
+}
+.ob-outro-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #6366f1;
+  animation: ob-blink 1.2s infinite;
+}
+.ob-outro-dots span:nth-child(2) { animation-delay: 0.2s; }
+.ob-outro-dots span:nth-child(3) { animation-delay: 0.4s; }
 
 .ob-header,
 .ob-chat,
@@ -441,7 +526,8 @@
   .ob-blob--a,
   .ob-blob--b,
   .ob-blob--c { animation: none; }
-  .ob-typing span { animation: none; opacity: 0.7; }
+  .ob-typing span,
+  .ob-outro-dots span { animation: none; opacity: 0.7; }
   .ob-chip,
   .ob-stop,
   .ob-send,

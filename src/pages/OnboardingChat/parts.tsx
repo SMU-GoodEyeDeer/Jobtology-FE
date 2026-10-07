@@ -1,7 +1,9 @@
 import { motion } from "motion/react";
 import type { Transition } from "motion/react";
 import type { ReactNode } from "react";
+import logoIcon from "../../assets/logo.svg";
 import type { ProgressStep } from "./progress";
+import { OUTRO_FADE_S } from "./timings";
 
 // Shared motion vocabulary for the onboarding chat. Durations stay in the
 // Linear/Vercel range (150–250ms, ease-out); springs drive layout morphs.
@@ -63,5 +65,45 @@ export function ProgressTrail({ steps, current }: { steps: readonly ProgressStep
         ))}
       </ol>
     </nav>
+  );
+}
+
+/// Logo mark with the square boundary feathered away (blurred halo copy +
+/// CSS mask); shared by the `/` splash, intro, and outro so all three stay
+/// pixel-identical.
+export function BrandMark() {
+  return (
+    <div className="ob-intro-mark" aria-hidden="true">
+      <div className="ob-intro-tint" />
+      <img className="ob-intro-halo" src={logoIcon} alt="" />
+      <img className="ob-intro-logo" src={logoIcon} alt="" />
+    </div>
+  );
+}
+
+/// End-of-onboarding overlay: "로딩 중" while finish() runs saves; it navigates.
+export function Outro({ reduceMotion = false }: { reduceMotion?: boolean }) {
+  return (
+    <motion.div
+      className="ob-outro"
+      role="status"
+      aria-live="polite"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: reduceMotion ? 0 : OUTRO_FADE_S, ease: EASE_OUT }}
+    >
+      <div className="ob-intro-stack">
+        <BrandMark />
+        <span className="ob-intro-word">Jobtology</span>
+      </div>
+      <p className="ob-outro-loading">
+        <span className="ob-outro-text">로딩 중</span>
+        <span className="ob-outro-dots" aria-hidden="true">
+          <span />
+          <span />
+          <span />
+        </span>
+      </p>
+    </motion.div>
   );
 }
