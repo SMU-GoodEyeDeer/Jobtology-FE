@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LayoutGroup, MotionConfig, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, LayoutGroup, MotionConfig, motion, useReducedMotion } from "motion/react";
 import "./OnboardingChat.css";
 import logoIcon from "../../assets/logo.svg";
 import { useSession } from "../../context/SessionContext";
@@ -26,10 +26,13 @@ const MAX_HISTORY = 20;
 // Scripted questions get a short typing beat before they appear. Network waits
 // already show the busy indicator; LLM replies reveal as soon as they arrive.
 const SCRIPTED_TYPING_MS = 500;
+// Logo-only intro shown on /onboarding mount (and pixel-identically by the `/`
+// splash, so the redirect is seamless): hold, then cross-fade into the chat.
+const INTRO_HOLD_MS = 650;
+const INTRO_FADE_S = 0.5;
 
 export const QUESTIONS: Record<Step, string> = {
-  occupation:
-    "안녕하세요! 몇 가지를 대화로 여쭤볼게요. 언제든 위의 '그만하고 시작하기'를 누르면 지금까지 답한 것만 저장하고 넘어가요.\n먼저, 어떤 IT 직무를 목표로 하세요?",
+  occupation: "어떤 IT 직무를 목표로 하세요?",
   major: "전공(학과)이 무엇인가요? 직접 입력해 주세요.",
   grade: "몇 학년이세요?",
   checklist: "이미 해본 것을 모두 골라주세요. 없으면 '해본 게 없어요'를 눌러주세요.",
@@ -58,6 +61,7 @@ export function OnboardingChat() {
 
   const [step, setStep] = useState<Step>("occupation");
   const [messages, setMessages] = useState<Message[]>([{ role: "ai", text: QUESTIONS.occupation }]);
+  const [introVisible, setIntroVisible] = useState(!reduceMotion);
   const [occupation, setOccupation] = useState<{ id: string; name: string } | null>(null);
   const [goalStarted, setGoalStarted] = useState(false);
   const [major, setMajor] = useState<string | null>(null);
@@ -79,6 +83,12 @@ export function OnboardingChat() {
   useEffect(() => {
     if (!sessionLoading && !session) navigate("/");
   }, [session, sessionLoading, navigate]);
+
+  useEffect(() => {
+    if (!introVisible) return;
+    const t = setTimeout(() => setIntroVisible(false), INTRO_HOLD_MS);
+    return () => clearTimeout(t);
+  }, [introVisible]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth" });
@@ -225,7 +235,28 @@ export function OnboardingChat() {
           <div className="ob-bg" aria-hidden="true">
             <div className="ob-blob ob-blob--a" />
             <div className="ob-blob ob-blob--b" />
+            <div className="ob-blob ob-blob--c" />
           </div>
+
+          <AnimatePresence>
+            {introVisible && (
+              <motion.div
+                className="ob-intro"
+                role="status"
+                aria-label="잡톨로지"
+                exit={{ opacity: 0 }}
+                transition={{ duration: INTRO_FADE_S, ease: EASE_OUT }}
+              >
+                <motion.img
+                  className="ob-intro-logo"
+                  src={logoIcon}
+                  alt=""
+                  exit={{ scale: 0.96, filter: "blur(10px)" }}
+                  transition={{ duration: INTRO_FADE_S, ease: EASE_OUT }}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <header className="ob-header">
             <div className="ob-header-inner">

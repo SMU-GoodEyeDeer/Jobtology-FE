@@ -1,18 +1,21 @@
-/* ── Onboarding chat · dark indigo aurora + glassmorphism ───────────────────
-   Brand: #4f46e5 / #6366f1 / #1e1b4b. Text contrast kept ≥ WCAG AA on the
-   deep indigo surfaces (ink #eceef9 ≈ 13:1, muted #a9b1cf ≈ 7:1). */
+/* ── Onboarding chat · light glass theme ─────────────────────────────────────
+   Airy lavender base with pastel aurora blobs; glass surfaces are translucent
+   white with a faint indigo hairline. Text is dark navy (#1e1b4b); muted text
+   and placeholders keep ≥ WCAG AA (4.5:1) on the light surfaces. */
 
 .ob-page {
-  --ob-ink: #eceef9;
-  --ob-ink-muted: #a9b1cf;
-  --ob-ink-faint: #8b93b8;
+  --ob-ink: #1e1b4b;
+  --ob-ink-muted: #475569;
+  --ob-label: #475569;
+  --ob-label-current: #4338ca;
+  --ob-chip-ink: #4338ca;
   --ob-brand-1: #4f46e5;
   --ob-brand-2: #6366f1;
-  --ob-brand-soft: #818cf8;
-  --ob-glass: rgba(255, 255, 255, 0.055);
-  --ob-glass-strong: rgba(255, 255, 255, 0.09);
-  --ob-glass-border: rgba(255, 255, 255, 0.13);
-  --ob-shadow: 0 10px 34px rgba(3, 3, 22, 0.38);
+  --ob-glass: rgba(255, 255, 255, 0.62);
+  --ob-glass-strong: rgba(255, 255, 255, 0.75);
+  --ob-glass-border: rgba(255, 255, 255, 0.7);
+  --ob-hairline: rgba(99, 102, 241, 0.1);
+  --ob-shadow: 0 10px 30px rgba(79, 70, 229, 0.1), 0 2px 8px rgba(30, 27, 75, 0.05);
 
   height: 100vh;
   height: 100dvh;
@@ -21,14 +24,11 @@
   align-items: center;
   position: relative;
   color: var(--ob-ink);
-  background:
-    radial-gradient(1200px 800px at 85% -10%, rgba(99, 102, 241, 0.16), transparent 60%),
-    radial-gradient(1000px 700px at -10% 110%, rgba(139, 92, 246, 0.12), transparent 55%),
-    linear-gradient(180deg, #0e0c1f 0%, #131029 52%, #0d0b1a 100%);
+  background: linear-gradient(180deg, #f7f8ff 0%, #edf0ff 100%);
   overflow: hidden;
 }
 
-/* ── Aurora backdrop (2 large blurred radial blobs, slow drift) ──────────── */
+/* ── Aurora backdrop: 3 large soft pastel blobs, slow drift ──────────────── */
 .ob-bg {
   position: absolute;
   inset: 0;
@@ -39,24 +39,32 @@
 .ob-blob {
   position: absolute;
   border-radius: 50%;
-  filter: blur(90px);
+  filter: blur(100px);
   will-change: transform;
 }
 .ob-blob--a {
-  width: 44vmax;
-  height: 44vmax;
-  top: -12vmax;
-  left: -8vmax;
-  background: radial-gradient(closest-side, rgba(99, 102, 241, 0.32), rgba(99, 102, 241, 0) 70%);
+  width: 46vmax;
+  height: 46vmax;
+  top: -14vmax;
+  left: -10vmax;
+  background: radial-gradient(closest-side, rgba(99, 102, 241, 0.24), rgba(99, 102, 241, 0) 70%);
   animation: ob-drift-a 38s ease-in-out infinite alternate;
 }
 .ob-blob--b {
-  width: 38vmax;
-  height: 38vmax;
-  bottom: -14vmax;
-  right: -6vmax;
-  background: radial-gradient(closest-side, rgba(167, 139, 250, 0.24), rgba(167, 139, 250, 0) 70%);
+  width: 40vmax;
+  height: 40vmax;
+  bottom: -16vmax;
+  right: -8vmax;
+  background: radial-gradient(closest-side, rgba(167, 139, 250, 0.22), rgba(167, 139, 250, 0) 70%);
   animation: ob-drift-b 46s ease-in-out infinite alternate;
+}
+.ob-blob--c {
+  width: 30vmax;
+  height: 30vmax;
+  top: -8vmax;
+  right: 6vmax;
+  background: radial-gradient(closest-side, rgba(125, 211, 252, 0.24), rgba(125, 211, 252, 0) 70%);
+  animation: ob-drift-a 52s ease-in-out infinite alternate-reverse;
 }
 @keyframes ob-drift-a {
   from { transform: translate3d(0, 0, 0) scale(1); }
@@ -67,6 +75,22 @@
   to { transform: translate3d(-5vmax, -3vmax, 0) scale(1); }
 }
 
+/* ── Logo-only intro overlay. Also used verbatim by the `/` splash so the
+   route change between the two is invisible. ─────────────────────────────── */
+.ob-intro {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(180deg, #f7f8ff 0%, #edf0ff 100%);
+}
+.ob-intro-logo {
+  width: 88px;
+  height: 88px;
+  filter: drop-shadow(0 10px 32px rgba(99, 102, 241, 0.26));
+}
+
 .ob-header,
 .ob-chat,
 .ob-input-bar {
@@ -74,14 +98,14 @@
   z-index: 1;
 }
 
-/* ── Header: glass bar · brand / progress / ghost stop ──────────────────── */
+/* ── Header: light glass bar · brand / progress / ghost stop ─────────────── */
 .ob-header {
   flex: none;
   width: 100%;
-  background: rgba(14, 12, 31, 0.55);
-  backdrop-filter: blur(18px) saturate(150%);
-  -webkit-backdrop-filter: blur(18px) saturate(150%);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border-bottom: 1px solid rgba(99, 102, 241, 0.12);
 }
 .ob-header-inner {
   width: 100%;
@@ -96,12 +120,11 @@
   display: flex;
   align-items: center;
   gap: 0.55rem;
-  view-transition-name: jobtology-brand;
 }
 .ob-brand img {
   width: 30px;
   height: 30px;
-  filter: drop-shadow(0 2px 10px rgba(99, 102, 241, 0.45));
+  filter: drop-shadow(0 2px 8px rgba(99, 102, 241, 0.3));
 }
 .ob-brand h1 {
   font-size: 1.15rem;
@@ -109,9 +132,10 @@
   margin: 0;
   color: var(--ob-ink);
   letter-spacing: 0.01em;
+  white-space: nowrap;
 }
 
-/* Progress trail: dots + thin segmented bar + tiny labels */
+/* Progress trail: dots + thin segmented bar + labels (AA on light glass) */
 .ob-progress { justify-self: center; width: min(340px, 100%); }
 .ob-progress ol { list-style: none; margin: 0; padding: 0; display: flex; }
 .ob-step {
@@ -131,31 +155,31 @@
   width: calc(100% - 26px);
   height: 2px;
   border-radius: 2px;
-  background: rgba(255, 255, 255, 0.14);
+  background: rgba(99, 102, 241, 0.18);
 }
 .ob-step--done:not(:last-child)::after {
-  background: linear-gradient(90deg, var(--ob-brand-soft), var(--ob-brand-2));
+  background: linear-gradient(90deg, #818cf8, var(--ob-brand-1));
 }
 .ob-step-dot {
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.22);
+  background: rgba(30, 27, 75, 0.16);
   transition: background-color 0.25s ease, box-shadow 0.25s ease;
 }
 .ob-step--done .ob-step-dot {
-  background: linear-gradient(135deg, var(--ob-brand-soft), var(--ob-brand-2));
+  background: linear-gradient(135deg, #818cf8, var(--ob-brand-1));
 }
 .ob-step--current .ob-step-dot {
-  background: var(--ob-brand-soft);
-  box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.22);
+  background: var(--ob-brand-1);
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
 }
 .ob-progress-label {
   font-size: 0.68rem;
-  color: var(--ob-ink-faint);
+  color: var(--ob-label);
   white-space: nowrap;
 }
-.ob-step--current .ob-progress-label { color: #c7d2fe; font-weight: 600; }
+.ob-step--current .ob-progress-label { color: var(--ob-label-current); font-weight: 600; }
 .ob-step--done .ob-progress-label { color: var(--ob-ink-muted); }
 
 /* Ghost stop button — subtle but clearly clickable */
@@ -171,13 +195,13 @@
   padding: 0.45rem 0.65rem;
   border-radius: 8px;
   text-decoration: underline;
-  text-decoration-color: rgba(169, 177, 207, 0.4);
+  text-decoration-color: rgba(71, 85, 105, 0.45);
   text-underline-offset: 4px;
   transition: color 0.18s ease, background-color 0.18s ease;
 }
 .ob-stop:hover:not(:disabled) {
   color: var(--ob-ink);
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(99, 102, 241, 0.1);
 }
 .ob-stop:disabled { opacity: 0.45; cursor: not-allowed; }
 
@@ -194,11 +218,11 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+  scrollbar-color: rgba(30, 27, 75, 0.2) transparent;
 }
 .ob-chat::-webkit-scrollbar { width: 8px; }
 .ob-chat::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.14);
+  background: rgba(30, 27, 75, 0.16);
   border-radius: 8px;
 }
 .ob-chat::-webkit-scrollbar-track { background: transparent; }
@@ -216,13 +240,14 @@
   align-items: flex-start;
 }
 
-/* AI bubble: glass surface. The hero (center-start) state is bare large text;
+/* AI bubble: light glass. The hero (center-start) state is bare large text;
    it cross-fades into glass when the chat layout begins. */
 .ob-ai {
   background: var(--ob-glass);
   border: 1px solid var(--ob-glass-border);
-  backdrop-filter: blur(16px) saturate(140%);
-  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  box-shadow: var(--ob-shadow), inset 0 0 0 1px var(--ob-hairline);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
   border-radius: 16px 16px 16px 6px;
   padding: 0.8rem 1.05rem;
   max-width: 82%;
@@ -230,7 +255,6 @@
   line-height: 1.6;
   white-space: pre-line;
   word-break: keep-all;
-  box-shadow: var(--ob-shadow);
   text-wrap: pretty;
   transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
 }
@@ -260,38 +284,39 @@
   line-height: 1.55;
   white-space: pre-line;
   word-break: keep-all;
-  box-shadow: 0 8px 22px rgba(79, 70, 229, 0.32);
+  box-shadow: 0 8px 22px rgba(79, 70, 229, 0.28);
 }
 
 /* ── Chips ────────────────────────────────────────────────────────────────── */
 .ob-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
 .ob-options { margin-top: 0.25rem; }
 .ob-chip {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  color: #c7d2fe;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(99, 102, 241, 0.22);
+  color: var(--ob-chip-ink);
   border-radius: 999px;
   padding: 0.55rem 1.05rem;
   font-size: 0.9rem;
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  box-shadow: 0 2px 10px rgba(79, 70, 229, 0.06);
   transition: border-color 0.18s ease, background-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
 }
 .ob-chip:hover:not(:disabled) {
-  border-color: rgba(165, 180, 252, 0.65);
-  background: rgba(99, 102, 241, 0.16);
-  color: #e0e7ff;
+  border-color: #6366f1;
+  background: rgba(255, 255, 255, 0.88);
+  color: #3730a3;
   transform: translateY(-1px);
 }
 .ob-chip:disabled { opacity: 0.45; cursor: not-allowed; }
 .ob-chip--primary {
   background: linear-gradient(135deg, #6366f1, #4f46e5);
-  border-color: rgba(129, 140, 248, 0.8);
+  border-color: rgba(99, 102, 241, 0.55);
   color: #fff;
-  box-shadow: 0 6px 18px rgba(79, 70, 229, 0.35);
+  box-shadow: 0 6px 18px rgba(79, 70, 229, 0.28);
 }
 .ob-chip--primary:hover:not(:disabled) {
   background: linear-gradient(135deg, #6d74f3, #554ee8);
@@ -299,41 +324,42 @@
 }
 .ob-chip--item { border-radius: 12px; text-align: left; font-weight: 500; line-height: 1.4; }
 .ob-chip--item.selected {
-  background: rgba(99, 102, 241, 0.22);
-  border-color: var(--ob-brand-soft);
-  color: #e0e7ff;
+  background: rgba(99, 102, 241, 0.12);
+  border-color: #6366f1;
+  color: #3730a3;
 }
 
 /* ── Checklist: glass panel ──────────────────────────────────────────────── */
 .ob-checklist {
-  background: var(--ob-glass);
+  background: var(--ob-glass-strong);
   border: 1px solid var(--ob-glass-border);
-  backdrop-filter: blur(18px) saturate(140%);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  box-shadow: var(--ob-shadow), inset 0 0 0 1px var(--ob-hairline);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
   border-radius: 18px;
   padding: 1.1rem;
   width: min(100%, 680px);
   display: flex;
   flex-direction: column;
   gap: 0.9rem;
-  box-shadow: var(--ob-shadow);
 }
 .ob-group { margin: 0 0 0.4rem; font-size: 0.78rem; font-weight: 700; color: var(--ob-ink-muted); letter-spacing: 0.02em; }
 
 /* ── Candidate cards: glass ──────────────────────────────────────────────── */
 .ob-candidate {
-  background: rgba(129, 140, 248, 0.08);
-  border: 1px solid rgba(165, 180, 252, 0.28);
+  background: rgba(255, 255, 255, 0.68);
+  border: 1px solid rgba(99, 102, 241, 0.25);
   border-radius: 14px;
   padding: 0.85rem 1rem;
   max-width: 82%;
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 6px 20px rgba(79, 70, 229, 0.08);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
 }
 .ob-candidate p { margin: 0 0 0.4rem; font-size: 0.9rem; color: var(--ob-ink); }
 .ob-quote { color: var(--ob-ink-muted) !important; font-size: 0.85rem !important; }
-.ob-saved { color: #6ee7b7 !important; font-weight: 600; margin: 0 !important; }
-.ob-error { color: #fca5a5; font-size: 0.85rem; }
+.ob-saved { color: #047857 !important; font-weight: 600; margin: 0 !important; }
+.ob-error { color: #b91c1c; font-size: 0.85rem; }
 
 /* ── Typing indicator ────────────────────────────────────────────────────── */
 .ob-typing { display: flex; gap: 5px; padding: 0.95rem 1.05rem; }
@@ -341,7 +367,7 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #a5b4fc;
+  background: #6366f1;
   animation: ob-blink 1s infinite;
 }
 .ob-typing span:nth-child(2) { animation-delay: 0.2s; }
@@ -361,12 +387,11 @@
   background: var(--ob-glass);
   border: 1px solid var(--ob-glass-border);
   border-radius: 999px;
-  backdrop-filter: blur(18px) saturate(150%);
-  -webkit-backdrop-filter: blur(18px) saturate(150%);
-  box-shadow: var(--ob-shadow);
+  box-shadow: var(--ob-shadow), inset 0 0 0 1px var(--ob-hairline);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
   transition: opacity 0.3s ease;
 }
-.ob-page--center .ob-input-bar { opacity: 0.75; }
 .ob-input {
   flex: 1;
   height: 44px;
@@ -377,9 +402,9 @@
   font-size: 0.95rem;
   font-family: inherit;
 }
-.ob-input::placeholder { color: #8b93b8; }
+.ob-input::placeholder { color: #4b5563; opacity: 1; }
 .ob-input:focus { outline: none; }
-.ob-input:disabled { opacity: 0.55; cursor: not-allowed; }
+.ob-input:disabled { opacity: 0.9; cursor: not-allowed; }
 .ob-send {
   height: 44px;
   background: linear-gradient(135deg, #6366f1, #4f46e5);
@@ -394,19 +419,13 @@
   transition: filter 0.18s ease;
 }
 .ob-send:hover:not(:disabled) { filter: brightness(1.08); }
-.ob-send:disabled { background: rgba(99, 102, 241, 0.35); cursor: not-allowed; }
-
-/* ── View transition: splash brand morphs into the chat header brand ─────── */
-::view-transition-group(jobtology-brand) {
-  animation-duration: 0.5s;
-  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
-}
+.ob-send:disabled { background: rgba(99, 102, 241, 0.12); color: #6366f1; cursor: not-allowed; box-shadow: none; }
 
 /* ── Mobile ──────────────────────────────────────────────────────────────── */
 @media (max-width: 600px) {
   .ob-header-inner { padding: 0.6rem 0.85rem; }
-  .ob-brand h1 { display: none; }
-  .ob-progress { width: 100%; max-width: 200px; }
+  .ob-brand h1 { font-size: 0.98rem; }
+  .ob-progress { width: 100%; max-width: 170px; }
   .ob-progress-label { display: none; }
   .ob-step { min-width: 1.6rem; }
   .ob-stop { font-size: 0.72rem; padding: 0.5rem 0.5rem; }
@@ -420,7 +439,8 @@
 /* ── Reduced motion: everything settles instantly ────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .ob-blob--a,
-  .ob-blob--b { animation: none; }
+  .ob-blob--b,
+  .ob-blob--c { animation: none; }
   .ob-typing span { animation: none; opacity: 0.7; }
   .ob-chip,
   .ob-stop,

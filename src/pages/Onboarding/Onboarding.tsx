@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-import { flushSync } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import "./Onboarding.css";
 import UsersIcon from "../../assets/Users.svg";
@@ -11,19 +10,6 @@ import { goalsApi } from "../../services/api";
 
 const GOOGLE_LOGIN_URL = "https://jobtology.yeongmin.net/api/v1/auth/google/login";
 
-// Workaround: navigate({ viewTransition: true }) never fires from this promise
-// context in react-router 7.18.x — drive document.startViewTransition ourselves
-// (flushSync commits the route swap before the capture) with a plain fallback.
-function navigateWithViewTransition(navigate: (path: string) => void, path: string) {
-  if (typeof document.startViewTransition === "function") {
-    document.startViewTransition(() => {
-      flushSync(() => navigate(path));
-    });
-  } else {
-    navigate(path);
-  }
-}
-
 export function Onboarding() {
   const navigate = useNavigate();
   const { session, loading } = useSession();
@@ -31,18 +17,16 @@ export function Onboarding() {
   useEffect(() => {
     if (loading || !session) return;
     goalsApi.list().then(({ items }) => {
-      navigateWithViewTransition(navigate, items.some((goal) => goal.status === "ACTIVE") ? "/home" : "/onboarding");
-    }).catch(() => navigateWithViewTransition(navigate, "/onboarding"));
+      navigate(items.some((goal) => goal.status === "ACTIVE") ? "/home" : "/onboarding");
+    }).catch(() => navigate("/onboarding"));
   }, [session, loading, navigate]);
 
-  // Splash brand shares view-transition-name with the chat header brand (.ob-brand), so the logo morphs across the navigation.
+  // Logo-only splash using the same .ob-intro styles as the chat intro overlay,
+  // so the `/` → `/onboarding` handoff is pixel-identical and invisible.
   if (loading || session) {
     return (
-      <div className="splash" role="status" aria-label="잡톨로지 로딩 중">
-        <div className="splash-brand">
-          <img className="splash-logo" src={logoIcon} alt="" />
-          <span className="splash-word">잡톨로지</span>
-        </div>
+      <div className="ob-intro" role="status" aria-label="잡톨로지 로딩 중">
+        <img className="ob-intro-logo" src={logoIcon} alt="" />
       </div>
     );
   }

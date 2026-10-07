@@ -29,6 +29,13 @@ describe("OnboardingChat", () => {
     expect(html).toContain("그만하고 시작하기");
   });
 
+  it("shortens the first question to just the occupation ask", () => {
+    const html = render();
+    expect(QUESTIONS.occupation).toBe("어떤 IT 직무를 목표로 하세요?");
+    expect(html).not.toContain("안녕하세요");
+    expect(html).not.toContain("지금까지 답한 것만 저장");
+  });
+
   it("keeps the text input disabled while a button answer is expected", () => {
     expect(render()).toMatch(/<input class="ob-input"[^>]*disabled=""/);
   });
