@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/health", "destination": "/health.txt" },
+    { "source": "/:path([^.]+)", "destination": "/index.html" }
+  ]
+}
