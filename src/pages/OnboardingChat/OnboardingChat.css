@@ -409,11 +409,13 @@
   color: #fff;
 }
 .ob-chip--item { border-radius: 12px; text-align: left; font-weight: 500; line-height: 1.4; }
-.ob-chip--item.selected {
-  background: rgba(99, 102, 241, 0.12);
+.ob-chip--item.selected,
+.ob-chip--item.selected:hover:not(:disabled) {
+  background: rgba(99, 102, 241, 0.16);
   border-color: #6366f1;
   color: #3730a3;
 }
+.ob-chip--item.selected::before { content: "✓ "; font-weight: 700; }
 
 /* ── Checklist: glass panel ──────────────────────────────────────────────── */
 .ob-checklist {
