@@ -26,6 +26,9 @@ const NAV_ITEMS = [
 
 type PollState = "idle" | "pending" | "running" | "completed" | "failed";
 
+const POLL_INTERVAL_MS = 3000;
+const POLL_MAX_ATTEMPTS = 100;
+
 export function Analysis() {
   const navigate = useNavigate();
   const { session, loading: sessionLoading, logout } = useSession();
@@ -87,28 +90,27 @@ export function Analysis() {
       pollForResult(res.recompute_request_id);
     } catch (err) {
       const status = (err as Error & { status?: number }).status;
-      // 409 = already computing or result exists — try fetching existing
-      if (status === 409) {
-        setPollState("completed");
-      } else {
-        setPollState("failed");
-      }
+      // 409 = version/idempotency conflict; a stored or running analysis may still exist
+      const shown = status === 409 && await showStoredAnalysis(selectedGoalId).catch(() => false);
+      if (!shown) setPollState("failed");
     }
   }, [selectedGoalId]);
 
   function pollForResult(recomputeId: string) {
     setPollState("running");
+    let attempts = 0;
     const poll = async () => {
+      attempts += 1;
       try {
         const res = await analysisApi.poll(recomputeId);
         if (res.state === "COMPLETED" && res.analysis_id) {
           const result = await analysisApi.get(res.analysis_id);
           setAnalysisResult(result);
           setPollState("completed");
-        } else if (res.state === "FAILED") {
+        } else if (res.state === "FAILED" || attempts >= POLL_MAX_ATTEMPTS) {
           setPollState("failed");
         } else {
-          pollTimerRef.current = setTimeout(poll, 3000);
+          pollTimerRef.current = setTimeout(poll, POLL_INTERVAL_MS);
         }
       } catch {
         setPollState("failed");
@@ -117,22 +119,27 @@ export function Analysis() {
     poll();
   }
 
+  async function showStoredAnalysis(goalId: string): Promise<boolean> {
+    const dashboard = await dashboardApi.get(goalId);
+    if (dashboard.state === "READY" && dashboard.analysis_id) {
+      setAnalysisResult(await analysisApi.get(dashboard.analysis_id));
+      setPollState("completed");
+      return true;
+    }
+    if (dashboard.state === "RECOMPUTING" && dashboard.recompute_request_id) {
+      pollForResult(dashboard.recompute_request_id);
+      return true;
+    }
+    return false;
+  }
+
   // Show the stored analysis first; only compute when none exists yet. Profile,
   // capability, and preference changes already trigger a recompute on the server.
   const loadAnalysis = useCallback(async () => {
     if (!selectedGoalId) return;
     setPollState("pending");
     try {
-      const dashboard = await dashboardApi.get(selectedGoalId);
-      if (dashboard.state === "READY" && dashboard.analysis_id) {
-        setAnalysisResult(await analysisApi.get(dashboard.analysis_id));
-        setPollState("completed");
-        return;
-      }
-      if (dashboard.state === "RECOMPUTING" && dashboard.recompute_request_id) {
-        pollForResult(dashboard.recompute_request_id);
-        return;
-      }
+      if (await showStoredAnalysis(selectedGoalId)) return;
     } catch (err) {
       console.warn("Stored analysis lookup failed:", err);
     }
@@ -337,6 +344,8 @@ export function Analysis() {
                   ? "분석 결과가 없어요. 역량을 먼저 등록해보세요."
                   : pollState === "idle"
                   ? "목표를 선택하면 분석이 시작돼요."
+                  : pollState === "failed"
+                  ? "분석 결과를 불러오지 못했어요. 위의 '다시 시도'를 눌러주세요."
                   : "분석 결과를 가져오는 중이에요..."}
               </div>
             )}
