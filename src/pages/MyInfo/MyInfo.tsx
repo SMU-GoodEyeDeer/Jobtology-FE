@@ -10,7 +10,7 @@ import analysisIcon from "../../assets/Bar chart.svg";
 import progressIcon from "../../assets/today.svg";
 import userIcon from "../../assets/User.svg";
 import chevronDownIcon from "../../assets/Chevron down.svg";
-import { profileApi, capabilitiesApi, authApi, goalsApi } from "../../services/api";
+import { profileApi, capabilitiesApi, goalsApi } from "../../services/api";
 import { useGoals } from "../../hooks/useGoals";
 import type { GoalStatus } from "../../services/types";
 import { useSession } from "../../context/SessionContext";
@@ -49,7 +49,7 @@ const YEAR_TO_GRADE: Record<number, string> = { 1: "1학년", 2: "2학년", 3: "
 
 export function MyInfo() {
   const navigate = useNavigate();
-  const { session, loading: sessionLoading } = useSession();
+  const { session, loading: sessionLoading, logout } = useSession();
   const [activeNav, setActiveNav] = useState("내 정보");
 
   useEffect(() => {
@@ -217,7 +217,7 @@ export function MyInfo() {
               <span className="satisfaction-pct">{capabilities.length}개 등록됨</span>
             </div>
           </div>
-          <button className="sidebar-logout-btn" onClick={async () => { await authApi.logout(); navigate("/"); }}>
+          <button className="sidebar-logout-btn" onClick={async () => { await logout(); navigate("/"); }}>
             로그아웃
           </button>
         </div>

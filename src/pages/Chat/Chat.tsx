@@ -9,7 +9,7 @@ import analysisIcon from "../../assets/Bar chart.svg";
 import progressIcon from "../../assets/today.svg";
 import userIcon from "../../assets/User.svg";
 import chevronDownIcon from "../../assets/Chevron down.svg";
-import { capabilitiesApi, authApi, chatApi, profileApi } from "../../services/api";
+import { capabilitiesApi, chatApi, profileApi } from "../../services/api";
 import type { ChatCapabilityCandidate, ChatMessagePayload } from "../../services/types";
 import { useGoals } from "../../hooks/useGoals";
 import { useRoadmap } from "../../hooks/useRoadmap";
@@ -117,7 +117,7 @@ function AiIcon({ size = 16 }: { size?: number }) {
 
 export function Chat() {
   const navigate = useNavigate();
-  const { session, loading: sessionLoading } = useSession();
+  const { session, loading: sessionLoading, logout } = useSession();
   const { goals, selectedGoalId, setSelectedGoalId, selectedGoal, selectedGoalName, getGoalName } = useGoals();
 
   useEffect(() => {
@@ -316,7 +316,7 @@ export function Chat() {
               <span className="satisfaction-pct">{ownedSkills.size}개</span>
             </div>
           </div>
-          <button className="sidebar-logout-btn" onClick={async () => { await authApi.logout(); navigate("/"); }}>
+          <button className="sidebar-logout-btn" onClick={async () => { await logout(); navigate("/"); }}>
             로그아웃
           </button>
         </div>

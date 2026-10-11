@@ -10,7 +10,7 @@ import analysisIcon from "../../assets/Bar chart.svg";
 import progressIcon from "../../assets/today.svg";
 import userIcon from "../../assets/User.svg";
 import chevronDownIcon from "../../assets/Chevron down.svg";
-import { routePrefsApi, profileApi, roadmapsApi, catalogV2Api, authApi } from "../../services/api";
+import { routePrefsApi, profileApi, roadmapsApi, catalogV2Api } from "../../services/api";
 import { useGoals } from "../../hooks/useGoals";
 import { useRoadmap } from "../../hooks/useRoadmap";
 import { PARTIAL_ROUTE_NOTICE, usePartialRoute } from "./usePartialRoute";
@@ -36,7 +36,7 @@ const CONDITION_CHIP_KEYS = [
 
 export function Roadmap() {
   const navigate = useNavigate();
-  const { session, loading: sessionLoading } = useSession();
+  const { session, loading: sessionLoading, logout } = useSession();
   const [activeNav, setActiveNav] = useState("내 로드맵");
 
   useEffect(() => {
@@ -168,7 +168,7 @@ export function Roadmap() {
               <div className="progress-fill progress-fill--blue" style={{ width: `${progressPct}%` }} />
             </div>
           </div>
-          <button className="sidebar-logout-btn" onClick={async () => { await authApi.logout(); navigate("/"); }}>
+          <button className="sidebar-logout-btn" onClick={async () => { await logout(); navigate("/"); }}>
             로그아웃
           </button>
         </div>

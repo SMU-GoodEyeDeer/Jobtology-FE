@@ -8,6 +8,7 @@ interface SessionState {
   loading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
+  logout: () => Promise<void>;
 }
 
 const SessionContext = createContext<SessionState>({
@@ -15,11 +16,15 @@ const SessionContext = createContext<SessionState>({
   loading: true,
   error: null,
   refresh: async () => {},
+  logout: async () => {},
 });
 
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<SessionResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  // Pages fetch product data on mount, and the guest cookie only exists after
+  // the first GET /auth/session — so children wait for that first answer.
+  const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
@@ -38,16 +43,24 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setSession(null);
     } finally {
       setLoading(false);
+      setReady(true);
     }
   }, []);
+
+  // Logout clears the server cookie; refreshing right away issues a fresh guest
+  // session so the next product request is not sent without a cookie (401).
+  const logout = useCallback(async () => {
+    await authApi.logout().catch((err: unknown) => console.warn("Logout request failed:", err));
+    await refresh();
+  }, [refresh]);
 
   useEffect(() => {
     refresh();
   }, [refresh]);
 
   return (
-    <SessionContext.Provider value={{ session, loading, error, refresh }}>
-      {children}
+    <SessionContext.Provider value={{ session, loading, error, refresh, logout }}>
+      {ready ? children : null}
     </SessionContext.Provider>
   );
 }

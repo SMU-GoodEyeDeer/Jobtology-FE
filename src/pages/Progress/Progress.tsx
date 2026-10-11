@@ -13,7 +13,6 @@ import chevronDownIcon from "../../assets/Chevron down.svg";
 import { useGoals } from "../../hooks/useGoals";
 import { useRoadmap } from "../../hooks/useRoadmap";
 import { useSession } from "../../context/SessionContext";
-import { authApi } from "../../services/api";
 
 const NAV_ITEMS = [
   { icon: homeIcon, label: "홈", path: "/home" },
@@ -29,7 +28,7 @@ type SummaryTab = typeof SUMMARY_TABS[number];
 
 export function Progress() {
   const navigate = useNavigate();
-  const { session, loading: sessionLoading } = useSession();
+  const { session, loading: sessionLoading, logout } = useSession();
   const [activeNav, setActiveNav] = useState("진행 상황");
 
   useEffect(() => {
@@ -105,7 +104,7 @@ export function Progress() {
               <div className="progress-fill progress-fill--blue" style={{ width: `${progressPct}%` }} />
             </div>
           </div>
-          <button className="sidebar-logout-btn" onClick={async () => { await authApi.logout(); navigate("/"); }}>
+          <button className="sidebar-logout-btn" onClick={async () => { await logout(); navigate("/"); }}>
             로그아웃
           </button>
         </div>

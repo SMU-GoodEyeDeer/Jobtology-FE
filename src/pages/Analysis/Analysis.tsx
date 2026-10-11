@@ -10,7 +10,7 @@ import analysisIcon from "../../assets/Bar chart.svg";
 import progressIcon from "../../assets/today.svg";
 import userIcon from "../../assets/User.svg";
 import chevronDownIcon from "../../assets/Chevron down.svg";
-import { analysisApi, profileApi, catalogV2Api, authApi, dashboardApi } from "../../services/api";
+import { analysisApi, profileApi, catalogV2Api, dashboardApi } from "../../services/api";
 import { useGoals } from "../../hooks/useGoals";
 import { useSession } from "../../context/SessionContext";
 import type { AnalysisResponse, Neo4jPublicationResponse, Neo4jNcsAlignmentResponse } from "../../services/types";
@@ -28,7 +28,7 @@ type PollState = "idle" | "pending" | "running" | "completed" | "failed";
 
 export function Analysis() {
   const navigate = useNavigate();
-  const { session, loading: sessionLoading } = useSession();
+  const { session, loading: sessionLoading, logout } = useSession();
   const [activeNav, setActiveNav] = useState("역량 분석");
 
   useEffect(() => {
@@ -212,7 +212,7 @@ export function Analysis() {
               <div className="progress-fill progress-fill--green" style={{ width: `${preferred_pct ?? 0}%` }} />
             </div>
           </div>
-          <button className="sidebar-logout-btn" onClick={async () => { await authApi.logout(); navigate("/"); }}>
+          <button className="sidebar-logout-btn" onClick={async () => { await logout(); navigate("/"); }}>
             로그아웃
           </button>
         </div>
