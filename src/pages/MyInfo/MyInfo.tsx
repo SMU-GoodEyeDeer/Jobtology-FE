@@ -31,6 +31,11 @@ interface CapabilityItem {
 const GRADES = ["1학년", "2학년", "3학년", "4학년"];
 const GRADE_TO_YEAR: Record<string, number> = { "1학년": 1, "2학년": 2, "3학년": 3, "4학년": 4 };
 const YEAR_TO_GRADE: Record<number, string> = { 1: "1학년", 2: "2학년", 3: "3학년", 4: "4학년" };
+const ENROLLMENT_OPTIONS = [
+  { value: "ENROLLED", label: "재학" },
+  { value: "ON_LEAVE", label: "휴학" },
+  { value: "GRADUATED", label: "졸업" },
+];
 
 export function MyInfo() {
   const navigate = useNavigate();
@@ -41,14 +46,15 @@ export function MyInfo() {
   }, [session, sessionLoading, navigate]);
   const [goalOpen, setGoalOpen] = useState(false);
   const goalRef = useRef<HTMLDivElement>(null);
-  const gradeDropdownRef = useRef<HTMLDivElement>(null);
 
   const { goals, selectedGoalId, setSelectedGoalId, selectedGoalName, getGoalName } = useGoals();
 
   // Profile state
   const [major, setMajor] = useState("");
+  const [majorConceptId, setMajorConceptId] = useState<string | null>(null);
   const [grade, setGrade] = useState<string | null>(null);
-  const [gradeOpen, setGradeOpen] = useState(false);
+  const [enrollmentStatus, setEnrollmentStatus] = useState("");
+  const [graduationOn, setGraduationOn] = useState("");
   const [profileVersion, setProfileVersion] = useState(1);
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
@@ -90,7 +96,10 @@ export function MyInfo() {
   useEffect(() => {
     profileApi.get().then((p) => {
       setMajor(p.major_raw ?? "");
+      setMajorConceptId(p.major_concept_id);
       setGrade(p.year ? YEAR_TO_GRADE[p.year] ?? null : null);
+      setEnrollmentStatus(p.enrollment_status ?? "");
+      setGraduationOn(p.expected_graduation_on ?? "");
       setProfileVersion(p.version);
     }).catch(console.error);
   }, []);
@@ -107,9 +116,6 @@ export function MyInfo() {
       if (goalRef.current && !goalRef.current.contains(e.target as Node)) {
         setGoalOpen(false);
       }
-      if (gradeDropdownRef.current && !gradeDropdownRef.current.contains(e.target as Node)) {
-        setGradeOpen(false);
-      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -118,10 +124,14 @@ export function MyInfo() {
   async function handleSaveProfile() {
     setSavingProfile(true);
     try {
+      // PUT replaces the whole profile, so every field is sent to avoid clearing it.
       const updated = await profileApi.update({
         expected_profile_version: profileVersion,
         major_raw: major || "미입력",
+        ...(majorConceptId ? { major_concept_id: majorConceptId } : {}),
         ...(grade ? { year: GRADE_TO_YEAR[grade] } : {}),
+        ...(enrollmentStatus ? { enrollment_status: enrollmentStatus } : {}),
+        ...(graduationOn ? { expected_graduation_on: graduationOn } : {}),
       });
       setProfileVersion(updated.version);
       setProfileSaved(true);
@@ -274,33 +284,44 @@ export function MyInfo() {
               </div>
 
               <div className="mi-field">
-                <label className="mi-label">학년</label>
-                <div className="custom-select" ref={gradeDropdownRef}>
-                  <button
-                    className={`custom-select-trigger${gradeOpen ? " open" : ""}`}
-                    onClick={() => setGradeOpen((v) => !v)}
-                    type="button"
-                    style={{ width: "100%" }}
-                  >
-                    <span className={grade ? "" : "placeholder"}>{grade ?? "학년 선택"}</span>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="6 9 12 15 18 9" />
-                    </svg>
-                  </button>
-                  {gradeOpen && (
-                    <ul className="custom-select-list">
-                      {GRADES.map((g) => (
-                        <li
-                          key={g}
-                          className={`custom-select-option${grade === g ? " selected" : ""}`}
-                          onClick={() => { setGrade(g); setGradeOpen(false); }}
-                        >
-                          {g}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
+                <label className="mi-label" htmlFor="mi-grade">학년</label>
+                <select
+                  id="mi-grade"
+                  className="mi-input"
+                  value={grade ?? ""}
+                  onChange={(e) => setGrade(e.target.value || null)}
+                >
+                  <option value="">학년 선택</option>
+                  {GRADES.map((g) => (
+                    <option key={g} value={g}>{g}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="mi-field">
+                <label className="mi-label" htmlFor="mi-enrollment">재학 상태</label>
+                <select
+                  id="mi-enrollment"
+                  className="mi-input"
+                  value={enrollmentStatus}
+                  onChange={(e) => setEnrollmentStatus(e.target.value)}
+                >
+                  <option value="">선택 안 함</option>
+                  {ENROLLMENT_OPTIONS.map(({ value, label }) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="mi-field">
+                <label className="mi-label" htmlFor="mi-graduation">졸업 (예정)일</label>
+                <input
+                  id="mi-graduation"
+                  className="mi-input"
+                  type="date"
+                  value={graduationOn}
+                  onChange={(e) => setGraduationOn(e.target.value)}
+                />
               </div>
 
               <button className="mi-roadmap-btn" onClick={() => navigate("/roadmap")}>
