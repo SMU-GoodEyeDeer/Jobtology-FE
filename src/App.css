@@ -15,3 +15,13 @@
 body {
   min-height: 100vh;
 }
+
+/* Route fade: only the page body follows --page-opacity, so the sidebar stays put. */
+.page-fade {
+  --page-opacity: 1;
+}
+
+.page-fade .main-area,
+.page-fade .chat-main {
+  opacity: var(--page-opacity);
+}
