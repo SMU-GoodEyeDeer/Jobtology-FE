@@ -172,10 +172,10 @@ export function Home() {
               </div>
               <ul className="check-list">
                 {nextActions.length > 0 ? (
-                  nextActions.map((action, i) => (
-                    <li key={i} className="check-item">
+                  nextActions.map((action) => (
+                    <li key={action.step_id} className="check-item">
                       <img src={checkIcon} alt="체크" className="check-icon" />
-                      <span>{action.label}</span>
+                      <span>{action.title}</span>
                     </li>
                   ))
                 ) : (
@@ -230,14 +230,14 @@ export function Home() {
               <div className="continue-steps">
                 <div className="step-box step-box--current">
                   <p className="step-label">다음 액션</p>
-                  <p className="step-name">{nextActions[0].label}</p>
+                  <p className="step-name">{nextActions[0].title}</p>
                 </div>
                 {nextActions[1] && (
                   <>
                     <img src={arrowIcon} alt="다음" className="step-arrow" />
                     <div className="step-box step-box--next">
                       <p className="step-label">그 다음</p>
-                      <p className="step-name">{nextActions[1].label}</p>
+                      <p className="step-name">{nextActions[1].title}</p>
                     </div>
                   </>
                 )}

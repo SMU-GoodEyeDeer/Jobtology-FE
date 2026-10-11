@@ -94,9 +94,11 @@ export interface RoutePreferencesUpdateRequest {
 
 // ─── Dashboard ───────────────────────────────────────────────────────────────
 export interface DashboardNextAction {
-  type: string;
-  label: string;
-  url?: string;
+  kind: string;
+  step_id: string;
+  title: string;
+  reason_code: string;
+  due_at: string | null;
 }
 
 export interface DashboardResponse {
