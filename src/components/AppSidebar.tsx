@@ -1,0 +1,99 @@
+import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import "./AppSidebar.css";
+import logoIcon from "../assets/logo1.svg";
+import homeIcon from "../assets/Home .svg";
+import chatIcon from "../assets/Message circle.svg";
+import roadmapIcon from "../assets/Trending up.svg";
+import analysisIcon from "../assets/Bar chart.svg";
+import progressIcon from "../assets/today.svg";
+import userIcon from "../assets/User.svg";
+import { useSession } from "../context/SessionContext";
+
+const NAV_ITEMS = [
+  { icon: homeIcon, label: "홈", path: "/home" },
+  { icon: chatIcon, label: "AI 커리어 챗봇", path: "/chat" },
+  { icon: roadmapIcon, label: "내 로드맵", path: "/roadmap" },
+  { icon: analysisIcon, label: "역량 분석", path: "/analysis" },
+  { icon: progressIcon, label: "진행 상황", path: "/progress" },
+  { icon: userIcon, label: "내 정보", path: "/myinfo" },
+];
+
+const NARROW_QUERY = "(max-width: 1024px)";
+const COLLAPSED_KEY = "jobtology.sidebar.collapsed";
+
+function preferredCollapsed(narrow: boolean): boolean {
+  return narrow || localStorage.getItem(COLLAPSED_KEY) === "1";
+}
+
+export function AppSidebar({ children, showLogout = true }: { children?: ReactNode; showLogout?: boolean }) {
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const { logout } = useSession();
+  const [collapsed, setCollapsed] = useState(() => preferredCollapsed(window.matchMedia(NARROW_QUERY).matches));
+
+  useEffect(() => {
+    const media = window.matchMedia(NARROW_QUERY);
+    const onChange = (event: MediaQueryListEvent) => setCollapsed(preferredCollapsed(event.matches));
+    media.addEventListener("change", onChange);
+    return () => media.removeEventListener("change", onChange);
+  }, []);
+
+  function toggle() {
+    const next = !collapsed;
+    setCollapsed(next);
+    if (!window.matchMedia(NARROW_QUERY).matches) localStorage.setItem(COLLAPSED_KEY, next ? "1" : "0");
+  }
+
+  return (
+    <aside className={`sidebar${collapsed ? " sidebar--collapsed" : ""}`}>
+      <div className="sidebar-logo">
+        <img src={logoIcon} alt="로고" className="sidebar-logo-icon" />
+        <span className="sidebar-logo-text">Jobtology</span>
+        <button
+          type="button"
+          className="sidebar-toggle"
+          aria-label={collapsed ? "사이드바 펼치기" : "사이드바 접기"}
+          aria-expanded={!collapsed}
+          onClick={toggle}
+        >
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+            <path d={collapsed ? "M9 6l6 6-6 6" : "M15 6l-6 6 6 6"} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+      </div>
+
+      <nav className="sidebar-nav">
+        {NAV_ITEMS.map(({ icon, label, path }) => (
+          <button
+            key={label}
+            className={`nav-item ${pathname === path || pathname.startsWith(`${path}/`) ? "nav-item--active" : ""}`}
+            title={collapsed ? label : undefined}
+            onClick={() => navigate(path)}
+          >
+            <img src={icon} alt={label} className="nav-icon" />
+            <span>{label}</span>
+          </button>
+        ))}
+      </nav>
+
+      <div className="sidebar-bottom">
+        {children}
+        {showLogout && (
+          <button
+            className="sidebar-logout-btn"
+            title={collapsed ? "로그아웃" : undefined}
+            aria-label="로그아웃"
+            onClick={async () => { await logout(); navigate("/"); }}
+          >
+            <svg className="sidebar-logout-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+              <path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l-5-5 5-5M5 12h11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <span className="sidebar-logout-label">로그아웃</span>
+          </button>
+        )}
+      </div>
+    </aside>
+  );
+}

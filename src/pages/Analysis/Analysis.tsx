@@ -2,27 +2,12 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import "../Home/Home.css";
 import "./Analysis.css";
-import logoIcon from "../../assets/logo1.svg";
-import homeIcon from "../../assets/Home .svg";
-import chatIcon from "../../assets/Message circle.svg";
-import roadmapIcon from "../../assets/Trending up.svg";
-import analysisIcon from "../../assets/Bar chart.svg";
-import progressIcon from "../../assets/today.svg";
-import userIcon from "../../assets/User.svg";
+import { AppSidebar } from "../../components/AppSidebar";
 import chevronDownIcon from "../../assets/Chevron down.svg";
 import { analysisApi, profileApi, catalogV2Api, dashboardApi } from "../../services/api";
 import { useGoals } from "../../hooks/useGoals";
 import { useSession } from "../../context/SessionContext";
 import type { AnalysisResponse, Neo4jPublicationResponse, Neo4jNcsAlignmentResponse } from "../../services/types";
-
-const NAV_ITEMS = [
-  { icon: homeIcon, label: "홈", path: "/home" },
-  { icon: chatIcon, label: "AI 커리어 챗봇", path: "/chat" },
-  { icon: roadmapIcon, label: "내 로드맵", path: "/roadmap" },
-  { icon: analysisIcon, label: "역량 분석", path: "/analysis" },
-  { icon: progressIcon, label: "진행 상황", path: "/progress" },
-  { icon: userIcon, label: "내 정보", path: "/myinfo" },
-];
 
 type PollState = "idle" | "pending" | "running" | "completed" | "failed";
 
@@ -31,8 +16,7 @@ const POLL_MAX_ATTEMPTS = 100;
 
 export function Analysis() {
   const navigate = useNavigate();
-  const { session, loading: sessionLoading, logout } = useSession();
-  const [activeNav, setActiveNav] = useState("역량 분석");
+  const { session, loading: sessionLoading } = useSession();
 
   useEffect(() => {
     if (!sessionLoading && !session) navigate("/");
@@ -182,48 +166,25 @@ export function Analysis() {
   return (
     <div className="home-layout">
       {/* Sidebar */}
-      <aside className="sidebar">
-        <div className="sidebar-logo">
-          <img src={logoIcon} alt="로고" className="sidebar-logo-icon" />
-          <span className="sidebar-logo-text">Jobtology</span>
-        </div>
-
-        <nav className="sidebar-nav">
-          {NAV_ITEMS.map(({ icon, label, path }) => (
-            <button
-              key={label}
-              className={`nav-item ${activeNav === label ? "nav-item--active" : ""}`}
-              onClick={() => { setActiveNav(label); if (path) navigate(path); }}
-            >
-              <img src={icon} alt={label} className="nav-icon" />
-              <span>{label}</span>
-            </button>
-          ))}
-        </nav>
-
-        <div className="sidebar-bottom">
-          <div className="satisfaction-card">
-            <p className="satisfaction-title">{selectedGoalName} 충족률</p>
-            <div className="satisfaction-row">
-              <span className="satisfaction-label">필수 역량</span>
-              <span className="satisfaction-pct">{required_pct != null ? `${required_pct}%` : "—"}</span>
-            </div>
-            <div className="progress-bar">
-              <div className="progress-fill progress-fill--blue" style={{ width: `${required_pct ?? 0}%` }} />
-            </div>
-            <div className="satisfaction-row" style={{ marginTop: "10px" }}>
-              <span className="satisfaction-label">우대 역량</span>
-              <span className="satisfaction-pct">{preferred_pct != null ? `${preferred_pct}%` : "—"}</span>
-            </div>
-            <div className="progress-bar">
-              <div className="progress-fill progress-fill--green" style={{ width: `${preferred_pct ?? 0}%` }} />
-            </div>
+      <AppSidebar>
+        <div className="satisfaction-card">
+          <p className="satisfaction-title">{selectedGoalName} 충족률</p>
+          <div className="satisfaction-row">
+            <span className="satisfaction-label">필수 역량</span>
+            <span className="satisfaction-pct">{required_pct != null ? `${required_pct}%` : "—"}</span>
           </div>
-          <button className="sidebar-logout-btn" onClick={async () => { await logout(); navigate("/"); }}>
-            로그아웃
-          </button>
+          <div className="progress-bar">
+            <div className="progress-fill progress-fill--blue" style={{ width: `${required_pct ?? 0}%` }} />
+          </div>
+          <div className="satisfaction-row" style={{ marginTop: "10px" }}>
+            <span className="satisfaction-label">우대 역량</span>
+            <span className="satisfaction-pct">{preferred_pct != null ? `${preferred_pct}%` : "—"}</span>
+          </div>
+          <div className="progress-bar">
+            <div className="progress-fill progress-fill--green" style={{ width: `${preferred_pct ?? 0}%` }} />
+          </div>
         </div>
-      </aside>
+      </AppSidebar>
 
       {/* Main area */}
       <div className="main-area">

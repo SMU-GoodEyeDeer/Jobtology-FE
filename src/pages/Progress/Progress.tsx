@@ -2,34 +2,18 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "../Home/Home.css";
 import "./Progress.css";
-import logoIcon from "../../assets/logo1.svg";
-import homeIcon from "../../assets/Home .svg";
-import chatIcon from "../../assets/Message circle.svg";
-import roadmapIcon from "../../assets/Trending up.svg";
-import analysisIcon from "../../assets/Bar chart.svg";
-import progressIcon from "../../assets/today.svg";
-import userIcon from "../../assets/User.svg";
+import { AppSidebar } from "../../components/AppSidebar";
 import chevronDownIcon from "../../assets/Chevron down.svg";
 import { useGoals } from "../../hooks/useGoals";
 import { useRoadmap } from "../../hooks/useRoadmap";
 import { useSession } from "../../context/SessionContext";
-
-const NAV_ITEMS = [
-  { icon: homeIcon, label: "홈", path: "/home" },
-  { icon: chatIcon, label: "AI 커리어 챗봇", path: "/chat" },
-  { icon: roadmapIcon, label: "내 로드맵", path: "/roadmap" },
-  { icon: analysisIcon, label: "역량 분석", path: "/analysis" },
-  { icon: progressIcon, label: "진행 상황", path: "/progress" },
-  { icon: userIcon, label: "내 정보", path: "/myinfo" },
-];
 
 const SUMMARY_TABS = ["이력서·포트폴리오", "자기소개서"] as const;
 type SummaryTab = typeof SUMMARY_TABS[number];
 
 export function Progress() {
   const navigate = useNavigate();
-  const { session, loading: sessionLoading, logout } = useSession();
-  const [activeNav, setActiveNav] = useState("진행 상황");
+  const { session, loading: sessionLoading } = useSession();
 
   useEffect(() => {
     if (!sessionLoading && !session) navigate("/");
@@ -74,41 +58,18 @@ export function Progress() {
   return (
     <div className="home-layout">
       {/* Sidebar */}
-      <aside className="sidebar">
-        <div className="sidebar-logo">
-          <img src={logoIcon} alt="로고" className="sidebar-logo-icon" />
-          <span className="sidebar-logo-text">Jobtology</span>
-        </div>
-
-        <nav className="sidebar-nav">
-          {NAV_ITEMS.map(({ icon, label, path }) => (
-            <button
-              key={label}
-              className={`nav-item ${activeNav === label ? "nav-item--active" : ""}`}
-              onClick={() => { setActiveNav(label); if (path) navigate(path); }}
-            >
-              <img src={icon} alt={label} className="nav-icon" />
-              <span>{label}</span>
-            </button>
-          ))}
-        </nav>
-
-        <div className="sidebar-bottom">
-          <div className="satisfaction-card">
-            <p className="satisfaction-title">{selectedGoalName} 진행률</p>
-            <div className="satisfaction-row">
-              <span className="satisfaction-label">로드맵</span>
-              <span className="satisfaction-pct">{progressPct}%</span>
-            </div>
-            <div className="progress-bar">
-              <div className="progress-fill progress-fill--blue" style={{ width: `${progressPct}%` }} />
-            </div>
+      <AppSidebar>
+        <div className="satisfaction-card">
+          <p className="satisfaction-title">{selectedGoalName} 진행률</p>
+          <div className="satisfaction-row">
+            <span className="satisfaction-label">로드맵</span>
+            <span className="satisfaction-pct">{progressPct}%</span>
           </div>
-          <button className="sidebar-logout-btn" onClick={async () => { await logout(); navigate("/"); }}>
-            로그아웃
-          </button>
+          <div className="progress-bar">
+            <div className="progress-fill progress-fill--blue" style={{ width: `${progressPct}%` }} />
+          </div>
         </div>
-      </aside>
+      </AppSidebar>
 
       {/* Main area */}
       <div className="main-area">

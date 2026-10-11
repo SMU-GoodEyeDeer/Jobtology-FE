@@ -2,27 +2,12 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "../Home/Home.css";
 import "./MyInfo.css";
-import logoIcon from "../../assets/logo1.svg";
-import homeIcon from "../../assets/Home .svg";
-import chatIcon from "../../assets/Message circle.svg";
-import roadmapIcon from "../../assets/Trending up.svg";
-import analysisIcon from "../../assets/Bar chart.svg";
-import progressIcon from "../../assets/today.svg";
-import userIcon from "../../assets/User.svg";
+import { AppSidebar } from "../../components/AppSidebar";
 import chevronDownIcon from "../../assets/Chevron down.svg";
 import { profileApi, capabilitiesApi, goalsApi } from "../../services/api";
 import { useGoals } from "../../hooks/useGoals";
 import type { GoalStatus } from "../../services/types";
 import { useSession } from "../../context/SessionContext";
-
-const NAV_ITEMS = [
-  { icon: homeIcon, label: "홈", path: "/home" },
-  { icon: chatIcon, label: "AI 커리어 챗봇", path: "/chat" },
-  { icon: roadmapIcon, label: "내 로드맵", path: "/roadmap" },
-  { icon: analysisIcon, label: "역량 분석", path: "/analysis" },
-  { icon: progressIcon, label: "진행 상황", path: "/progress" },
-  { icon: userIcon, label: "내 정보", path: "/myinfo" },
-];
 
 const SPEC_TABS = ["언어·도구", "자격증", "어학", "경력·활동"] as const;
 type SpecTab = typeof SPEC_TABS[number];
@@ -49,8 +34,7 @@ const YEAR_TO_GRADE: Record<number, string> = { 1: "1학년", 2: "2학년", 3: "
 
 export function MyInfo() {
   const navigate = useNavigate();
-  const { session, loading: sessionLoading, logout } = useSession();
-  const [activeNav, setActiveNav] = useState("내 정보");
+  const { session, loading: sessionLoading } = useSession();
 
   useEffect(() => {
     if (!sessionLoading && !session) navigate("/");
@@ -190,38 +174,15 @@ export function MyInfo() {
   return (
     <div className="home-layout">
       {/* Sidebar */}
-      <aside className="sidebar">
-        <div className="sidebar-logo">
-          <img src={logoIcon} alt="로고" className="sidebar-logo-icon" />
-          <span className="sidebar-logo-text">Jobtology</span>
-        </div>
-
-        <nav className="sidebar-nav">
-          {NAV_ITEMS.map(({ icon, label, path }) => (
-            <button
-              key={label}
-              className={`nav-item ${activeNav === label ? "nav-item--active" : ""}`}
-              onClick={() => { setActiveNav(label); if (path) navigate(path); }}
-            >
-              <img src={icon} alt={label} className="nav-icon" />
-              <span>{label}</span>
-            </button>
-          ))}
-        </nav>
-
-        <div className="sidebar-bottom">
-          <div className="satisfaction-card">
-            <p className="satisfaction-title">{selectedGoalName} 충족률</p>
-            <div className="satisfaction-row">
-              <span className="satisfaction-label">역량</span>
-              <span className="satisfaction-pct">{capabilities.length}개 등록됨</span>
-            </div>
+      <AppSidebar>
+        <div className="satisfaction-card">
+          <p className="satisfaction-title">{selectedGoalName} 충족률</p>
+          <div className="satisfaction-row">
+            <span className="satisfaction-label">역량</span>
+            <span className="satisfaction-pct">{capabilities.length}개 등록됨</span>
           </div>
-          <button className="sidebar-logout-btn" onClick={async () => { await logout(); navigate("/"); }}>
-            로그아웃
-          </button>
         </div>
-      </aside>
+      </AppSidebar>
 
       {/* Main area */}
       <div className="main-area">
