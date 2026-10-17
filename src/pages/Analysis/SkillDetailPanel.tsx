@@ -81,7 +81,7 @@ export function SkillDetailPanel({ skill, goalId, overlay, onClose }: PanelProps
           : roadmap.state === "error" || roadmap.state === "missing" ? <p className="sd-empty-card">로드맵을 불러오지 못했어요</p>
           : steps.length === 0 ? <p className="sd-empty-card">아직 로드맵에 들어가지 않은 역량이에요</p>
           : steps.map(step => <div className="sd-step" key={step.step_id}>
-            <span className="sd-step-number">{step.position ?? step.order ?? "—"}</span>
+            <span className="sd-step-number">{step.position != null ? step.position + 1 : step.order ?? "—"}</span>
             <div><strong>{step.title}</strong><p className="sd-muted">{formatPeriod(step.planned_start, step.planned_end)}
               <span className={`sd-badge sd-step-state--${step.state}`}>{stepLabels[step.state]}</span></p></div>
             <button type="button" className="sd-step-link" onClick={() => navigate("/roadmap")}>보기</button>
