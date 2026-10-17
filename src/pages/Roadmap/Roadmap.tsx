@@ -9,6 +9,9 @@ import { useGoals } from "../../hooks/useGoals";
 import { useRoadmap } from "../../hooks/useRoadmap";
 import { PARTIAL_ROUTE_NOTICE, usePartialRoute } from "./usePartialRoute";
 import { useSession } from "../../context/SessionContext";
+import { RoadmapPlan } from "./RoadmapPlan";
+import { LegacyRoadmap } from "./LegacyRoadmap";
+import { RoadmapExtras } from "./RoadmapExtras";
 import type { StepState, Neo4jPublicationResponse } from "../../services/types";
 
 const CONDITION_CHIP_KEYS = [
@@ -34,7 +37,6 @@ export function Roadmap() {
 
   const [activeChips, setActiveChips] = useState<Set<string>>(new Set());
   const [savingPrefs, setSavingPrefs] = useState(false);
-  const [editingRoadmapId, setEditingRoadmapId] = useState<string | null>(null);
 
   // v2 publications (route_planning 가능한 것만)
   const [routePublications, setRoutePublications] = useState<Neo4jPublicationResponse[]>([]);
@@ -120,7 +122,7 @@ export function Roadmap() {
   const totalSteps = activeRoadmap?.steps.length ?? 0;
 
   return (
-    <div className="home-layout">
+    <div className="home-layout roadmap-page">
       {/* Sidebar */}
       <AppSidebar>
         <div className="satisfaction-card">
@@ -138,7 +140,9 @@ export function Roadmap() {
       {/* Main area */}
       <div className="main-area">
         <header className="main-header">
-          <h2 className="main-title">내 로드맵</h2>
+          <div className="rm-heading"><h2 className="main-title">내 로드맵</h2>
+            {activeRoadmap && <p className="rm-heading-sub">{activeRoadmap.title} · {completedSteps}/{totalSteps}단계 완료</p>}
+          </div>
           <div className="goal-wrapper" ref={goalRef}>
             <button className="goal-button" onClick={() => setGoalOpen((v) => !v)}>
               {selectedGoalName}
@@ -166,10 +170,7 @@ export function Roadmap() {
           <section className="rm-section">
             <div className="rm-section-header">
               <p className="rm-section-title">내 로드맵 조건</p>
-              <p className="rm-section-sub">
-                아래 조건을 바꾸면 경로가 다시 계산돼요.
-                {savingPrefs && <span style={{ color: "#6b7280", marginLeft: 8 }}>저장 중...</span>}
-              </p>
+              {savingPrefs && <p className="rm-section-sub" role="status">저장 중...</p>}
             </div>
             <div className="rm-chips">
               {CONDITION_CHIP_KEYS.map(({ label }) => (
@@ -178,6 +179,7 @@ export function Roadmap() {
                   className={`rm-chip ${activeChips.has(label) ? "rm-chip--active" : ""}`}
                   onClick={() => toggleChip(label)}
                   disabled={savingPrefs}
+                  aria-pressed={activeChips.has(label)}
                 >
                   <span className="rm-chip-dot" />
                   {label}
@@ -186,62 +188,15 @@ export function Roadmap() {
             </div>
           </section>
 
-          {/* 활성 로드맵 */}
+          {isPartialRoute && <p className="rm-card-sub" role="note">{PARTIAL_ROUTE_NOTICE}</p>}
           {loading ? (
             <div className="rm-card" style={{ padding: 32, textAlign: "center", color: "#9ca3af" }}>
               로드맵을 불러오는 중...
             </div>
           ) : activeRoadmap ? (
-            <section className="rm-card">
-              <div className="rm-card-header">
-                <div className="rm-card-title-row">
-                  <span className="rm-card-title">{activeRoadmap.title}</span>
-                  <span className="rm-badge rm-badge--profile">활성</span>
-                </div>
-              </div>
-              <p className="rm-card-sub">
-                {completedSteps}/{totalSteps}단계 완료 · {progressPct}% 진행
-              </p>
-              {isPartialRoute && <p className="rm-card-sub" role="note">{PARTIAL_ROUTE_NOTICE}</p>}
-
-              {activeRoadmap.steps.map((step) => (
-                <div
-                  key={step.step_id}
-                  className={`rm-step-item ${step.state === "IN_PROGRESS" ? "rm-step-item--current" : ""}`}
-                >
-                  <div className="rm-step-top">
-                    <div className="rm-step-left">
-                      <span className="rm-step-name">{step.title}</span>
-                      {step.state === "COMPLETED" && (
-                        <span className="rm-badge rm-badge--done">완료</span>
-                      )}
-                      {step.state === "IN_PROGRESS" && (
-                        <span className="rm-badge rm-badge--now">진행 중</span>
-                      )}
-                    </div>
-                  </div>
-                  {step.description && (
-                    <p className="rm-step-desc">{step.description}</p>
-                  )}
-                  {step.state !== "COMPLETED" ? (
-                    <button
-                      className="rm-complete-btn"
-                      onClick={() => handleStepComplete(step.step_id, step.state)}
-                    >
-                      완료했어요
-                    </button>
-                  ) : (
-                    <button
-                      className="rm-complete-btn"
-                      style={{ background: "#e5e7eb", color: "#6b7280" }}
-                      onClick={() => handleStepComplete(step.step_id, step.state)}
-                    >
-                      완료 취소
-                    </button>
-                  )}
-                </div>
-              ))}
-            </section>
+            <RoadmapPlan key={activeRoadmap.roadmap_id} roadmapId={activeRoadmap.roadmap_id} goalId={activeRoadmap.goal_id} onComplete={handleStepComplete}>
+              <LegacyRoadmap roadmap={activeRoadmap} onComplete={handleStepComplete} />
+            </RoadmapPlan>
           ) : (
             <section className="rm-card" style={{ padding: 32, textAlign: "center" }}>
               <p style={{ color: "#6b7280", marginBottom: 16 }}>아직 로드맵이 없어요.</p>
@@ -249,76 +204,7 @@ export function Roadmap() {
             </section>
           )}
 
-          {/* 저장한 커리어 경로 (모든 로드맵 목록) */}
-          {roadmaps.length > 0 && (
-            <section className="rm-card">
-              <div className="rm-saved-header">
-                <p className="rm-section-title">저장한 커리어 경로</p>
-                <p className="rm-section-sub">저장된 모든 로드맵이에요.</p>
-              </div>
-              {roadmaps.map((rm) => (
-                <div key={rm.roadmap_id} className="rm-saved-card">
-                  <div className="rm-saved-top">
-                    <div>
-                      <span className={`rm-badge ${rm.status === "ACTIVE" ? "rm-badge--profile" : ""}`}>
-                        {rm.status}
-                      </span>
-                      <div className="rm-saved-title-row">
-                        <p className="rm-saved-title">{rm.title}</p>
-                        <button
-                          className="rm-edit-btn"
-                          onClick={() =>
-                            setEditingRoadmapId(editingRoadmapId === rm.roadmap_id ? null : rm.roadmap_id)
-                          }
-                        >
-                          {editingRoadmapId === rm.roadmap_id ? "완료" : "편집"}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                  {editingRoadmapId === rm.roadmap_id && rm.status !== "ARCHIVED" && (
-                    <div className="rm-saved-actions">
-                      <button
-                        className="rm-saved-btn rm-saved-btn--delete"
-                        onClick={() => handleArchiveRoadmap(rm.roadmap_id, rm.version)}
-                      >
-                        보관
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </section>
-          )}
-
-          {/* 로드맵 활용 가능한 학습 자료 */}
-          {routePublications.length > 0 && (
-            <section className="rm-card">
-              <div className="rm-saved-header">
-                <p className="rm-section-title">활용 가능한 학습 자료</p>
-                <p className="rm-section-sub">로드맵 경로 계획에 활용할 수 있는 자료예요.</p>
-              </div>
-              {routePublications.map((pub) => (
-                <div key={pub.publication_id} className="rm-saved-card">
-                  <div className="rm-saved-top">
-                    <div>
-                      <span className={`rm-badge ${pub.source_state === "ACTIVE" ? "rm-badge--profile" : ""}`}>
-                        {pub.source_state}
-                      </span>
-                      <div className="rm-saved-title-row">
-                        <p className="rm-saved-title" style={{ fontSize: 13 }}>{pub.publication_id}</p>
-                        <div style={{ display: "flex", gap: 4 }}>
-                          {pub.capabilities.editorial_analysis && (
-                            <span className="rm-badge" style={{ fontSize: 11 }}>역량 분석</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </section>
-          )}
+          <RoadmapExtras roadmaps={roadmaps} publications={routePublications} onArchive={handleArchiveRoadmap} />
 
           <div className="rm-bottom-btns">
             <button className="rm-bottom-btn" onClick={() => navigate("/analysis")}>부족한 역량 보기</button>

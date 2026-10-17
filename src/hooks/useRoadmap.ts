@@ -39,23 +39,20 @@ export function useRoadmap(goalId: string | null) {
 
   async function updateStepState(stepId: string, state: StepState) {
     if (!activeRoadmap) return;
-    try {
-      const profile = await profileApi.get();
-      const updated = await roadmapsApi.updateStep(
-        activeRoadmap.roadmap_id,
-        stepId,
-        {
-          state,
-          expected_roadmap_version: activeRoadmap.version,
-          expected_profile_version: profile.version,
-        }
-      );
-      // Re-fetch detail to get updated steps
-      const detail = await roadmapsApi.get(updated.roadmap_id);
-      setActiveRoadmap(detail);
-    } catch (err) {
-      console.error("Step update failed:", err);
-    }
+    const [profile, currentRoadmap] = await Promise.all([
+      profileApi.get(), roadmapsApi.get(activeRoadmap.roadmap_id),
+    ]);
+    const updated = await roadmapsApi.updateStep(
+      activeRoadmap.roadmap_id,
+      stepId,
+      {
+        state,
+        expected_roadmap_version: currentRoadmap.version,
+        expected_profile_version: profile.version,
+      }
+    );
+    const detail = await roadmapsApi.get(updated.roadmap_id);
+    setActiveRoadmap(detail);
   }
 
   const progressPct =

@@ -30,6 +30,8 @@ import type {
   RoleEvidenceGraph,
   NcsUnitResponse,
   ExamSessionsResponse,
+  WeeklyPlanInput,
+  WeeklyPlanResponse,
 } from "./types";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "https://jobtology.yeongmin.net/api";
@@ -161,6 +163,9 @@ export const proposalsApi = {
 
 // ─── Roadmaps ────────────────────────────────────────────────────────────────
 export const roadmapsApi = {
+  getPlan: (roadmapId: string) => get<WeeklyPlanResponse>(`/v1/roadmaps/${roadmapId}/plan`),
+  savePlan: (roadmapId: string, body: WeeklyPlanInput) => put<WeeklyPlanResponse>(`/v1/roadmaps/${roadmapId}/plan`, body),
+  resetPlan: (roadmapId: string) => del<WeeklyPlanResponse>(`/v1/roadmaps/${roadmapId}/plan`),
   list: () => get<RoadmapListResponse>("/v1/roadmaps"),
   get: (roadmapId: string) => get<RoadmapDetailResponse>(`/v1/roadmaps/${roadmapId}`),
   create: (body: {

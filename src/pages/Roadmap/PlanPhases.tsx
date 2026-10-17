@@ -1,0 +1,60 @@
+import { useState } from "react";
+import type { WeeklyPlanResponse, WeeklyPlanStep } from "../../services/types";
+import { basisLabels, phaseLabels, prerequisiteWarning, stateLabels } from "../../services/weeklyPlan";
+
+interface Props {
+  readonly plan: WeeklyPlanResponse;
+  readonly selectedId: string | null;
+  readonly onSelect: (id: string) => void;
+}
+
+export function PlanPhases({ plan, selectedId, onSelect }: Props) {
+  const current = plan.steps.find(s => s.state !== "COMPLETED")?.phase ?? plan.steps[0]?.phase;
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set(current ? [current] : []));
+  const phases = (["BASIC", "CORE", "ADVANCED"] as const).flatMap(phase => {
+    const steps = plan.steps.filter(s => s.phase === phase);
+    if (!steps.length) return [];
+    const levels = steps.flatMap(s => s.ncs_level === null ? [] : [s.ncs_level]);
+    return [{ phase, steps, hours: steps.reduce((n, s) => n + s.hours, 0),
+      done: steps.filter(s => s.state === "COMPLETED").length,
+      span: `${Math.min(...steps.map(s => s.start_week))}–${Math.max(...steps.map(s => s.end_week))}주차`,
+      level: levels.length ? `${Math.min(...levels)}${Math.min(...levels) === Math.max(...levels) ? "" : `–${Math.max(...levels)}`}수준` : "수준 미제공" }];
+  });
+  function toggle(phase: string) {
+    setExpanded(previous => { const next = new Set(previous); if (next.has(phase)) next.delete(phase); else next.add(phase); return next; });
+  }
+  return <section className="wp-phases wp-card" aria-label="단계 묶음">
+    <header className="wp-phases-heading"><h2>단계 묶음</h2><p>NCS 수준으로 묶었어요 · STEP 번호는 학습 순서예요</p>
+      <div className="wp-phase-progress">{phases.map(p => <div key={p.phase} style={{ flex: p.hours }}>
+        <div className="wp-progress-track"><span style={{ width: `${p.done / p.steps.length * 100}%` }} /></div>
+        <small><b>{phaseLabels[p.phase]}</b> · {p.span}</small>
+      </div>)}</div>
+    </header>
+    <div className="wp-phase-list">{phases.map((p, index) => <section key={p.phase} className={`wp-phase ${p.phase === current ? "wp-phase--current" : ""}`}>
+      <button className="wp-phase-header" aria-expanded={expanded.has(p.phase)} aria-controls={`phase-${p.phase}`} onClick={() => toggle(p.phase)}>
+        <span className={`wp-phase-number ${p.done === p.steps.length ? "done" : ""}`}>{p.done === p.steps.length ? "✓" : index + 1}</span>
+        <span className="wp-phase-info"><strong>{phaseLabels[p.phase]}</strong> <span className="wp-chip">NCS {p.level}</span>
+          {p.phase === current && <span className="wp-chip wp-chip--indigo">지금 여기</span>}
+          <small>{p.span} · 총 {p.hours}시간</small></span>
+        <span className="wp-phase-count"><b>{p.done}/{p.steps.length} 완료</b><small>{p.steps.length}단계</small></span><span>{expanded.has(p.phase) ? "⌃" : "⌄"}</span>
+      </button>
+      {expanded.has(p.phase) && <div className="wp-phase-steps" id={`phase-${p.phase}`}>{p.steps.map(step => <PhaseRow key={step.step_id} step={step} steps={plan.steps} selected={step.step_id === selectedId} onSelect={() => onSelect(step.step_id)} />)}</div>}
+    </section>)}</div>
+  </section>;
+}
+
+function PhaseRow({ step, steps, selected, onSelect }: { readonly step: WeeklyPlanStep; readonly steps: readonly WeeklyPlanStep[]; readonly selected: boolean; readonly onSelect: () => void }) {
+  const warning = prerequisiteWarning(step, steps);
+  return <div className="wp-phase-row">
+    <span className={`wp-node wp-node--${step.state}`} aria-hidden="true">{step.state === "COMPLETED" ? "✓" : ""}</span>
+    <button className="wp-step" aria-pressed={selected} onClick={onSelect}>
+      <span className="wp-step-number">STEP {step.number}</span>
+      <span className="wp-step-copy"><strong>{step.name}</strong><small>{step.start_week}–{step.end_week}주차 · {step.hours}시간 {basisLabels[step.hours_basis]}</small>
+        {step.moved && <span className="wp-chip wp-chip--indigo">직접 바꾼 순서</span>}
+        {warning && <span className="wp-warning">{warning}</span>}
+      </span>
+      {step.demand_pct !== null && <span className="wp-chip">공고 {step.demand_pct}%</span>}
+      <span className={`wp-pill wp-pill--${step.state}`}>{stateLabels[step.state]}</span><span aria-hidden="true">›</span>
+    </button>
+  </div>;
+}
