@@ -264,3 +264,36 @@ export interface ApiError {
   message: string;
   detail?: unknown;
 }
+
+// ─── Role evidence graph (Neo4j) ─────────────────────────────────────────────
+export type EvidenceNodeKind =
+  | "role"
+  | "ncs_occupation"
+  | "posting_evidence"
+  | "ncs_competency"
+  | "onet_occupation"
+  | "onet_skill"
+  | "qualification"
+  | "technology";
+
+export interface EvidenceNode {
+  readonly id: string;
+  readonly kind: EvidenceNodeKind;
+  readonly label: string;
+  readonly detail: string | null;
+  readonly weight: number | null;
+}
+
+export interface EvidenceEdge {
+  readonly source: string;
+  readonly target: string;
+  readonly kind: string;
+  readonly weight: number | null;
+}
+
+export interface RoleEvidenceGraph {
+  readonly occupation_id: string;
+  readonly name: string;
+  readonly nodes: readonly EvidenceNode[];
+  readonly edges: readonly EvidenceEdge[];
+}

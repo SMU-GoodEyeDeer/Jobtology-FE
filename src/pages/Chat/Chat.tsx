@@ -3,8 +3,9 @@ import { useNavigate } from "react-router-dom";
 import "./Chat.css";
 import { AppSidebar } from "../../components/AppSidebar";
 import chevronDownIcon from "../../assets/Chevron down.svg";
-import { capabilitiesApi, chatApi, profileApi } from "../../services/api";
-import type { ChatCapabilityCandidate, ChatMessagePayload } from "../../services/types";
+import { capabilitiesApi, chatApi, profileApi, roleEvidenceGraphApi } from "../../services/api";
+import type { ChatCapabilityCandidate, ChatMessagePayload, RoleEvidenceGraph } from "../../services/types";
+import { EvidenceGraph } from "./EvidenceGraph";
 import { useGoals } from "../../hooks/useGoals";
 import { useRoadmap } from "../../hooks/useRoadmap";
 import { useSession } from "../../context/SessionContext";
@@ -15,43 +16,6 @@ const SUGGESTIONS = [
   "부트캠프 꼭 들어야 해?",
   "비전공인데 가능할까?",
   "내 경로 추천해줘",
-];
-
-// Static graph layout (SVG coordinates are fixed — labels updated dynamically)
-const BASE_GRAPH_NODES = [
-  { id: "me",      label: "나",         sub: "현재 위치",   cx: 210, cy: 460, r: 44, type: "me" },
-  { id: "goal",    label: "목표 직무",  sub: "목표",        cx: 270, cy: 290, r: 56, type: "goal" },
-  { id: "edu",     label: "실무 교육",  sub: "교육 과정",   cx: 120, cy: 370, r: 42, type: "edu" },
-  { id: "pytorch", label: "PyTorch",    sub: "필요",        cx: 80,  cy: 250, r: 38, type: "need" },
-  { id: "docker",  label: "Docker",     sub: "필요",        cx: 155, cy: 110, r: 36, type: "need" },
-  { id: "aws",     label: "AWS",        sub: "우대",        cx: 370, cy: 120, r: 36, type: "need" },
-  { id: "project", label: "프로젝트",   sub: "포트폴리오",  cx: 420, cy: 245, r: 38, type: "edu" },
-  { id: "sql",     label: "SQL",        sub: "보유",        cx: 390, cy: 375, r: 36, type: "have" },
-  { id: "python",  label: "Python",     sub: "보유",        cx: 355, cy: 470, r: 40, type: "have" },
-  { id: "git",     label: "Git",        sub: "보유",        cx: 95,  cy: 490, r: 36, type: "have" },
-];
-
-const EDGES = [
-  ["me", "goal"], ["goal", "edu"], ["goal", "pytorch"],
-  ["goal", "docker"], ["goal", "aws"], ["goal", "project"],
-  ["goal", "sql"], ["goal", "python"], ["goal", "git"],
-  ["me", "python"], ["me", "git"],
-];
-
-const NODE_COLORS: Record<string, { bg: string; text: string }> = {
-  me:   { bg: "#111827", text: "#ffffff" },
-  goal: { bg: "#1e1b4b", text: "#ffffff" },
-  edu:  { bg: "#4f46e5", text: "#ffffff" },
-  need: { bg: "#9ca3af", text: "#ffffff" },
-  have: { bg: "#16a34a", text: "#ffffff" },
-};
-
-const LEGEND = [
-  { type: "me",   label: "나" },
-  { type: "goal", label: "목표 직무" },
-  { type: "have", label: "보유 역량" },
-  { type: "need", label: "필요 역량" },
-  { type: "edu",  label: "교육·활동" },
 ];
 
 type CandidateStatus = "saving" | "saved" | "dismissed" | "error";
@@ -113,23 +77,18 @@ export function Chat() {
   const [goalOpen, setGoalOpen] = useState(false);
   const [input, setInput] = useState("");
   const [selectedSuggestion, setSelectedSuggestion] = useState<string | null>(null);
-  const [pytorchPopup, setPytorchPopup] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [aiAvailable, setAiAvailable] = useState(false);
   const [candidateStatus, setCandidateStatus] = useState<Record<string, CandidateStatus>>({});
-  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [graph, setGraph] = useState<RoleEvidenceGraph | null>(null);
+  const [graphStatus, setGraphStatus] = useState<"idle" | "loading" | "error" | "ready">("idle");
 
   // Capabilities → mark "have" nodes dynamically
   const [ownedSkills, setOwnedSkills] = useState<Set<string>>(new Set());
 
   const goalRef = useRef<HTMLDivElement>(null);
-  const popupRef = useRef<HTMLDivElement>(null);
-  const svgRef = useRef<SVGSVGElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const panningRef = useRef(false);
-  const panStartRef = useRef({ mouseX: 0, mouseY: 0, panX: 0, panY: 0 });
-  const hasPannedRef = useRef(false);
 
   useEffect(() => {
     chatApi.status().then((res) => setAiAvailable(res.available)).catch(() => setAiAvailable(false));
@@ -150,54 +109,29 @@ export function Chat() {
     setMessages(makeInitialMessages(goalName));
   }, [selectedGoal]);
 
-  // Build graph nodes: override type to "have" if capability is owned
-  const graphNodes = BASE_GRAPH_NODES.map((node) => {
-    if (node.id === "goal") {
-      return { ...node, label: selectedGoalName };
+  // Load the role's recommendation-evidence graph from Neo4j
+  const occupationId = selectedGoal?.occupation_id ?? null;
+  useEffect(() => {
+    if (occupationId === null) {
+      setGraph(null);
+      setGraphStatus("idle");
+      return;
     }
-    // If we own this skill, mark as "have"
-    if (node.type === "need" && ownedSkills.has(node.label.toLowerCase())) {
-      return { ...node, type: "have", sub: "보유" };
-    }
-    return node;
-  });
+    let cancelled = false;
+    setGraphStatus("loading");
+    roleEvidenceGraphApi.get(occupationId)
+      .then((res) => { if (!cancelled) { setGraph(res); setGraphStatus("ready"); } })
+      .catch(() => { if (!cancelled) { setGraph(null); setGraphStatus("error"); } });
+    return () => { cancelled = true; };
+  }, [occupationId]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (goalRef.current && !goalRef.current.contains(e.target as Node)) setGoalOpen(false);
-      if (popupRef.current && !popupRef.current.contains(e.target as Node)) setPytorchPopup(false);
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  useEffect(() => {
-    function handleMouseMove(e: MouseEvent) {
-      if (!panningRef.current) return;
-      const dx = e.clientX - panStartRef.current.mouseX;
-      const dy = e.clientY - panStartRef.current.mouseY;
-      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) hasPannedRef.current = true;
-      setPan({ x: panStartRef.current.panX + dx, y: panStartRef.current.panY + dy });
-    }
-    function handleMouseUp() {
-      panningRef.current = false;
-      if (svgRef.current) svgRef.current.style.cursor = "grab";
-    }
-    document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseup", handleMouseUp);
-    return () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, []);
-
-  function handleSVGMouseDown(e: React.MouseEvent<SVGSVGElement>) {
-    e.preventDefault();
-    panningRef.current = true;
-    hasPannedRef.current = false;
-    panStartRef.current = { mouseX: e.clientX, mouseY: e.clientY, panX: pan.x, panY: pan.y };
-    if (svgRef.current) svgRef.current.style.cursor = "grabbing";
-  }
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -456,104 +390,12 @@ export function Chat() {
 
           {/* Right: Graph panel */}
           <div className="graph-panel" style={{ position: "relative" }}>
-            <div className="graph-panel-header">
-              <div>
-                <p className="graph-title">추천 근거 그래프</p>
-                <p className="graph-sub">노드를 끌어 옮기고, 눌러서 상세를 보세요</p>
-              </div>
-              <button className="graph-center-btn" onClick={() => setPan({ x: 0, y: 0 })}>중앙 정렬</button>
-            </div>
-
-            <div className="graph-canvas">
-              <svg
-                ref={svgRef}
-                viewBox="0 0 510 570"
-                width="100%"
-                height="100%"
-                onMouseDown={handleSVGMouseDown}
-                style={{ cursor: "grab" }}
-              >
-                <g transform={`translate(${pan.x}, ${pan.y})`}>
-                  {EDGES.map(([a, b], i) => {
-                    const na = graphNodes.find((n) => n.id === a)!;
-                    const nb = graphNodes.find((n) => n.id === b)!;
-                    return (
-                      <line
-                        key={i}
-                        x1={na.cx} y1={na.cy}
-                        x2={nb.cx} y2={nb.cy}
-                        stroke="#d1d5db"
-                        strokeWidth="1.5"
-                      />
-                    );
-                  })}
-                  {graphNodes.map((node) => {
-                    const color = NODE_COLORS[node.type];
-                    return (
-                      <g
-                        key={node.id}
-                        className={`graph-node${node.id === "goal" ? " graph-node--no-scale" : ""}`}
-                        onClick={node.id === "pytorch" ? () => { if (!hasPannedRef.current) setPytorchPopup(true); } : undefined}
-                        style={node.id === "pytorch" ? { cursor: "pointer" } : undefined}
-                      >
-                        <circle cx={node.cx} cy={node.cy} r={node.r} fill={color.bg} />
-                        <text
-                          x={node.cx}
-                          y={node.cy - (node.sub ? 6 : 0)}
-                          textAnchor="middle"
-                          dominantBaseline="middle"
-                          fill={color.text}
-                          fontSize={node.r > 50 ? 13 : 11}
-                          fontWeight="600"
-                          fontFamily="inherit"
-                        >
-                          {node.label}
-                        </text>
-                        {node.sub && (
-                          <text
-                            x={node.cx}
-                            y={node.cy + 12}
-                            textAnchor="middle"
-                            dominantBaseline="middle"
-                            fill={color.text}
-                            fontSize={9}
-                            fontFamily="inherit"
-                            opacity={0.8}
-                          >
-                            {node.sub}
-                          </text>
-                        )}
-                      </g>
-                    );
-                  })}
-                </g>
-              </svg>
-            </div>
-
-            {pytorchPopup && (
-              <div className="node-popup" ref={popupRef}>
-                <button className="node-popup-close" onClick={() => setPytorchPopup(false)}>✕</button>
-                <span className="node-popup-badge">
-                  {ownedSkills.has("pytorch") ? "보유 역량" : "필요 역량"}
-                </span>
-                <p className="node-popup-title">PyTorch</p>
-                <p className="node-popup-desc">
-                  {ownedSkills.has("pytorch")
-                    ? "이미 보유한 역량이에요."
-                    : "공고 82%가 요구하지만 아직 없어요.\n실무 교육이나 프로젝트로 채울 수 있어요."}
-                </p>
-                <button className="node-popup-btn" onClick={() => navigate("/roadmap")}>로드맵에서 보기</button>
-              </div>
-            )}
-
-            <div className="graph-legend">
-              {LEGEND.map(({ type, label }) => (
-                <span key={type} className="legend-item">
-                  <span className="legend-dot" style={{ background: NODE_COLORS[type].bg }} />
-                  {label}
-                </span>
-              ))}
-            </div>
+            <EvidenceGraph
+              graph={graph}
+              status={graphStatus}
+              ownedSkills={ownedSkills}
+              onOpenRoadmap={() => navigate("/roadmap")}
+            />
           </div>
         </div>
 

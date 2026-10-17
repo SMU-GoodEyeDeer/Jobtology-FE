@@ -463,6 +463,17 @@
   overflow: hidden;
 }
 
+.graph-empty {
+  margin: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 13px;
+  color: #6b7280;
+}
+
 .graph-node {
   transition: transform 0.15s;
   transform-box: fill-box;

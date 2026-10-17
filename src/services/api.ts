@@ -27,6 +27,7 @@ import type {
   OnboardingCapabilitiesResponse,
   ChatMessagePayload,
   ChatReplyResponse,
+  RoleEvidenceGraph,
 } from "./types";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "https://jobtology.yeongmin.net/api";
@@ -190,6 +191,11 @@ export const catalogV2Api = {
 };
 
 // ─── Capabilities ────────────────────────────────────────────────────────────
+export const roleEvidenceGraphApi = {
+  get: (occupationId: string) =>
+    get<RoleEvidenceGraph>(`/v2/roles/${encodeURIComponent(occupationId)}/evidence-graph`),
+};
+
 export const capabilitiesApi = {
   list: () => get<{ items: unknown[] }>("/v1/me/capabilities"),
   get: (capabilityId: string) => get<unknown>(`/v1/me/capabilities/${capabilityId}`),
