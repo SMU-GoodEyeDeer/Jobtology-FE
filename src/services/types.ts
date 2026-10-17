@@ -256,6 +256,7 @@ export interface ChatReplyResponse {
   reply: string;
   occupation_id: string | null;
   candidates: ChatCapabilityCandidate[];
+  suggestions?: string[];
 }
 
 // ─── API Error ────────────────────────────────────────────────────────────────

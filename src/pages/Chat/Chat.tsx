@@ -6,17 +6,10 @@ import chevronDownIcon from "../../assets/Chevron down.svg";
 import { capabilitiesApi, chatApi, profileApi, roleEvidenceGraphApi } from "../../services/api";
 import type { ChatCapabilityCandidate, ChatMessagePayload, RoleEvidenceGraph } from "../../services/types";
 import { EvidenceGraph } from "./EvidenceGraph";
+import { ROUTE_SUGGESTION, initialSuggestions, withRouteSuggestion } from "./chatSuggestions";
 import { useGoals } from "../../hooks/useGoals";
 import { useRoadmap } from "../../hooks/useRoadmap";
 import { useSession } from "../../context/SessionContext";
-
-const SUGGESTIONS = [
-  "나는 뭐부터 준비해야 해?",
-  "AI 엔지니어가 되려면 뭐가 부족해?",
-  "부트캠프 꼭 들어야 해?",
-  "비전공인데 가능할까?",
-  "내 경로 추천해줘",
-];
 
 type CandidateStatus = "saving" | "saved" | "dismissed" | "error";
 
@@ -77,6 +70,7 @@ export function Chat() {
   const [goalOpen, setGoalOpen] = useState(false);
   const [input, setInput] = useState("");
   const [selectedSuggestion, setSelectedSuggestion] = useState<string | null>(null);
+  const [aiSuggestions, setAiSuggestions] = useState<string[] | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [aiAvailable, setAiAvailable] = useState(false);
@@ -107,6 +101,7 @@ export function Chat() {
   useEffect(() => {
     const goalName = selectedGoalName;
     setMessages(makeInitialMessages(goalName));
+    setAiSuggestions(null);
   }, [selectedGoal]);
 
   // Load the role's recommendation-evidence graph from Neo4j
@@ -145,10 +140,11 @@ export function Chat() {
     setInput("");
     setSelectedSuggestion(null);
     setIsTyping(true);
-    if (aiAvailable && sentText !== "내 경로 추천해줘") {
+    if (aiAvailable && sentText !== ROUTE_SUGGESTION) {
       try {
         const res = await chatApi.send(toHistory(next));
         setMessages((prev) => [...prev, { role: "ai", text: res.reply, candidates: res.candidates }]);
+        if (res.suggestions?.length) setAiSuggestions(withRouteSuggestion(res.suggestions));
       } catch {
         setMessages((prev) => [...prev, { role: "ai", text: "지금은 AI 답변을 받을 수 없어요. 잠시 후 다시 시도해주세요." }]);
       } finally {
@@ -158,7 +154,7 @@ export function Chat() {
     }
     setTimeout(() => {
       setIsTyping(false);
-      if (sentText === "내 경로 추천해줘") {
+      if (sentText === ROUTE_SUGGESTION) {
         setMessages((prev) => [...prev, { role: "ai-route" }]);
       } else {
         setMessages((prev) => [...prev, { role: "ai", text: "네! 더 궁금한 게 있으면 언제든지 물어보세요." }]);
@@ -182,6 +178,9 @@ export function Chat() {
       setCandidateStatus((prev) => ({ ...prev, [key]: "error" }));
     }
   }
+
+  const suggestions = aiSuggestions
+    ?? initialSuggestions(selectedGoal ? selectedGoalName : null, graph, ownedSkills);
 
   // Route steps from actual roadmap, or fallback static
   const routeSteps = activeRoadmap?.steps.slice(0, 6).map((step, i) => ({
@@ -360,7 +359,7 @@ export function Chat() {
             </div>
 
             <div className="chat-suggestions">
-              {SUGGESTIONS.map((s) => (
+              {suggestions.map((s) => (
                 <button
                   key={s}
                   className={`suggestion-chip${selectedSuggestion === s ? " suggestion-chip--active" : ""}`}
