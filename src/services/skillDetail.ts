@@ -1,4 +1,4 @@
-import type { ExamSession, RoadmapStep, Skill } from "./types";
+import type { ExamSession, RoadmapStep, Skill, SkillQualification } from "./types";
 
 export function skillIdentity(skill: Skill): string {
   return skill.requirement_key ?? skill.name;
@@ -58,4 +58,38 @@ export function formatSessionLine(item: ExamSession): string {
   const registration = formatPeriod(dates?.registration_start, dates?.registration_end);
   const exam = shortDate(dates?.exam_start ?? dates?.exam_end);
   return [metadata, registration ? `${label} 접수 ${registration}` : "", exam ? `시험 ${exam}` : ""].filter(Boolean).join(" · ");
+}
+
+export function qualificationLabel(qualification: SkillQualification): string {
+  return qualification.display_name ?? qualification.name ?? qualification.code;
+}
+
+const kindCaptions = { NATIONAL_TECHNICAL: "국가기술자격 · Q-Net", WORK_LEARNING: "일학습병행자격 · Q-Net" } as const;
+
+export function qualificationCaption(qualification: SkillQualification): string {
+  return qualification.kind ? kindCaptions[qualification.kind] : "Q-Net";
+}
+
+export function yearStart(today: string): string {
+  return `${today.slice(0, 4)}-01-01`;
+}
+
+export type ExamOutlook =
+  | { readonly kind: "upcoming"; readonly session: ExamSession }
+  | { readonly kind: "ended"; readonly year: number }
+  | { readonly kind: "none" };
+
+export function examOutlook(items: readonly ExamSession[], today: string): ExamOutlook {
+  const session = pickNextExamSession(items, today);
+  if (session) return { kind: "upcoming", session };
+  const year = Number(today.slice(0, 4));
+  return items.some(item => item.year === year) ? { kind: "ended", year } : { kind: "none" };
+}
+
+export function examOutlookText(outlook: ExamOutlook): string {
+  switch (outlook.kind) {
+    case "upcoming": return formatSessionLine(outlook.session);
+    case "ended": return `${outlook.year}년 시험이 모두 끝났어요 · ${outlook.year + 1}년 일정은 아직 공개 전이에요`;
+    case "none": return "등록된 시험 일정이 없어요";
+  }
 }

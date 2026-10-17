@@ -41,13 +41,13 @@ export function useDefinition(code: string | null | undefined): Resource<NcsUnit
   return code ? result : { state: "error" };
 }
 
-export function useExamSessions(code: string, today: string): Resource<ExamSessionsResponse> {
+export function useExamSessions(code: string, from: string): Resource<ExamSessionsResponse> {
   const [result, setResult] = useState<Resource<ExamSessionsResponse>>({ state: "loading" });
   useEffect(() => {
     let active = true;
-    cached(exams, `${code}:${today}`, () => liveApi.examSessions(code, today)).then(value => { if (active) setResult(value); });
+    cached(exams, `${code}:${from}`, () => liveApi.examSessions(code, from)).then(value => { if (active) setResult(value); });
     return () => { active = false; };
-  }, [code, today]);
+  }, [code, from]);
   return result;
 }
 

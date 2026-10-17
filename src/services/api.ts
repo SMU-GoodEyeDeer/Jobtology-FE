@@ -149,7 +149,7 @@ export const liveApi = {
   ncsUnit: (baseCode: string) =>
     get<NcsUnitResponse>(`/v2/live/ncs-units/${encodeURIComponent(baseCode)}`),
   examSessions: (qualification: string, from: string) => {
-    const query = new URLSearchParams({ qualification, from, limit: "5" });
+    const query = new URLSearchParams({ qualification, from, limit: "20" });
     return get<ExamSessionsResponse>(`/v2/live/exam-sessions?${query}`);
   },
 };

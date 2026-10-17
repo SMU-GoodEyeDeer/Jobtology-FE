@@ -86,7 +86,7 @@
 .sd-qualification strong { display: block; font-size: 14px; }
 .sd-qualification small { display: block; color: var(--sd-muted); margin-top: 4px; font-size: 12px; }
 .sd-muted { color: var(--sd-muted); font-size: 13px; line-height: 1.6; }
-.sd-qualification p { margin: 12px 0 0; }
+.sd-qualification p { margin: 12px 0 0; word-break: keep-all; }
 .sd-empty-card { border: 1px solid var(--sd-border); border-radius: 12px; padding: 16px; font-size: 13px; line-height: 1.6; color: var(--sd-muted); margin: 0; }
 .sd-step { display: flex; align-items: center; gap: 12px; border: 1px solid var(--sd-border); border-radius: 12px; padding: 12px; margin-top: 8px; }
 .sd-step > div { min-width: 0; flex: 1; }

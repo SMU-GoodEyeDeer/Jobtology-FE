@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatDemand, formatHours, linkedRoadmapSteps, pickNextExamSession, formatSessionLine } from "./skillDetail";
+import { examOutlook, examOutlookText, formatDemand, formatHours, linkedRoadmapSteps, pickNextExamSession, formatSessionLine, qualificationCaption, qualificationLabel, yearStart } from "./skillDetail";
 import type { ExamSession, RoadmapStep, Skill } from "./types";
 
 const skill: Skill = { name: "UI 구현", type: "필수" };
@@ -125,5 +125,56 @@ describe("exam sessions", () => {
     const given = { ...session, written: { registration_start: null, registration_end: null, exam_start: "2026-10-01", exam_end: null, result_date: "2026-11-01" } };
     const actual = pickNextExamSession([given], "2026-10-25");
     expect(actual).toBeNull();
+  });
+});
+
+describe("qualification labels", () => {
+  it.each([
+    [{ code: "T5A6", name: "SW개발_L5_25V2", display_name: "SW개발 5수준", kind: "WORK_LEARNING" as const }, "SW개발 5수준"],
+    [{ code: "C290", name: "정보처리산업기사" }, "정보처리산업기사"],
+    [{ code: "Q2", name: null }, "Q2"],
+  ])("prefers display name, then raw name, then code: %o", (qualification, expected) => {
+    // Given / When
+    const actual = qualificationLabel(qualification);
+    // Then
+    expect(actual).toBe(expected);
+  });
+  it.each([
+    ["NATIONAL_TECHNICAL" as const, "국가기술자격 · Q-Net"],
+    ["WORK_LEARNING" as const, "일학습병행자격 · Q-Net"],
+    [null, "Q-Net"],
+    [undefined, "Q-Net"],
+  ])("captions the qualification kind: %s", (kind, expected) => {
+    // Given / When
+    const actual = qualificationCaption({ code: "X", name: null, kind });
+    // Then
+    expect(actual).toBe(expected);
+  });
+});
+
+describe("exam outlook", () => {
+  it("queries from the start of the current year", () => {
+    // Given / When / Then
+    expect(yearStart("2026-10-17")).toBe("2026-01-01");
+  });
+  it("returns the next session when one is upcoming", () => {
+    // Given / When
+    const actual = examOutlook([session], "2026-10-25");
+    // Then
+    expect(actual).toEqual({ kind: "upcoming", session });
+  });
+  it("reports this year's schedule as ended when only past sessions exist", () => {
+    // Given / When
+    const actual = examOutlook([session], "2026-11-02");
+    // Then
+    expect(actual).toEqual({ kind: "ended", year: 2026 });
+    expect(examOutlookText(actual)).toBe("2026년 시험이 모두 끝났어요 · 2027년 일정은 아직 공개 전이에요");
+  });
+  it("reports no schedule when nothing was published this year", () => {
+    // Given / When
+    const actual = examOutlook([], "2026-11-02");
+    // Then
+    expect(actual).toEqual({ kind: "none" });
+    expect(examOutlookText(actual)).toBe("등록된 시험 일정이 없어요");
   });
 });

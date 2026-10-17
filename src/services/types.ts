@@ -157,7 +157,14 @@ export interface Skill {
   readonly ncs_level?: number | null;
   readonly estimated_hours?: number | null;
   readonly hours_basis?: "OFFICIAL" | "ESTIMATED" | null;
-  readonly qualifications?: readonly { readonly code: string; readonly name: string | null }[];
+  readonly qualifications?: readonly SkillQualification[];
+}
+
+export interface SkillQualification {
+  readonly code: string;
+  readonly name: string | null;
+  readonly display_name?: string;
+  readonly kind?: "NATIONAL_TECHNICAL" | "WORK_LEARNING" | null;
 }
 
 export interface NcsUnitResponse {

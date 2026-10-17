@@ -1,5 +1,5 @@
-import type { Skill } from "../../services/types";
-import { formatSessionLine, localToday, pickNextExamSession } from "../../services/skillDetail";
+import type { Skill, SkillQualification } from "../../services/types";
+import { examOutlook, examOutlookText, localToday, qualificationCaption, qualificationLabel, yearStart } from "../../services/skillDetail";
 import { useDefinition, useExamSessions } from "./useSkillResources";
 
 export function DetailSkeleton() {
@@ -21,16 +21,16 @@ export function SkillDefinition({ skill }: { readonly skill: Skill }) {
   );
 }
 
-function QualificationCard({ qualification }: { readonly qualification: { readonly code: string; readonly name: string | null } }) {
+function QualificationCard({ qualification }: { readonly qualification: SkillQualification }) {
   const today = localToday();
-  const result = useExamSessions(qualification.code, today);
-  const session = result.state === "ready" ? pickNextExamSession(result.data.items, today) : null;
+  const result = useExamSessions(qualification.code, yearStart(today));
   return (
     <div className="sd-qualification">
-      <strong>{qualification.name ?? qualification.code}</strong><small>Q-Net</small>
+      <strong>{qualificationLabel(qualification)}</strong><small>{qualificationCaption(qualification)}</small>
+      {qualification.kind === "WORK_LEARNING" && <small>일학습병행 훈련을 마친 재직자만 응시할 수 있어요</small>}
       {result.state === "loading" ? <DetailSkeleton /> : <p className="sd-muted">
         {result.state === "error" || result.state === "missing" ? "일정을 불러오지 못했어요"
-          : session ? formatSessionLine(session) : "예정된 시험 일정이 없어요"}
+          : examOutlookText(examOutlook(result.data.items, today))}
       </p>}
     </div>
   );
