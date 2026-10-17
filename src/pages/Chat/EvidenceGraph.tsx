@@ -1,6 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
 import type { EvidenceNodeKind, RoleEvidenceGraph } from "../../services/types";
-import { isOwned, layoutEvidenceGraph, type PlacedNode } from "./evidenceGraphLayout";
+import {
+  createEvidenceSimulation,
+  type EvidenceSimulation,
+  type ForceSeed,
+  type SimNode,
+} from "./evidenceGraphForce";
+import { isOwned, layoutEvidenceGraph } from "./evidenceGraphLayout";
 
 type Visual = EvidenceNodeKind | "have" | "me";
 
@@ -41,6 +47,13 @@ const LEGEND: readonly { readonly visual: Visual; readonly label: string }[] = [
 
 const SKILL_KINDS: ReadonlySet<EvidenceNodeKind> = new Set(["ncs_competency", "onet_skill", "technology"]);
 
+const ME_ID = "__me__";
+const DRAG_THRESHOLD = 3;
+
+type Drag =
+  | { readonly kind: "node"; readonly node: SimNode; readonly startX: number; readonly startY: number }
+  | { readonly kind: "pan"; readonly startX: number; readonly startY: number; readonly panX: number; readonly panY: number };
+
 function shorten(label: string, max: number): string {
   return label.length > max ? `${label.slice(0, max - 1)}…` : label;
 }
@@ -54,52 +67,133 @@ interface Props {
 
 export function EvidenceGraph({ graph, status, ownedSkills, onOpenRoadmap }: Props) {
   const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [selected, setSelected] = useState<PlacedNode | null>(null);
-  const panStart = useRef<{ mx: number; my: number; px: number; py: number } | null>(null);
-  const moved = useRef(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [, setFrame] = useState(0);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const layerRef = useRef<SVGGElement>(null);
+  const simRef = useRef<{ readonly graph: RoleEvidenceGraph; readonly sim: EvidenceSimulation } | null>(null);
+  const dragRef = useRef<Drag | null>(null);
+  const movedRef = useRef(false);
+
+  const model = useMemo(() => {
+    if (graph === null) return null;
+    const layout = layoutEvidenceGraph(graph.nodes, graph.edges);
+    const root = layout.nodes[0];
+    if (root === undefined) return null;
+    const ownedIds = new Set(
+      layout.nodes
+        .filter((p) => SKILL_KINDS.has(p.node.kind) && isOwned(p.node.label, ownedSkills))
+        .map((p) => p.node.id),
+    );
+    const seed: ForceSeed = {
+      width: layout.width,
+      height: layout.height,
+      nodes: [
+        ...layout.nodes.map((p) => ({ id: p.node.id, r: p.r, x: p.x, y: p.y })),
+        { id: ME_ID, r: 32, x: 52, y: layout.height - 52 },
+      ],
+      links: [
+        ...graph.edges.map((edge) => ({ source: edge.source, target: edge.target, dashed: false })),
+        ...[root.node.id, ...ownedIds].map((target) => ({ source: ME_ID, target, dashed: true })),
+      ],
+    };
+    return { graph, seed, ownedIds, byId: new Map(graph.nodes.map((node) => [node.id, node])) };
+  }, [graph, ownedSkills]);
 
   useEffect(() => {
-    setSelected(null);
+    setSelectedId(null);
     setPan({ x: 0, y: 0 });
   }, [graph]);
 
   useEffect(() => {
-    function onMove(e: MouseEvent) {
-      const start = panStart.current;
-      if (start === null) return;
-      const dx = e.clientX - start.mx;
-      const dy = e.clientY - start.my;
-      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) moved.current = true;
-      setPan({ x: start.px + dx, y: start.py + dy });
+    if (model === null) {
+      simRef.current = null;
+      return;
     }
-    function onUp() { panStart.current = null; }
-    document.addEventListener("mousemove", onMove);
-    document.addEventListener("mouseup", onUp);
-    return () => {
-      document.removeEventListener("mousemove", onMove);
-      document.removeEventListener("mouseup", onUp);
-    };
-  }, []);
+    const previous = simRef.current?.graph === model.graph ? simRef.current.sim.nodes : undefined;
+    const sim = createEvidenceSimulation(model.seed, previous);
+    simRef.current = { graph: model.graph, sim };
+    sim.simulation.on("tick", () => setFrame((frame) => frame + 1));
+    setFrame((frame) => frame + 1);
+    return () => { sim.simulation.stop(); };
+  }, [model]);
 
-  const layout = graph ? layoutEvidenceGraph(graph.nodes, graph.edges) : null;
-  const placed = new Map(layout?.nodes.map((p) => [p.node.id, p]) ?? []);
-  const owned = (p: PlacedNode) => SKILL_KINDS.has(p.node.kind) && isOwned(p.node.label, ownedSkills);
-  const ownedNodes = layout?.nodes.filter(owned) ?? [];
-  const me = layout ? { x: 52, y: layout.height - 52 } : null;
-  const root = layout?.nodes[0];
+  function toGraphPoint(e: PointerEvent): { x: number; y: number } | null {
+    const matrix = layerRef.current?.getScreenCTM();
+    if (!matrix) return null;
+    const point = new DOMPoint(e.clientX, e.clientY).matrixTransform(matrix.inverse());
+    return { x: point.x, y: point.y };
+  }
+
+  function startNodeDrag(e: PointerEvent, node: SimNode) {
+    e.stopPropagation();
+    svgRef.current?.setPointerCapture(e.pointerId);
+    movedRef.current = false;
+    dragRef.current = { kind: "node", node, startX: e.clientX, startY: e.clientY };
+    node.fx = node.x;
+    node.fy = node.y;
+    simRef.current?.sim.simulation.alphaTarget(0.3).restart();
+  }
+
+  function startPan(e: PointerEvent) {
+    svgRef.current?.setPointerCapture(e.pointerId);
+    movedRef.current = false;
+    dragRef.current = { kind: "pan", startX: e.clientX, startY: e.clientY, panX: pan.x, panY: pan.y };
+  }
+
+  function onPointerMove(e: PointerEvent) {
+    const drag = dragRef.current;
+    if (drag === null) return;
+    const dx = e.clientX - drag.startX;
+    const dy = e.clientY - drag.startY;
+    if (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD) movedRef.current = true;
+    switch (drag.kind) {
+      case "node": {
+        const point = toGraphPoint(e);
+        if (point === null) return;
+        drag.node.fx = point.x;
+        drag.node.fy = point.y;
+        return;
+      }
+      case "pan":
+        setPan({ x: drag.panX + dx, y: drag.panY + dy });
+        return;
+    }
+  }
+
+  function onPointerUp(e: PointerEvent) {
+    const drag = dragRef.current;
+    dragRef.current = null;
+    if (svgRef.current?.hasPointerCapture(e.pointerId)) svgRef.current.releasePointerCapture(e.pointerId);
+    if (drag?.kind !== "node") return;
+    drag.node.fx = null;
+    drag.node.fy = null;
+    simRef.current?.sim.simulation.alphaTarget(0);
+    if (!movedRef.current && drag.node.id !== ME_ID) setSelectedId(drag.node.id);
+  }
+
+  function recenter() {
+    setPan({ x: 0, y: 0 });
+    simRef.current?.sim.simulation.alpha(0.6).restart();
+  }
+
+  const sim = model !== null && simRef.current?.graph === model.graph ? simRef.current.sim : null;
+  const me = sim?.nodes.get(ME_ID);
+  const selected = selectedId === null ? undefined : model?.byId.get(selectedId);
+  const selectedOwned = selectedId !== null && (model?.ownedIds.has(selectedId) ?? false);
 
   return (
     <>
       <div className="graph-panel-header">
         <div>
           <p className="graph-title">추천 근거 그래프</p>
-          <p className="graph-sub">Neo4j 지식그래프 · 드래그로 이동, 노드를 눌러 근거 보기</p>
+          <p className="graph-sub">Neo4j 지식그래프 · 노드를 끌면 연결된 노드가 따라 움직여요</p>
         </div>
-        <button className="graph-center-btn" onClick={() => setPan({ x: 0, y: 0 })}>중앙 정렬</button>
+        <button className="graph-center-btn" onClick={recenter}>중앙 정렬</button>
       </div>
 
       <div className="graph-canvas">
-        {status !== "ready" || layout === null || me === null || root === undefined ? (
+        {status !== "ready" || model === null || sim === null || me === undefined ? (
           <p className="graph-empty">
             {status === "loading" ? "Neo4j에서 근거 그래프를 불러오는 중…"
               : status === "error" ? "근거 그래프를 불러오지 못했어요. 잠시 후 다시 시도해주세요."
@@ -107,51 +201,47 @@ export function EvidenceGraph({ graph, status, ownedSkills, onOpenRoadmap }: Pro
           </p>
         ) : (
           <svg
-            viewBox={`0 0 ${layout.width} ${layout.height}`}
+            ref={svgRef}
+            viewBox={`0 0 ${model.seed.width} ${model.seed.height}`}
             width="100%"
             height="100%"
-            style={{ cursor: "grab" }}
-            onMouseDown={(e) => {
-              e.preventDefault();
-              moved.current = false;
-              panStart.current = { mx: e.clientX, my: e.clientY, px: pan.x, py: pan.y };
-            }}
+            style={{ cursor: "grab", touchAction: "none", userSelect: "none" }}
+            onPointerDown={startPan}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerCancel={onPointerUp}
           >
-            <g transform={`translate(${pan.x}, ${pan.y})`}>
-              {graph?.edges.map((edge) => {
-                const a = placed.get(edge.source);
-                const b = placed.get(edge.target);
-                if (a === undefined || b === undefined) return null;
-                return (
-                  <line key={`${edge.source}>${edge.target}:${edge.kind}`}
-                    x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="#d1d5db" strokeWidth={1.5} />
-                );
-              })}
-              {[root, ...ownedNodes].map((target) => (
-                <line key={`me>${target.node.id}`} x1={me.x} y1={me.y} x2={target.x} y2={target.y}
-                  stroke="#16a34a" strokeWidth={1.2} strokeDasharray="4 4" opacity={0.6} />
+            <g ref={layerRef} transform={`translate(${pan.x}, ${pan.y})`}>
+              {sim.links.map((link) => (
+                <line key={`${link.source.id}>${link.target.id}`}
+                  x1={link.source.x} y1={link.source.y} x2={link.target.x} y2={link.target.y}
+                  {...(link.dashed
+                    ? { stroke: "#16a34a", strokeWidth: 1.2, strokeDasharray: "4 4", opacity: 0.6 }
+                    : { stroke: "#d1d5db", strokeWidth: 1.5 })} />
               ))}
-              {layout.nodes.map((p) => {
-                const visual: Visual = owned(p) ? "have" : p.node.kind;
-                const inside = p.node.kind === "role";
+              {model.graph.nodes.map((node) => {
+                const p = sim.nodes.get(node.id);
+                if (p === undefined) return null;
+                const visual: Visual = model.ownedIds.has(node.id) ? "have" : node.kind;
+                const inside = node.kind === "role";
                 return (
-                  <g key={p.node.id} className={`graph-node${p.node.kind === "role" ? " graph-node--no-scale" : ""}`}
+                  <g key={node.id} className={`graph-node${inside ? " graph-node--no-scale" : ""}`}
                     style={{ cursor: "pointer" }}
-                    onClick={() => { if (!moved.current) setSelected(p); }}>
-                    <title>{p.node.label}</title>
+                    onPointerDown={(e) => startNodeDrag(e, p)}>
+                    <title>{node.label}</title>
                     <circle cx={p.x} cy={p.y} r={p.r} fill={COLORS[visual]} />
                     <text x={p.x} y={inside ? p.y : p.y + p.r + 15} textAnchor="middle" dominantBaseline="middle"
-                      fill={inside ? "#ffffff" : "#374151"} fontSize={p.node.kind === "role" ? 17 : 14}
-                      fontWeight={600} fontFamily="inherit">
-                      {shorten(p.node.label, inside ? 9 : 13)}
+                      fill={inside ? "#ffffff" : "#374151"} fontSize={inside ? 17 : 14}
+                      fontWeight={600} fontFamily="inherit" style={{ pointerEvents: "none" }}>
+                      {shorten(node.label, inside ? 9 : 13)}
                     </text>
                   </g>
                 );
               })}
-              <g className="graph-node">
-                <circle cx={me.x} cy={me.y} r={32} fill={COLORS.me} />
+              <g className="graph-node" style={{ cursor: "pointer" }} onPointerDown={(e) => startNodeDrag(e, me)}>
+                <circle cx={me.x} cy={me.y} r={me.r} fill={COLORS.me} />
                 <text x={me.x} y={me.y} textAnchor="middle" dominantBaseline="middle" fill="#fff"
-                  fontSize={16} fontWeight={600} fontFamily="inherit">나</text>
+                  fontSize={16} fontWeight={600} fontFamily="inherit" style={{ pointerEvents: "none" }}>나</text>
               </g>
             </g>
           </svg>
@@ -160,13 +250,11 @@ export function EvidenceGraph({ graph, status, ownedSkills, onOpenRoadmap }: Pro
 
       {selected && (
         <div className="node-popup">
-          <button className="node-popup-close" onClick={() => setSelected(null)}>✕</button>
-          <span className="node-popup-badge">
-            {owned(selected) ? "보유 역량" : KIND_LABEL[selected.node.kind]}
-          </span>
-          <p className="node-popup-title">{selected.node.label}</p>
-          {selected.node.detail && (
-            <p className="node-popup-desc" style={{ whiteSpace: "pre-line" }}>{selected.node.detail}</p>
+          <button className="node-popup-close" onClick={() => setSelectedId(null)}>✕</button>
+          <span className="node-popup-badge">{selectedOwned ? "보유 역량" : KIND_LABEL[selected.kind]}</span>
+          <p className="node-popup-title">{selected.label}</p>
+          {selected.detail && (
+            <p className="node-popup-desc" style={{ whiteSpace: "pre-line" }}>{selected.detail}</p>
           )}
           <button className="node-popup-btn" onClick={onOpenRoadmap}>로드맵에서 보기</button>
         </div>
