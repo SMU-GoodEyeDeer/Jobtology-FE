@@ -66,7 +66,8 @@
 .sd-panel-header { position: relative; padding: 24px 24px 20px; border-bottom: 1px solid var(--sd-border); flex-shrink: 0; }
 .sd-eyebrow { margin: 0 0 12px; color: var(--sd-muted); font-size: 12px; }
 .sd-panel h2 { margin: 0 32px 12px 0; font-size: 22px; line-height: 1.5; word-break: keep-all; overflow-wrap: anywhere; }
-.sd-panel h2:focus { outline: 2px solid var(--sd-primary); outline-offset: 3px; border-radius: 4px; }
+.sd-panel h2:focus { outline: none; }
+.sd-panel h2:focus-visible { outline: 2px solid var(--sd-primary); outline-offset: 3px; border-radius: 4px; }
 .sd-badges { display: flex; gap: 8px; }
 .sd-close { position: absolute; top: 12px; right: 12px; width: 40px; height: 40px; background: transparent; color: var(--sd-muted); border: 0; border-radius: 8px; font-size: 22px; cursor: pointer; }
 .sd-close:hover { background: var(--sd-hover); color: var(--sd-text); }
