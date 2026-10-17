@@ -133,7 +133,67 @@ export interface RecomputeResponse {
 export interface AnalysisResponse {
   analysis_id: string;
   goal_id: string;
-  result: unknown | null;
+  result: AnalysisResult | null;
+}
+
+export interface AnalysisResult {
+  readonly required_pct?: number | null;
+  readonly preferred_pct?: number | null;
+  readonly skills?: readonly Skill[];
+}
+
+export interface Skill {
+  readonly name: string;
+  readonly type: "필수" | "우대";
+  readonly demand_pct?: number | null;
+  readonly demand_postings?: number | null;
+  readonly demand_base?: number | null;
+  readonly difficulty?: string | null;
+  readonly experienced_pct?: number | null;
+  readonly achievement?: string | null;
+  readonly requirement_key?: string;
+  readonly ncs_base_code?: string | null;
+  readonly status?: "UNMET" | "NEEDS_INPUT";
+  readonly ncs_level?: number | null;
+  readonly estimated_hours?: number | null;
+  readonly hours_basis?: "OFFICIAL" | "ESTIMATED" | null;
+  readonly qualifications?: readonly { readonly code: string; readonly name: string | null }[];
+}
+
+export interface NcsUnitResponse {
+  readonly contract_version: string;
+  readonly sources: readonly { readonly source_id: string; readonly run_id: string | null; readonly data_as_of: string | null }[];
+  readonly item: {
+    readonly base_code: string;
+    readonly code: string;
+    readonly name: string;
+    readonly level: number | null;
+    readonly definition: string | null;
+  };
+}
+
+export interface ExamDateGroup {
+  readonly registration_start: string | null;
+  readonly registration_end: string | null;
+  readonly exam_start: string | null;
+  readonly exam_end: string | null;
+  readonly result_date: string | null;
+}
+
+export interface ExamSession {
+  readonly qualification_code: string;
+  readonly qualification_name: string | null;
+  readonly year: number | null;
+  readonly round: number | null;
+  readonly category_code: string | null;
+  readonly name: string | null;
+  readonly written: ExamDateGroup | null;
+  readonly practical: ExamDateGroup | null;
+}
+
+export interface ExamSessionsResponse {
+  readonly items: readonly ExamSession[];
+  readonly total: number;
 }
 
 // ─── Roadmap ─────────────────────────────────────────────────────────────────
@@ -145,7 +205,13 @@ export interface RoadmapStep {
   title: string;
   description: string | null;
   state: StepState;
-  order: number;
+  order?: number;
+  readonly step_key?: string;
+  readonly position?: number;
+  readonly action_id?: string | null;
+  readonly planned_start?: string | null;
+  readonly planned_end?: string | null;
+  readonly outcomes?: readonly { readonly requirement_key?: string }[];
 }
 
 export interface RoadmapResponse {

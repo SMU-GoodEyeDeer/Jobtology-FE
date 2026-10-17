@@ -4,10 +4,12 @@ import "../Home/Home.css";
 import "./Analysis.css";
 import { AppSidebar } from "../../components/AppSidebar";
 import chevronDownIcon from "../../assets/Chevron down.svg";
-import { analysisApi, profileApi, catalogV2Api, dashboardApi } from "../../services/api";
+import { analysisApi, profileApi, dashboardApi } from "../../services/api";
 import { useGoals } from "../../hooks/useGoals";
 import { useSession } from "../../context/SessionContext";
-import type { AnalysisResponse, Neo4jPublicationResponse, Neo4jNcsAlignmentResponse } from "../../services/types";
+import type { AnalysisResponse } from "../../services/types";
+import { SkillList } from "./SkillList";
+import { AnalysisPublications } from "./AnalysisPublications";
 
 type PollState = "idle" | "pending" | "running" | "completed" | "failed";
 
@@ -29,36 +31,6 @@ export function Analysis() {
   const [pollState, setPollState] = useState<PollState>("idle");
   const [analysisResult, setAnalysisResult] = useState<AnalysisResponse | null>(null);
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // v2 publications (editorial_analysis 가능한 것만)
-  const [publications, setPublications] = useState<Neo4jPublicationResponse[]>([]);
-  const [selectedPubId, setSelectedPubId] = useState<string | null>(null);
-  const [alignments, setAlignments] = useState<Neo4jNcsAlignmentResponse[]>([]);
-  const [alignmentsLoading, setAlignmentsLoading] = useState(false);
-
-  useEffect(() => {
-    catalogV2Api.listPublications({ limit: 100 }).then((list) => {
-      setPublications(list.filter((p) => p.capabilities.editorial_analysis));
-    }).catch(console.error);
-  }, []);
-
-  async function loadAlignments(pubId: string) {
-    if (selectedPubId === pubId) {
-      setSelectedPubId(null);
-      setAlignments([]);
-      return;
-    }
-    setSelectedPubId(pubId);
-    setAlignmentsLoading(true);
-    try {
-      const data = await catalogV2Api.listAlignments(pubId, { limit: 100 });
-      setAlignments(data.filter((a) => a.accepted));
-    } catch {
-      setAlignments([]);
-    } finally {
-      setAlignmentsLoading(false);
-    }
-  }
 
   // Trigger analysis for selected goal
   const triggerAnalysis = useCallback(async () => {
@@ -147,24 +119,12 @@ export function Analysis() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Parse skills from analysis result (best-effort — shape is unknown)
-  const rawResult = analysisResult?.result as Record<string, unknown> | null;
-  const skills = Array.isArray(rawResult?.skills)
-    ? (rawResult!.skills as Array<{
-        name: string;
-        type?: string;
-        demand_pct?: number;
-        difficulty?: string;
-        experienced_pct?: number;
-        achievement?: string;
-      }>)
-    : null;
-
-  const required_pct = typeof rawResult?.required_pct === "number" ? rawResult.required_pct : null;
-  const preferred_pct = typeof rawResult?.preferred_pct === "number" ? rawResult.preferred_pct : null;
+  const skills = analysisResult?.result?.skills ?? [];
+  const required_pct = analysisResult?.result?.required_pct ?? null;
+  const preferred_pct = analysisResult?.result?.preferred_pct ?? null;
 
   return (
-    <div className="home-layout">
+    <div className="home-layout analysis-page">
       {/* Sidebar */}
       <AppSidebar>
         <div className="satisfaction-card">
@@ -256,119 +216,15 @@ export function Analysis() {
             </div>
           </section>
 
-          {/* 부족한 역량 table */}
-          <section className="an-skills-card">
-            <div className="an-skills-header-row">
-              <span className="an-col an-col--name">부족한 역량</span>
-              <span className="an-col an-col--demand">공고의 요구 정도</span>
-              <span className="an-col an-col--diff">난이도</span>
-              <span className="an-col an-col--achieve">달성 방법</span>
-            </div>
-
-            {skills && skills.length > 0 ? (
-              skills.map((skill) => (
-                <div key={skill.name} className="an-skill-row">
-                  <div className="an-col an-col--name">
-                    <div className="an-skill-name-wrap">
-                      <span className="an-skill-name">{skill.name}</span>
-                      <span className={`an-skill-badge ${skill.type === "필수" ? "an-skill-badge--required" : "an-skill-badge--preferred"}`}>
-                        {skill.type ?? "—"}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="an-col an-col--demand">
-                    <div className="an-demand-bar-wrap">
-                      <div className="progress-bar an-demand-bar">
-                        <div
-                          className="progress-fill"
-                          style={{ width: `${skill.demand_pct ?? 0}%`, background: "#ef4444" }}
-                        />
-                      </div>
-                      <span className="an-demand-label">공고 {skill.demand_pct ?? "?"}%가 요구</span>
-                    </div>
-                  </div>
-                  <div className="an-col an-col--diff">
-                    <span className="an-difficulty">{skill.difficulty ?? "—"}</span>
-                    <span className="an-experienced-sub">경력자 요구 {skill.experienced_pct ?? "?"}%</span>
-                  </div>
-                  <div className="an-col an-col--achieve">
-                    <span className="an-achievement">{skill.achievement ?? "—"}</span>
-                    <button className="an-roadmap-btn" onClick={() => navigate("/roadmap")}>
-                      로드맵 보기
-                    </button>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="an-empty-state">
-                {pollState === "completed"
+          <SkillList key={selectedGoalId ?? "no-goal"} skills={skills} goalId={selectedGoalId}
+            emptyMessage={pollState === "completed"
                   ? "분석 결과가 없어요. 역량을 먼저 등록해보세요."
                   : pollState === "idle"
                   ? "목표를 선택하면 분석이 시작돼요."
                   : pollState === "failed"
                   ? "분석 결과를 불러오지 못했어요. 위의 '다시 시도'를 눌러주세요."
-                  : "분석 결과를 가져오는 중이에요..."}
-              </div>
-            )}
-          </section>
-
-          {/* NCS 연계 학습 자료 */}
-          {publications.length > 0 && (
-            <section className="an-skills-card">
-              <div className="an-skills-header-row" style={{ marginBottom: 8 }}>
-                <span className="an-col" style={{ fontWeight: 600 }}>NCS 연계 학습 자료</span>
-                <span style={{ fontSize: 12, color: "#9ca3af" }}>항목을 클릭하면 연계 역량을 볼 수 있어요</span>
-              </div>
-              {publications.map((pub) => (
-                <div key={pub.publication_id}>
-                  <div
-                    className="an-skill-row"
-                    style={{ cursor: "pointer" }}
-                    onClick={() => loadAlignments(pub.publication_id)}
-                  >
-                    <div className="an-col an-col--name">
-                      <span className="an-skill-name" style={{ fontSize: 13 }}>{pub.publication_id}</span>
-                      <span className={`an-skill-badge ${pub.capabilities.route_planning ? "an-skill-badge--required" : "an-skill-badge--preferred"}`}>
-                        {pub.capabilities.route_planning ? "로드맵 활용 가능" : "분석용"}
-                      </span>
-                    </div>
-                    <div className="an-col" style={{ color: "#6b7280", fontSize: 12 }}>
-                      {pub.source_state}
-                    </div>
-                    <div className="an-col" style={{ color: "#3b82f6", fontSize: 12 }}>
-                      {selectedPubId === pub.publication_id ? "▲ 접기" : "▼ 역량 보기"}
-                    </div>
-                  </div>
-                  {selectedPubId === pub.publication_id && (
-                    <div style={{ padding: "8px 16px 12px", background: "#f9fafb", borderRadius: 8, margin: "0 0 8px" }}>
-                      {alignmentsLoading ? (
-                        <span style={{ color: "#9ca3af", fontSize: 13 }}>불러오는 중...</span>
-                      ) : alignments.length === 0 ? (
-                        <span style={{ color: "#9ca3af", fontSize: 13 }}>연계된 NCS 역량이 없어요.</span>
-                      ) : (
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                          {alignments.map((a) => (
-                            <span
-                              key={a.source_enrichment_id}
-                              style={{
-                                background: "#dbeafe",
-                                color: "#1d4ed8",
-                                borderRadius: 12,
-                                padding: "2px 10px",
-                                fontSize: 12,
-                              }}
-                            >
-                              {a.competency.name}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </section>
-          )}
+                  : "분석 결과를 가져오는 중이에요..."} />
+          <AnalysisPublications />
 
           <div className="an-bottom-actions">
             <button className="an-goto-roadmap-btn" onClick={() => navigate("/roadmap")}>

@@ -28,6 +28,8 @@ import type {
   ChatMessagePayload,
   ChatReplyResponse,
   RoleEvidenceGraph,
+  NcsUnitResponse,
+  ExamSessionsResponse,
 } from "./types";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "https://jobtology.yeongmin.net/api";
@@ -141,6 +143,15 @@ export const analysisApi = {
   poll: (recomputeRequestId: string) =>
     get<RecomputeResponse>(`/v1/recomputations/${recomputeRequestId}`),
   get: (analysisId: string) => get<AnalysisResponse>(`/v1/analyses/${analysisId}`),
+};
+
+export const liveApi = {
+  ncsUnit: (baseCode: string) =>
+    get<NcsUnitResponse>(`/v2/live/ncs-units/${encodeURIComponent(baseCode)}`),
+  examSessions: (qualification: string, from: string) => {
+    const query = new URLSearchParams({ qualification, from, limit: "5" });
+    return get<ExamSessionsResponse>(`/v2/live/exam-sessions?${query}`);
+  },
 };
 
 // ─── Route Proposals ─────────────────────────────────────────────────────────
