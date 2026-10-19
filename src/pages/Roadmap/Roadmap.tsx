@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import "../Home/Home.css";
 import "./Roadmap.css";
 import { AppSidebar } from "../../components/AppSidebar";
+import { GoalDropdown } from "../../components/GoalDropdown";
 import { LoadingContent } from "../../components/LoadingContent";
 import chevronDownIcon from "../../assets/Chevron down.svg";
 import { routePrefsApi, profileApi, roadmapsApi, catalogV2Api } from "../../services/api";
@@ -147,12 +148,11 @@ export function Roadmap() {
             <p className="rm-heading-sub">{activeRoadmap ? `${activeRoadmap.title} · ${completedSteps}/${totalSteps}단계 완료` : "목표에 맞는 학습 계획을 확인하세요"}</p>
           </div>
           <div className="goal-wrapper" ref={goalRef}>
-            <button className="goal-button" onClick={() => setGoalOpen((v) => !v)}>
+            <button className="goal-button" aria-expanded={goalOpen} aria-controls="goal-dropdown" onClick={() => setGoalOpen((v) => !v)}>
               {selectedGoalName}
               <img src={chevronDownIcon} alt="▾" className="goal-arrow" />
             </button>
-            {goalOpen && (
-              <div className="goal-dropdown">
+            <GoalDropdown open={goalOpen}>
                 {goals.map((goal) => (
                   <div
                     key={goal.goal_id}
@@ -163,8 +163,7 @@ export function Roadmap() {
                     <span className="goal-dropdown-count">{goal.status}</span>
                   </div>
                 ))}
-              </div>
-            )}
+            </GoalDropdown>
           </div>
         </header>
 

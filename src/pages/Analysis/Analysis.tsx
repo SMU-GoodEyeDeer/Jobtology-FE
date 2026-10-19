@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import "../Home/Home.css";
 import "./Analysis.css";
 import { AppSidebar } from "../../components/AppSidebar";
+import { GoalDropdown } from "../../components/GoalDropdown";
 import { LoadingContent } from "../../components/LoadingContent";
 import chevronDownIcon from "../../assets/Chevron down.svg";
 import { analysisApi, profileApi, dashboardApi } from "../../services/api";
@@ -170,12 +171,11 @@ export function Analysis() {
             다시 분석하기
           </button>
           <div className="goal-wrapper" ref={goalRef}>
-            <button className="goal-button" onClick={() => setGoalOpen((v) => !v)}>
+            <button className="goal-button" aria-expanded={goalOpen} aria-controls="goal-dropdown" onClick={() => setGoalOpen((v) => !v)}>
               {selectedGoalName}
               <img src={chevronDownIcon} alt="▾" className="goal-arrow" />
             </button>
-            {goalOpen && (
-              <div className="goal-dropdown">
+            <GoalDropdown open={goalOpen}>
                 {goals.map((goal) => (
                   <div
                     key={goal.goal_id}
@@ -186,8 +186,7 @@ export function Analysis() {
                     <span className="goal-dropdown-count">{goal.status}</span>
                   </div>
                 ))}
-              </div>
-            )}
+            </GoalDropdown>
           </div>
         </header>
 
