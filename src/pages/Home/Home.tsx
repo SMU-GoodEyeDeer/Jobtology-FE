@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import "./Home.css";
 import { AppSidebar } from "../../components/AppSidebar";
 import { GoalDropdown } from "../../components/GoalDropdown";
@@ -94,7 +94,7 @@ export function Home() {
               <h1 className="hero-name">안녕하세요{session ? ", " + (session.display_name?.trim() || "사용자") + "님" : "!"}</h1>
               <p className="hero-role">{selectedGoalName}</p>
               <p className="hero-sub">오늘도 목표를 향해 성장하고 있어요.</p>
-              <button className="hero-btn">이어서 진행하기</button>
+              <Link className="hero-btn" to="/myinfo#goals">{selectedGoal?.occupation_id ? "목표 수정" : "목표 설정하기"} →</Link>
             </div>
             <div className="hero-right">
               <div className="progress-circle">
