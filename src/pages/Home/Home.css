@@ -62,6 +62,7 @@
 /* ── Main area ── */
 .main-area {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -71,7 +72,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 32px 0px;
+  min-height: 88px;
+  flex-shrink: 0;
+  gap: 16px;
+  padding: 20px 32px 16px;
   background: #f3f4f6;
 }
 
@@ -171,12 +175,18 @@
 /* ── Main content ── */
 .main-content {
   flex: 1;
-  padding: 20px 32px 24px;
+  min-height: 0;
+  padding: 4px 32px 24px;
   overflow-y: auto;
+  scrollbar-gutter: stable;
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
+
+.main-content > * { flex-shrink: 0; }
+.satisfaction-pct { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.satisfaction-title { min-height: 32px; line-height: 16px; }
 
 /* Hero card */
 .hero-card {
@@ -387,11 +397,13 @@
 /* ── Two-card row ── */
 .card-row {
   display: flex;
+  align-items: flex-start;
   gap: 20px;
 }
 
 .info-card {
   flex: 1;
+  min-width: 0;
   background: #ffffff;
   border-radius: 14px;
   padding: 20px 24px;
@@ -611,4 +623,12 @@
 
 .continue-btn:hover {
   background: #4338ca;
+}
+
+@media (max-width: 760px) {
+  .card-row { flex-direction: column; }
+  .card-row > * { width: 100%; }
+  .main-header { padding-inline: 20px; }
+  .main-content { padding-inline: 20px; }
+  .hero-card { padding: 24px; gap: 16px; }
 }

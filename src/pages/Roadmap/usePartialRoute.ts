@@ -9,23 +9,22 @@ export function isPartialRoute(feasibility: string | null | undefined): boolean 
 }
 
 // Saved roadmaps do not carry feasibility, so read it from their source proposal.
-export function usePartialRoute(proposalId: string | null): boolean {
-  const [partial, setPartial] = useState(false);
+export function usePartialRoute(proposalId: string | null) {
+  const [result, setResult] = useState<{ id: string; partial: boolean } | null>(null);
   useEffect(() => {
-    setPartial(false);
     if (!proposalId) return;
     let stopped = false;
     proposalsApi
       .get(proposalId)
       .then((proposal) => {
-        if (!stopped) setPartial(isPartialRoute(proposal.feasibility));
+        if (!stopped) setResult({ id: proposalId, partial: isPartialRoute(proposal.feasibility) });
       })
       .catch(() => {
-        if (!stopped) setPartial(false);
+        if (!stopped) setResult({ id: proposalId, partial: false });
       });
     return () => {
       stopped = true;
     };
   }, [proposalId]);
-  return partial;
+  return { partial: result?.id === proposalId && result.partial, loading: !!proposalId && result?.id !== proposalId };
 }

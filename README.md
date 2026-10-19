@@ -9,6 +9,20 @@ npm install
 npm run dev
 ```
 
+Open the local URL printed by Vite. Development requests use `/api` and are
+proxied to `https://jobtology.yeongmin.net`, including session cookies and CSRF
+tokens. No environment override is needed. The proxy forwards the local page's
+origin for backend write validation; other origins remain subject to backend
+checks.
+
+The backend creates a guest session automatically, so Google login is not
+required to use `/onboarding` and the app pages. Local guest data is separate
+from your signed-in production session. Saves use the live backend.
+
+`VITE_API_BASE_URL` overrides the API address when explicitly set, for example
+when using a local mock API. Production builds keep the deployed backend URL
+unless overridden.
+
 ## Checks
 
 ```sh

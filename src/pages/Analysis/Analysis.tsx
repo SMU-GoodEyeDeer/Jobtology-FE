@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import "../Home/Home.css";
 import "./Analysis.css";
 import { AppSidebar } from "../../components/AppSidebar";
+import { GoalDropdown } from "../../components/GoalDropdown";
+import { LoadingContent } from "../../components/LoadingContent";
 import chevronDownIcon from "../../assets/Chevron down.svg";
 import { analysisApi, profileApi, dashboardApi } from "../../services/api";
 import { useGoals } from "../../hooks/useGoals";
@@ -26,14 +28,16 @@ export function Analysis() {
   const [goalOpen, setGoalOpen] = useState(false);
   const goalRef = useRef<HTMLDivElement>(null);
 
-  const { goals, selectedGoalId, setSelectedGoalId, selectedGoalName, getGoalName } = useGoals();
+  const { goals, selectedGoalId, setSelectedGoalId, selectedGoalName, getGoalName, loading: goalsLoading } = useGoals();
+  const [publicationsLoading, setPublicationsLoading] = useState(true);
 
   const [pollState, setPollState] = useState<PollState>("idle");
   const [analysisResult, setAnalysisResult] = useState<AnalysisResponse | null>(null);
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const analysisRun = useRef(0);
 
   // Trigger analysis for selected goal
-  const triggerAnalysis = useCallback(async () => {
+  const triggerAnalysis = useCallback(async (run = analysisRun.current) => {
     if (!selectedGoalId) return;
     setPollState("pending");
     try {
@@ -43,24 +47,28 @@ export function Analysis() {
         expected_profile_version: profile.version,
         basis_type: "EDITORIAL",
       });
-      pollForResult(res.recompute_request_id);
+      if (run === analysisRun.current) pollForResult(res.recompute_request_id, run);
     } catch (err) {
       const status = (err as Error & { status?: number }).status;
       // 409 = version/idempotency conflict; a stored or running analysis may still exist
-      const shown = status === 409 && await showStoredAnalysis(selectedGoalId).catch(() => false);
-      if (!shown) setPollState("failed");
+      if (run !== analysisRun.current) return;
+      const shown = status === 409 && await showStoredAnalysis(selectedGoalId, run).catch(() => false);
+      if (!shown && run === analysisRun.current) setPollState("failed");
     }
   }, [selectedGoalId]);
 
-  function pollForResult(recomputeId: string) {
+  function pollForResult(recomputeId: string, run: number) {
     setPollState("running");
     let attempts = 0;
     const poll = async () => {
+      if (run !== analysisRun.current) return;
       attempts += 1;
       try {
         const res = await analysisApi.poll(recomputeId);
+        if (run !== analysisRun.current) return;
         if (res.state === "COMPLETED" && res.analysis_id) {
           const result = await analysisApi.get(res.analysis_id);
+          if (run !== analysisRun.current) return;
           setAnalysisResult(result);
           setPollState("completed");
         } else if (res.state === "FAILED" || attempts >= POLL_MAX_ATTEMPTS) {
@@ -69,21 +77,24 @@ export function Analysis() {
           pollTimerRef.current = setTimeout(poll, POLL_INTERVAL_MS);
         }
       } catch {
-        setPollState("failed");
+        if (run === analysisRun.current) setPollState("failed");
       }
     };
     poll();
   }
 
-  async function showStoredAnalysis(goalId: string): Promise<boolean> {
+  async function showStoredAnalysis(goalId: string, run: number): Promise<boolean> {
     const dashboard = await dashboardApi.get(goalId);
+    if (run !== analysisRun.current) return true;
     if (dashboard.state === "READY" && dashboard.analysis_id) {
-      setAnalysisResult(await analysisApi.get(dashboard.analysis_id));
+      const result = await analysisApi.get(dashboard.analysis_id);
+      if (run !== analysisRun.current) return true;
+      setAnalysisResult(result);
       setPollState("completed");
       return true;
     }
     if (dashboard.state === "RECOMPUTING" && dashboard.recompute_request_id) {
-      pollForResult(dashboard.recompute_request_id);
+      pollForResult(dashboard.recompute_request_id, run);
       return true;
     }
     return false;
@@ -93,20 +104,22 @@ export function Analysis() {
   // capability, and preference changes already trigger a recompute on the server.
   const loadAnalysis = useCallback(async () => {
     if (!selectedGoalId) return;
+    const run = analysisRun.current;
     setPollState("pending");
     try {
-      if (await showStoredAnalysis(selectedGoalId)) return;
+      if (await showStoredAnalysis(selectedGoalId, run)) return;
     } catch (err) {
       console.warn("Stored analysis lookup failed:", err);
     }
-    await triggerAnalysis();
+    if (run === analysisRun.current) await triggerAnalysis(run);
   }, [selectedGoalId, triggerAnalysis]);
 
   useEffect(() => {
+    analysisRun.current += 1;
     if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
     setAnalysisResult(null);
     loadAnalysis();
-    return () => { if (pollTimerRef.current) clearTimeout(pollTimerRef.current); };
+    return () => { analysisRun.current += 1; if (pollTimerRef.current) clearTimeout(pollTimerRef.current); };
   }, [loadAnalysis]);
 
   useEffect(() => {
@@ -152,18 +165,17 @@ export function Analysis() {
           <h2 className="main-title">역량 분석</h2>
           <button
             className="an-reanalyze-btn"
-            onClick={triggerAnalysis}
+            onClick={() => void triggerAnalysis()}
             disabled={!selectedGoalId || pollState === "pending" || pollState === "running"}
           >
             다시 분석하기
           </button>
           <div className="goal-wrapper" ref={goalRef}>
-            <button className="goal-button" onClick={() => setGoalOpen((v) => !v)}>
+            <button className="goal-button" aria-expanded={goalOpen} aria-controls="goal-dropdown" onClick={() => setGoalOpen((v) => !v)}>
               {selectedGoalName}
               <img src={chevronDownIcon} alt="▾" className="goal-arrow" />
             </button>
-            {goalOpen && (
-              <div className="goal-dropdown">
+            <GoalDropdown open={goalOpen}>
                 {goals.map((goal) => (
                   <div
                     key={goal.goal_id}
@@ -174,12 +186,13 @@ export function Analysis() {
                     <span className="goal-dropdown-count">{goal.status}</span>
                   </div>
                 ))}
-              </div>
-            )}
+            </GoalDropdown>
           </div>
         </header>
 
         <main className="main-content">
+          <LoadingContent loading={goalsLoading || publicationsLoading || (selectedGoalId !== null && ["idle", "pending", "running"].includes(pollState))}
+            label="역량 분석 정보를 불러오는 중이에요">
           {/* 분석 상태 배너 */}
           {pollState === "pending" || pollState === "running" ? (
             <div className="an-loading-banner">
@@ -188,7 +201,7 @@ export function Analysis() {
           ) : pollState === "failed" ? (
             <div className="an-error-banner">
               분석 중 오류가 발생했어요.
-              <button className="an-retry-btn" onClick={triggerAnalysis}>다시 시도</button>
+              <button className="an-retry-btn" onClick={() => void triggerAnalysis()}>다시 시도</button>
             </div>
           ) : null}
 
@@ -224,13 +237,14 @@ export function Analysis() {
                   : pollState === "failed"
                   ? "분석 결과를 불러오지 못했어요. 위의 '다시 시도'를 눌러주세요."
                   : "분석 결과를 가져오는 중이에요..."} />
-          <AnalysisPublications />
+          <AnalysisPublications onLoadingChange={setPublicationsLoading} />
 
           <div className="an-bottom-actions">
             <button className="an-goto-roadmap-btn" onClick={() => navigate("/roadmap")}>
               로드맵으로
             </button>
           </div>
+          </LoadingContent>
         </main>
       </div>
     </div>

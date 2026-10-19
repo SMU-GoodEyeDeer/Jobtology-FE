@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import "../Home/Home.css";
 import "./Progress.css";
 import { AppSidebar } from "../../components/AppSidebar";
+import { GoalDropdown } from "../../components/GoalDropdown";
 import chevronDownIcon from "../../assets/Chevron down.svg";
 import { useGoals } from "../../hooks/useGoals";
 import { useRoadmap } from "../../hooks/useRoadmap";
@@ -76,12 +77,11 @@ export function Progress() {
         <header className="main-header">
           <h2 className="main-title">진행 상황</h2>
           <div className="goal-wrapper" ref={goalRef}>
-            <button className="goal-button" onClick={() => setGoalOpen((v) => !v)}>
+            <button className="goal-button" aria-expanded={goalOpen} aria-controls="goal-dropdown" onClick={() => setGoalOpen((v) => !v)}>
               {selectedGoalName}
               <img src={chevronDownIcon} alt="▾" className="goal-arrow" />
             </button>
-            {goalOpen && (
-              <div className="goal-dropdown">
+            <GoalDropdown open={goalOpen}>
                 {goals.map((goal) => (
                   <div
                     key={goal.goal_id}
@@ -92,8 +92,7 @@ export function Progress() {
                     <span className="goal-dropdown-count">{goal.status}</span>
                   </div>
                 ))}
-              </div>
-            )}
+            </GoalDropdown>
           </div>
         </header>
 

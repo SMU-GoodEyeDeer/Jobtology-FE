@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Home.css";
 import { AppSidebar } from "../../components/AppSidebar";
+import { GoalDropdown } from "../../components/GoalDropdown";
 import arrowIcon from "../../assets/→.svg";
 import chevronDownIcon from "../../assets/Chevron down.svg";
 import notificationsIcon from "../../assets/notifications.svg";
@@ -66,12 +67,11 @@ export function Home() {
         <header className="main-header">
           <h2 className="main-title">홈</h2>
           <div className="goal-wrapper" ref={goalRef}>
-            <button className="goal-button" onClick={() => setGoalOpen((v) => !v)}>
+            <button className="goal-button" aria-expanded={goalOpen} aria-controls="goal-dropdown" onClick={() => setGoalOpen((v) => !v)}>
               {selectedGoalName}
               <img src={chevronDownIcon} alt="▾" className="goal-arrow" />
             </button>
-            {goalOpen && (
-              <div className="goal-dropdown">
+            <GoalDropdown open={goalOpen}>
                 {goals.map((goal) => (
                   <div
                     key={goal.goal_id}
@@ -82,8 +82,7 @@ export function Home() {
                     <span className="goal-dropdown-count">{goal.goal_mode}</span>
                   </div>
                 ))}
-              </div>
-            )}
+            </GoalDropdown>
           </div>
         </header>
 

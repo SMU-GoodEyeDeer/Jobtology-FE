@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { motion, useReducedMotion } from "motion/react";
 import "./AppSidebar.css";
-import logoIcon from "../assets/logo1.svg";
+import logoIcon from "../assets/logo-mark.svg";
 import homeIcon from "../assets/Home .svg";
 import chatIcon from "../assets/Message circle.svg";
 import roadmapIcon from "../assets/Trending up.svg";
@@ -10,6 +11,7 @@ import analysisIcon from "../assets/Bar chart.svg";
 import progressIcon from "../assets/today.svg";
 import userIcon from "../assets/User.svg";
 import { useSession } from "../context/SessionContext";
+import { usePanelResize } from "../hooks/usePanelResize";
 
 const NAV_ITEMS = [
   { icon: homeIcon, label: "홈", path: "/home" },
@@ -22,6 +24,8 @@ const NAV_ITEMS = [
 
 const NARROW_QUERY = "(max-width: 1024px)";
 const COLLAPSED_KEY = "jobtology.sidebar.collapsed";
+// Pages mount their own sidebar; carry the highlight's last position across them.
+let lastActiveIndex: number | undefined;
 
 function preferredCollapsed(narrow: boolean): boolean {
   return narrow || localStorage.getItem(COLLAPSED_KEY) === "1";
@@ -30,8 +34,13 @@ function preferredCollapsed(narrow: boolean): boolean {
 export function AppSidebar({ children, showLogout = true }: { children?: ReactNode; showLogout?: boolean }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const reduceMotion = useReducedMotion();
+  const activeIndex = NAV_ITEMS.findIndex(({ path }) => pathname === path || pathname.startsWith(`${path}/`));
+  const [initialActiveIndex] = useState(() => lastActiveIndex ?? activeIndex);
+  useEffect(() => { lastActiveIndex = activeIndex; }, [activeIndex]);
   const { logout } = useSession();
   const [collapsed, setCollapsed] = useState(() => preferredCollapsed(window.matchMedia(NARROW_QUERY).matches));
+  const { size, resizing, separatorProps } = usePanelResize({ storageKey: "jobtology.sidebar.width", initial: 260, min: 240, max: 360 });
 
   useEffect(() => {
     const media = window.matchMedia(NARROW_QUERY);
@@ -47,7 +56,7 @@ export function AppSidebar({ children, showLogout = true }: { children?: ReactNo
   }
 
   return (
-    <aside className={`sidebar${collapsed ? " sidebar--collapsed" : ""}`}>
+    <aside className={`sidebar${collapsed ? " sidebar--collapsed" : ""}${resizing ? " sidebar--resizing" : ""}`} style={{ "--sidebar-width": `${size}px` } as CSSProperties}>
       <div className="sidebar-logo">
         <img src={logoIcon} alt="로고" className="sidebar-logo-icon" />
         <span className="sidebar-logo-text">Jobtology</span>
@@ -65,14 +74,19 @@ export function AppSidebar({ children, showLogout = true }: { children?: ReactNo
       </div>
 
       <nav className="sidebar-nav">
+        {activeIndex >= 0 && <motion.div className="nav-active-indicator" aria-hidden="true"
+          initial={{ y: Math.max(0, initialActiveIndex) * 46 }} animate={{ y: activeIndex * 46 }}
+          transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 36 }} />}
         {NAV_ITEMS.map(({ icon, label, path }) => (
           <button
             key={label}
             className={`nav-item ${pathname === path || pathname.startsWith(`${path}/`) ? "nav-item--active" : ""}`}
             title={collapsed ? label : undefined}
+            aria-label={label}
+            aria-current={pathname === path || pathname.startsWith(`${path}/`) ? "page" : undefined}
             onClick={() => navigate(path)}
           >
-            <img src={icon} alt={label} className="nav-icon" />
+            <img src={icon} alt="" className="nav-icon" />
             <span>{label}</span>
           </button>
         ))}
@@ -94,6 +108,7 @@ export function AppSidebar({ children, showLogout = true }: { children?: ReactNo
           </button>
         )}
       </div>
+      {!collapsed && <div className="sidebar-resize" {...separatorProps} aria-label="사이드바 너비 조절" title="끌어서 너비 조절 · 두 번 클릭하여 초기화" />}
     </aside>
   );
 }

@@ -12,9 +12,10 @@
 .weekly-plan small { color: var(--sd-muted); font-size: 12px; }
 .wp-card { border: 1px solid var(--sd-border); border-radius: 16px; background: var(--sd-surface); }
 .wp-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 10px 12px; margin-bottom: 12px; min-height: 60px; }
-.wp-tabs { display: flex; flex-shrink: 0; gap: 2px; padding: 3px; background: var(--sd-canvas); border-radius: 12px; }
-.wp-tabs button { height: 36px; border: 0; border-radius: 9px; padding: 0 12px; background: transparent; color: var(--sd-muted); font-weight: 700; }
-.wp-tabs button[aria-selected="true"] { background: var(--sd-surface); color: var(--sd-text); box-shadow: 0 1px 3px #11182712; }
+.wp-tabs { position: relative; display: flex; flex-shrink: 0; padding: 3px; background: var(--sd-canvas); border-radius: 12px; }
+.wp-tabs button { position: relative; z-index: 1; width: 90px; height: 36px; border: 0; border-radius: 9px; padding: 0 12px; background: transparent; color: var(--sd-muted); font-weight: 700; transition: color .15s; }
+.wp-tabs button[aria-selected="true"] { color: var(--sd-text); }
+.wp-tab-indicator { position: absolute; top: 3px; bottom: 3px; left: 3px; width: 90px; border-radius: 9px; background: var(--sd-surface); box-shadow: 0 1px 3px #11182712; }
 .wp-summary { color: var(--sd-muted); line-height: 1.6; }
 .wp-summary b { color: var(--sd-text); }
 .wp-toolbar-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
@@ -53,10 +54,16 @@
 .wp-phase-info small { display: block; }
 .wp-phase-count { text-align: right; white-space: nowrap; font-size: 12px; }
 .wp-phase-count small { display: block; margin-top: 4px; }
+.wp-phase-chevron { flex-shrink: 0; transition: transform .22s ease; }
+.wp-phase-header[aria-expanded="true"] .wp-phase-chevron { transform: rotate(180deg); }
+.wp-phase-fold { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows .24s cubic-bezier(.22, 1, .36, 1), opacity .18s ease; }
+.wp-phase-fold[data-expanded="true"] { grid-template-rows: 1fr; opacity: 1; }
+.wp-phase-fold-inner { min-height: 0; overflow: hidden; }
 .wp-phase-steps { border-top: 1px solid var(--sd-border); padding: 6px 12px 12px; }
 .wp-phase-row { display: flex; align-items: center; gap: 12px; position: relative; padding: 4px 0; }
 .wp-phase-row::before { content: ""; position: absolute; width: 2px; background: var(--sd-border); top: 0; bottom: 0; left: 9px; }
 .wp-phase-row:last-child::before { bottom: 50%; }
+@media (prefers-reduced-motion: reduce) { .wp-phase-fold, .wp-phase-chevron { transition: none; } }
 .wp-node { position: relative; z-index: 1; flex-shrink: 0; width: 20px; height: 20px; border: 2px solid var(--sd-border); border-radius: 50%; background: var(--sd-surface); display: grid; place-items: center; font-size: 12px; }
 .wp-node--IN_PROGRESS { border: 3px solid var(--sd-primary); box-shadow: 0 0 0 3px var(--sd-primary-tint); }
 .wp-node--COMPLETED { border-color: var(--sd-green); background: var(--sd-green); color: var(--sd-surface); }
@@ -67,6 +74,20 @@
 .wp-step-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
 .wp-step-copy strong { font-size: 15px; word-break: keep-all; overflow-wrap: anywhere; }
 .wp-step > .wp-chip, .wp-step > .wp-pill { font-size: 11px; flex-shrink: 0; }
+.wp-step, .wp-week-name > button, .wp-bar, .wp-current-task .wp-text-button {
+  transition: background-color .18s, border-color .18s, box-shadow .18s, transform .15s ease;
+}
+.wp-step:hover { background: var(--sd-hover); transform: translateX(2px); }
+.wp-step[aria-pressed="true"]:hover { background: var(--sd-primary-tint); }
+.wp-step:active, .wp-week-name > button:active, .wp-bar:active, .wp-current-task .wp-text-button:active { transform: scale(.98); }
+.wp-bar:hover { box-shadow: 0 3px 8px #4e46e530; }
+.wp-node { transition: box-shadow .18s; }
+.wp-phase-row:has(.wp-step[aria-pressed="true"]) .wp-node { box-shadow: 0 0 0 4px var(--sd-primary-tint); }
+.wp-detail-content { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .wp-step, .wp-week-name > button, .wp-bar, .wp-current-task .wp-text-button, .wp-node { transition: none; }
+  .wp-step:hover, .wp-step:active, .wp-week-name > button:active, .wp-bar:active, .wp-current-task .wp-text-button:active { transform: none; }
+}
 .wp-detail { min-width: 0; border: 1px solid var(--sd-border); border-radius: 16px; background: var(--sd-surface); display: flex; flex-direction: column; overflow: hidden; }
 .wp-detail-header { position: relative; padding: 24px 24px 12px; }
 .wp-eyebrow { color: var(--sd-primary); font-size: 12px; font-weight: 700; margin-bottom: 10px !important; }
@@ -97,13 +118,17 @@
 .wp-detail-footer { border-top: 1px solid var(--sd-border); padding: 14px 24px; display: flex; gap: 8px; }
 .wp-detail-footer button { flex: 1; font-size: 13px; padding: 12px 8px; }
 .wp-dialog { position: fixed; inset: 0 0 0 auto; width: min(460px, 100%); height: 100dvh; max-height: 100dvh; max-width: 100%; margin: 0; padding: 0; border-radius: 16px 0 0 16px; color: var(--sd-text); }
-.wp-dialog::backdrop { background: #11182766; }
+.wp-dialog::backdrop { background: #11182766; animation: wp-dim-in .22s ease-out both; }
+.wp-dialog[data-exiting="true"]::backdrop { animation: wp-dim-out .22s ease-out both; }
+@keyframes wp-dim-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes wp-dim-out { from { opacity: 1; } to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .wp-dialog::backdrop, .wp-dialog[data-exiting="true"]::backdrop { animation: none; } }
 .wp-weeks { display: flex; flex-direction: column; gap: 12px; }
 .wp-gantt-card { padding: 20px; min-width: 0; }
 .wp-gantt-heading { display: flex; align-items: baseline; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
 .wp-gantt-heading p { font-size: 12px; color: var(--sd-muted); }
 .wp-gantt-scroll { overflow: auto; max-height: 550px; border: 1px solid var(--sd-border); border-radius: 12px; isolation: isolate; }
-.wp-gantt-card--editing .wp-gantt-scroll { max-height: max(260px, calc(100dvh - 490px)); scroll-padding-bottom: 12px; }
+.wp-gantt-card--editing .wp-gantt-scroll { max-height: none; overflow-y: hidden; }
 .wp-gantt { position: relative; }
 .wp-gantt-headers { position: sticky; top: 0; z-index: 5; background: var(--sd-surface); }
 .wp-gantt-months, .wp-gantt-week-head, .wp-gantt-row { display: grid; }
@@ -113,7 +138,7 @@
 .wp-gantt-week-head > button { border: 0; border-left: 1px solid var(--sd-border); background: transparent; color: var(--sd-muted); font-size: 11px; padding: 0; }
 .wp-gantt-week-head > button:disabled { opacity: 1; }
 .wp-gantt-week-head .wp-gantt-label { font-size: 12px; color: var(--sd-muted); }
-.wp-gantt-row { min-height: 38px; border-bottom: 1px solid var(--sd-hover); }
+.wp-gantt-row { position: relative; min-height: 38px; border-bottom: 1px solid var(--sd-hover); }
 .wp-gantt-row--edit { min-height: 60px; }
 .wp-gantt-label { grid-column: 1; grid-row: 1; position: sticky; left: 0; z-index: 3; background: var(--sd-surface); border-right: 1px solid var(--sd-border); display: flex; align-items: center; gap: 6px; padding: 6px 10px; min-width: 0; }
 .wp-gantt-label--open { z-index: 6; }
@@ -148,9 +173,15 @@
 .wp-hour-stepper { display: flex; align-items: center; border: 1px solid var(--sd-border); border-radius: 12px; overflow: hidden; }
 .wp-hour-stepper button { height: 40px; width: 40px; background: var(--sd-surface); color: var(--sd-text); border: 0; font-size: 18px; }
 .wp-hour-stepper b { min-width: 72px; text-align: center; border-inline: 1px solid var(--sd-border); }
-.wp-drag { cursor: grab; color: var(--sd-tertiary); font-size: 20px; }
-.wp-reorder { display: flex; flex-direction: column; gap: 2px; }
-.wp-reorder button { border: 1px solid var(--sd-border); background: var(--sd-surface); color: var(--sd-muted); border-radius: 4px; padding: 0 5px; height: 20px; font-size: 12px; }
+.wp-drag { flex: none; width: 24px; height: 34px; border: 0; padding: 0; border-radius: 6px; background: transparent; cursor: grab !important; touch-action: none; color: var(--sd-tertiary); font-size: 22px !important; }
+.wp-drag:hover, .wp-drag[aria-pressed="true"] { background: var(--sd-primary-tint); color: var(--sd-primary); }
+.wp-drag[aria-pressed="true"] { cursor: grabbing !important; }
+.wp-gantt-row--dragging { outline: 2px dashed var(--sd-primary); outline-offset: -2px; background: var(--sd-primary-tint); }
+.wp-gantt-row--dragging > * { opacity: .35; }
+.wp-drag-preview { position: fixed; top: 0; left: 0; will-change: transform; z-index: 1000; pointer-events: none; display: flex; align-items: center; gap: 12px; width: 280px; max-width: calc(100vw - 32px); padding: 14px 16px; border: 1px solid #a5b4fc; border-radius: 12px; background: #fff; color: #1e1b4b; box-shadow: 0 12px 36px #1e1b4b24; font-family: inherit; font-size: 13px; }
+.wp-drag-preview > span { color: #6366f1; font-size: 22px; }
+.wp-drag-preview strong { display: block; line-height: 1.5; }
+.wp-drag-preview small { display: block; color: #6b7280; font-size: 11px; margin-top: 4px; }
 .wp-hours-input { width: 82px; flex: none; display: flex; gap: 4px; flex-wrap: wrap; align-items: center; font-size: 11px; }
 .wp-hours-input input { width: 54px; padding: 4px; border: 1px solid var(--sd-border); border-radius: 6px; font-size: 12px; color: var(--sd-text); background: var(--sd-surface); }
 .wp-hours-input small { font-size: 10px; }
@@ -165,11 +196,11 @@
 .wp-week-next p { display: flex; gap: 12px; justify-content: space-between; }
 .roadmap-page .main-area { min-width: 0; }
 .roadmap-page .main-content > * { flex-shrink: 0; }
-.roadmap-page .main-header { min-height: 80px; align-items: center; padding-top: 16px; }
+.roadmap-page .main-header { align-items: center; }
 .roadmap-page .main-title { font-size: 22px; white-space: nowrap; }
 .rm-heading { min-width: 0; }
-.rm-heading-sub { margin: 6px 0 0; color: #6b7280; font-size: 13px; }
-.roadmap-page .main-content { gap: 12px; padding-top: 12px; }
+.rm-heading-sub { min-height: 18px; line-height: 18px; margin: 6px 0 0; color: #6b7280; font-size: 13px; }
+.roadmap-page .main-content { gap: 12px; }
 .roadmap-page .rm-section { background: transparent; border: 0; padding: 0; gap: 10px; flex-direction: row; align-items: center; }
 .roadmap-page .rm-section-header { flex-shrink: 0; }
 .roadmap-page .rm-section-header .rm-section-title { font-size: 13px; color: #6b7280; }

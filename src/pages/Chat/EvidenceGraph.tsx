@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent } from "react";
 import type { EvidenceNodeKind, RoleEvidenceGraph } from "../../services/types";
 import {
   createEvidenceSimulation,
@@ -7,6 +7,8 @@ import {
   type SimNode,
 } from "./evidenceGraphForce";
 import { isOwned, layoutEvidenceGraph } from "./evidenceGraphLayout";
+import { MAX_ZOOM, MIN_ZOOM, zoomCamera } from "./graphCamera";
+import { nodePopupPosition } from "./nodePopupPosition";
 
 type Visual = EvidenceNodeKind | "have" | "me";
 
@@ -58,6 +60,10 @@ function shorten(label: string, max: number): string {
   return label.length > max ? `${label.slice(0, max - 1)}…` : label;
 }
 
+function legendVisual(kind: EvidenceNodeKind, owned: boolean): Visual {
+  return owned ? "have" : kind === "ncs_competency" ? "technology" : kind;
+}
+
 interface Props {
   readonly graph: RoleEvidenceGraph | null;
   readonly status: "idle" | "loading" | "error" | "ready";
@@ -66,14 +72,38 @@ interface Props {
 }
 
 export function EvidenceGraph({ graph, status, ownedSkills, onOpenRoadmap }: Props) {
-  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [camera, setCamera] = useState({ x: 0, y: 0, zoom: 1 });
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [hoveredLegend, setHoveredLegend] = useState<Visual | null>(null);
+  const [focusedLegend, setFocusedLegend] = useState<Visual | null>(null);
   const [, setFrame] = useState(0);
   const svgRef = useRef<SVGSVGElement>(null);
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
+  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
+  const [popupSize, setPopupSize] = useState({ width: 260, height: 180 });
   const layerRef = useRef<SVGGElement>(null);
   const simRef = useRef<{ readonly graph: RoleEvidenceGraph; readonly sim: EvidenceSimulation } | null>(null);
   const dragRef = useRef<Drag | null>(null);
   const movedRef = useRef(false);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const observer = new ResizeObserver(() => setCanvasSize({ width: canvas.clientWidth, height: canvas.clientHeight }));
+    observer.observe(canvas);
+    return () => observer.disconnect();
+  }, []);
+  useEffect(() => {
+    const popup = popupRef.current;
+    if (!popup) return;
+    const observer = new ResizeObserver(() => {
+      const rect = popup.getBoundingClientRect();
+      setPopupSize({ width: rect.width, height: rect.height });
+    });
+    observer.observe(popup);
+    return () => observer.disconnect();
+  }, [selectedId]);
 
   const model = useMemo(() => {
     if (graph === null) return null;
@@ -100,9 +130,17 @@ export function EvidenceGraph({ graph, status, ownedSkills, onOpenRoadmap }: Pro
     return { graph, seed, ownedIds, byId: new Map(graph.nodes.map((node) => [node.id, node])) };
   }, [graph, ownedSkills]);
 
+  const activeLegend = hoveredLegend ?? focusedLegend;
+  const highlightedIds = useMemo(() => {
+    const ids = new Set(model?.graph.nodes.filter(node => legendVisual(node.kind, model.ownedIds.has(node.id)) === activeLegend).map(node => node.id));
+    if (activeLegend === "have" && ids.size > 0) ids.add(ME_ID);
+    return ids;
+  }, [model, activeLegend]);
+  const highlighting = highlightedIds.size > 0;
+
   useEffect(() => {
     setSelectedId(null);
-    setPan({ x: 0, y: 0 });
+    setCamera({ x: 0, y: 0, zoom: 1 });
   }, [graph]);
 
   useEffect(() => {
@@ -125,6 +163,11 @@ export function EvidenceGraph({ graph, status, ownedSkills, onOpenRoadmap }: Pro
     return { x: point.x, y: point.y };
   }
 
+  function toSvgPoint(x: number, y: number) {
+    const matrix = svgRef.current?.getScreenCTM();
+    return matrix ? new DOMPoint(x, y).matrixTransform(matrix.inverse()) : null;
+  }
+
   function startNodeDrag(e: PointerEvent, node: SimNode) {
     e.stopPropagation();
     svgRef.current?.setPointerCapture(e.pointerId);
@@ -138,7 +181,7 @@ export function EvidenceGraph({ graph, status, ownedSkills, onOpenRoadmap }: Pro
   function startPan(e: PointerEvent) {
     svgRef.current?.setPointerCapture(e.pointerId);
     movedRef.current = false;
-    dragRef.current = { kind: "pan", startX: e.clientX, startY: e.clientY, panX: pan.x, panY: pan.y };
+    dragRef.current = { kind: "pan", startX: e.clientX, startY: e.clientY, panX: camera.x, panY: camera.y };
   }
 
   function onPointerMove(e: PointerEvent) {
@@ -155,9 +198,12 @@ export function EvidenceGraph({ graph, status, ownedSkills, onOpenRoadmap }: Pro
         drag.node.fy = point.y;
         return;
       }
-      case "pan":
-        setPan({ x: drag.panX + dx, y: drag.panY + dy });
+      case "pan": {
+        const start = toSvgPoint(drag.startX, drag.startY);
+        const point = toSvgPoint(e.clientX, e.clientY);
+        if (start && point) setCamera(previous => ({ ...previous, x: drag.panX + point.x - start.x, y: drag.panY + point.y - start.y }));
         return;
+      }
     }
   }
 
@@ -165,15 +211,18 @@ export function EvidenceGraph({ graph, status, ownedSkills, onOpenRoadmap }: Pro
     const drag = dragRef.current;
     dragRef.current = null;
     if (svgRef.current?.hasPointerCapture(e.pointerId)) svgRef.current.releasePointerCapture(e.pointerId);
-    if (drag?.kind !== "node") return;
+    if (drag?.kind !== "node") {
+      if (drag && !movedRef.current) setSelectedId(null);
+      return;
+    }
     drag.node.fx = null;
     drag.node.fy = null;
     simRef.current?.sim.simulation.alphaTarget(0);
-    if (!movedRef.current && drag.node.id !== ME_ID) setSelectedId(drag.node.id);
+    if (e.type !== "pointercancel" && !movedRef.current && drag.node.id !== ME_ID) setSelectedId(drag.node.id);
   }
 
   function recenter() {
-    setPan({ x: 0, y: 0 });
+    setCamera({ x: 0, y: 0, zoom: 1 });
     simRef.current?.sim.simulation.alpha(0.6).restart();
   }
 
@@ -181,18 +230,45 @@ export function EvidenceGraph({ graph, status, ownedSkills, onOpenRoadmap }: Pro
   const me = sim?.nodes.get(ME_ID);
   const selected = selectedId === null ? undefined : model?.byId.get(selectedId);
   const selectedOwned = selectedId !== null && (model?.ownedIds.has(selectedId) ?? false);
+  const selectedPoint = selectedId ? sim?.nodes.get(selectedId) : null;
+  const scale = model ? Math.min(Math.max(1, canvasSize.width - 16) / model.seed.width, Math.max(1, canvasSize.height - 16) / model.seed.height) : 1;
+  const popupPosition = selectedPoint && model ? nodePopupPosition({
+    x: canvasSize.width / 2 + (selectedPoint.x * camera.zoom + camera.x - model.seed.width / 2) * scale,
+    y: canvasSize.height / 2 + (selectedPoint.y * camera.zoom + camera.y - model.seed.height / 2) * scale,
+    r: selectedPoint.r * camera.zoom * scale,
+  }, canvasSize, popupSize) : null;
+
+  function zoom(factor: number) {
+    if (model) setCamera(previous => zoomCamera(previous, factor, { x: model.seed.width / 2, y: model.seed.height / 2 }));
+  }
+
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const wheel = (event: WheelEvent) => {
+      event.preventDefault();
+      const point = toSvgPoint(event.clientX, event.clientY);
+      if (point) setCamera(previous => zoomCamera(previous, Math.exp(-Math.max(-100, Math.min(100, event.deltaY)) * .003), point));
+    };
+    svg.addEventListener("wheel", wheel, { passive: false });
+    return () => svg.removeEventListener("wheel", wheel);
+  }, [model, sim]);
 
   return (
     <>
       <div className="graph-panel-header">
         <div>
           <p className="graph-title">추천 근거 그래프</p>
-          <p className="graph-sub">Neo4j 지식그래프 · 노드를 끌면 연결된 노드가 따라 움직여요</p>
+          <p className="graph-sub">지식그래프 · 노드를 클릭하여 상세정보를 확인하세요</p>
         </div>
-        <button className="graph-center-btn" onClick={recenter}>중앙 정렬</button>
+        <div className="graph-controls" role="group" aria-label="그래프 보기 조절">
+          <button className="graph-zoom-btn" aria-label="그래프 축소" disabled={!sim || camera.zoom <= MIN_ZOOM} onClick={() => zoom(1 / 1.2)}>−</button>
+          <button className="graph-center-btn" onClick={recenter} title="확대와 위치 초기화">{Math.round(camera.zoom * 100)}%</button>
+          <button className="graph-zoom-btn" aria-label="그래프 확대" disabled={!sim || camera.zoom >= MAX_ZOOM} onClick={() => zoom(1.2)}>+</button>
+        </div>
       </div>
 
-      <div className="graph-canvas">
+      <div ref={canvasRef} className="graph-canvas" onKeyDown={event => { if (event.key === "Escape") setSelectedId(null); }}>
         {status !== "ready" || model === null || sim === null || me === undefined ? (
           <p className="graph-empty">
             {status === "loading" ? "Neo4j에서 근거 그래프를 불러오는 중…"
@@ -211,9 +287,10 @@ export function EvidenceGraph({ graph, status, ownedSkills, onOpenRoadmap }: Pro
             onPointerUp={onPointerUp}
             onPointerCancel={onPointerUp}
           >
-            <g ref={layerRef} transform={`translate(${pan.x}, ${pan.y})`}>
+            <g ref={layerRef} transform={`translate(${camera.x}, ${camera.y}) scale(${camera.zoom})`}>
               {sim.links.map((link) => (
                 <line key={`${link.source.id}>${link.target.id}`}
+                  className={`graph-edge${highlighting ? highlightedIds.has(link.source.id) || highlightedIds.has(link.target.id) ? " graph-edge--highlighted" : " graph-edge--dimmed" : ""}`}
                   x1={link.source.x} y1={link.source.y} x2={link.target.x} y2={link.target.y}
                   {...(link.dashed
                     ? { stroke: "#16a34a", strokeWidth: 1.2, strokeDasharray: "4 4", opacity: 0.6 }
@@ -222,11 +299,14 @@ export function EvidenceGraph({ graph, status, ownedSkills, onOpenRoadmap }: Pro
               {model.graph.nodes.map((node) => {
                 const p = sim.nodes.get(node.id);
                 if (p === undefined) return null;
-                const visual: Visual = model.ownedIds.has(node.id) ? "have" : node.kind;
+                const visual = legendVisual(node.kind, model.ownedIds.has(node.id));
                 const inside = node.kind === "role";
                 return (
-                  <g key={node.id} className={`graph-node${inside ? " graph-node--no-scale" : ""}`}
-                    style={{ cursor: "pointer" }}
+                  <g key={node.id} className={`graph-node${inside ? " graph-node--no-scale" : ""}${highlighting ? highlightedIds.has(node.id) ? " graph-node--highlighted" : " graph-node--dimmed" : ""}`}
+                    data-legend={visual}
+                    role="button" tabIndex={0} aria-label={`${node.label} 상세정보`} aria-pressed={selectedId === node.id}
+                    onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setSelectedId(node.id); } }}
+                    style={{ cursor: "pointer", color: COLORS[visual] }}
                     onPointerDown={(e) => startNodeDrag(e, p)}>
                     <title>{node.label}</title>
                     <circle cx={p.x} cy={p.y} r={p.r} fill={COLORS[visual]} />
@@ -238,7 +318,7 @@ export function EvidenceGraph({ graph, status, ownedSkills, onOpenRoadmap }: Pro
                   </g>
                 );
               })}
-              <g className="graph-node" style={{ cursor: "pointer" }} onPointerDown={(e) => startNodeDrag(e, me)}>
+              <g className={`graph-node${highlighting ? highlightedIds.has(ME_ID) ? " graph-node--highlighted" : " graph-node--dimmed" : ""}`} style={{ cursor: "pointer", color: COLORS.me }} onPointerDown={(e) => startNodeDrag(e, me)}>
                 <circle cx={me.x} cy={me.y} r={me.r} fill={COLORS.me} />
                 <text x={me.x} y={me.y} textAnchor="middle" dominantBaseline="middle" fill="#fff"
                   fontSize={16} fontWeight={600} fontFamily="inherit" style={{ pointerEvents: "none" }}>나</text>
@@ -246,26 +326,32 @@ export function EvidenceGraph({ graph, status, ownedSkills, onOpenRoadmap }: Pro
             </g>
           </svg>
         )}
-      </div>
-
-      {selected && (
-        <div className="node-popup">
-          <button className="node-popup-close" onClick={() => setSelectedId(null)}>✕</button>
+      {selected && popupPosition && (
+        <div ref={popupRef} className="node-popup" data-side={popupPosition.side} role="dialog" aria-label={selected.label}
+          style={{ left: popupPosition.x, top: popupPosition.y, "--arrow-offset": `${popupPosition.arrow}px` } as CSSProperties}>
+          <div className="node-popup-content">
+          <button className="node-popup-close" aria-label="상세정보 닫기" onClick={() => setSelectedId(null)}>✕</button>
           <span className="node-popup-badge">{selectedOwned ? "보유 역량" : KIND_LABEL[selected.kind]}</span>
           <p className="node-popup-title">{selected.label}</p>
           {selected.detail && (
             <p className="node-popup-desc" style={{ whiteSpace: "pre-line" }}>{selected.detail}</p>
           )}
           <button className="node-popup-btn" onClick={onOpenRoadmap}>로드맵에서 보기</button>
+          </div>
         </div>
       )}
+      </div>
 
-      <div className="graph-legend">
+      <div className="graph-legend" role="group" aria-label="노드 유형별 강조"
+        onKeyDown={event => { if (event.key === "Escape") { setHoveredLegend(null); setFocusedLegend(null); } }}>
         {LEGEND.map(({ visual, label }) => (
-          <span key={visual} className="legend-item">
+          <button key={visual} type="button" className="legend-item" data-active={activeLegend === visual}
+            aria-label={`${label} 노드 강조`}
+            onPointerEnter={() => setHoveredLegend(visual)} onPointerLeave={() => setHoveredLegend(null)}
+            onFocus={() => setFocusedLegend(visual)} onBlur={() => setFocusedLegend(null)}>
             <span className="legend-dot" style={{ background: COLORS[visual] }} />
             {label}
-          </span>
+          </button>
         ))}
       </div>
     </>

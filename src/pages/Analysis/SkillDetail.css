@@ -34,9 +34,10 @@
 .sd-list-heading h2 { margin: 0; font-size: 18px; font-weight: 700; }
 .sd-list-heading h2 span { margin-left: 4px; color: var(--sd-primary); }
 .sd-list-heading p { margin: 8px 0 0; color: var(--sd-muted); font-size: 13px; line-height: 1.5; }
-.sd-filters { display: flex; padding: 4px; border: 1px solid var(--sd-border); background: var(--sd-border); border-radius: 8px; gap: 4px; }
-.sd-filters button { border: 0; padding: 8px 16px; color: var(--sd-muted); background: transparent; font: inherit; font-size: 13px; border-radius: 4px; cursor: pointer; white-space: nowrap; }
-.sd-filters button[aria-pressed="true"] { background: var(--sd-surface); color: var(--sd-primary); font-weight: 700; }
+.sd-filters { position: relative; isolation: isolate; display: flex; padding: 4px; border: 1px solid var(--sd-border); background: var(--sd-border); border-radius: 8px; gap: 4px; }
+.sd-filter-indicator { position: absolute; z-index: -1; top: 4px; bottom: 4px; left: 4px; width: 64px; border-radius: 4px; background: var(--sd-surface); box-shadow: 0 1px 3px #1118270a; }
+.sd-filters button { width: 64px; border: 0; padding: 8px 0; color: var(--sd-muted); background: transparent; font: inherit; font-size: 13px; border-radius: 4px; cursor: pointer; white-space: nowrap; }
+.sd-filters button[aria-pressed="true"] { color: var(--sd-primary); font-weight: 700; }
 .sd-filters button:hover { color: var(--sd-primary); }
 .sd-columns, .sd-row { display: grid; grid-template-columns: minmax(0, 1fr) 220px 160px 16px; gap: 20px; align-items: center; }
 .sd-columns { padding: 0 20px 12px; font-size: 12px; color: var(--sd-muted); }
@@ -62,7 +63,7 @@
 .sd-layout--selected .sd-columns, .sd-layout--selected .sd-row { grid-template-columns: minmax(0, 1fr) 124px 16px; gap: 12px; }
 .sd-layout--selected .sd-hours { display: none; }
 .sd-layout--selected .sd-demand-bar { width: 40px; }
-.sd-panel { min-width: 0; height: max(480px, calc(100dvh - 330px)); max-height: 800px; border: 1px solid var(--sd-border); border-radius: 16px; background: var(--sd-surface); display: flex; flex-direction: column; overflow: hidden; animation: sd-enter 180ms ease-out; }
+.sd-panel { min-width: 0; height: max(480px, calc(100dvh - 330px)); max-height: 800px; border: 1px solid var(--sd-border); border-radius: 16px; background: var(--sd-surface); display: flex; flex-direction: column; overflow: hidden; }
 .sd-panel-header { position: relative; padding: 24px 24px 20px; border-bottom: 1px solid var(--sd-border); flex-shrink: 0; }
 .sd-eyebrow { margin: 0 0 12px; color: var(--sd-muted); font-size: 12px; }
 .sd-panel h2 { margin: 0 32px 12px 0; font-size: 22px; line-height: 1.5; word-break: keep-all; overflow-wrap: anywhere; }
@@ -71,7 +72,11 @@
 .sd-badges { display: flex; gap: 8px; }
 .sd-close { position: absolute; top: 12px; right: 12px; width: 40px; height: 40px; background: transparent; color: var(--sd-muted); border: 0; border-radius: 8px; font-size: 22px; cursor: pointer; }
 .sd-close:hover { background: var(--sd-hover); color: var(--sd-text); }
-.sd-panel-body { padding: 20px 24px 24px; overflow-y: auto; min-height: 0; flex: 1; overscroll-behavior: contain; scrollbar-width: thin; }
+.sd-panel-body { padding: 20px 24px 24px; overflow-y: auto; min-height: 0; flex: 1; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-gutter: stable; }
+.sd-panel-content[hidden] { display: none; }
+.sd-panel-loading { display: grid; gap: 36px; padding: 8px 0; }
+.sd-panel-loading .sd-skeleton { min-height: 72px; }
+.sd-panel-footer button:disabled { opacity: .5; cursor: default; }
 .sd-definition { padding: 16px; border-radius: 12px; background: var(--sd-primary-tint); font-size: 14px; line-height: 1.7; }
 .sd-definition p { margin: 0; word-break: keep-all; overflow-wrap: anywhere; }
 .sd-definition small { display: block; margin-top: 12px; font-size: 12px; color: var(--sd-muted); }
@@ -106,8 +111,6 @@
 .sd-drawer-layer { position: fixed; inset: 0; z-index: 1000; }
 .sd-backdrop { position: absolute; inset: 0; background: #11182766; }
 .sd-panel--overlay { position: absolute; right: 0; top: 0; width: min(420px, 100%); height: 100dvh; max-height: none; border-radius: 16px 0 0 16px; }
-@keyframes sd-enter { from { opacity: 0; transform: translateX(8px); } to { opacity: 1; transform: translateX(0); } }
-@media (prefers-reduced-motion: reduce) { .sd-panel { animation: none; } }
 @media (max-width: 1099px) {
   .sd-columns, .sd-row { grid-template-columns: minmax(0, 1fr) 160px 120px 16px; gap: 12px; }
 }
