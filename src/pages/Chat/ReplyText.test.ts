@@ -4,6 +4,11 @@ import { describe, expect, it } from "vitest";
 import { ReplyText } from "./ReplyText";
 
 describe("ReplyText", () => {
+  const extractTextContent = (markup: string) => {
+    const doc = new DOMParser().parseFromString(markup, "text/html");
+    return doc.body.textContent ?? "";
+  };
+
   it.each(["**unclosed text", "**"])("preserves an unmatched bold marker: %s", text => {
     const html = renderToStaticMarkup(createElement(ReplyText, { text }));
     expect(html).toBe(`<span>${text}</span>`);
@@ -18,6 +23,6 @@ describe("ReplyText", () => {
     const text = "**unclosed text";
     const html = renderToStaticMarkup(createElement(ReplyText, { text, animate: true }));
     expect(html).not.toContain("<strong");
-    expect(html.replace(/<[^>]+>/g, "")).toBe(text);
+    expect(extractTextContent(html)).toBe(text);
   });
 });
