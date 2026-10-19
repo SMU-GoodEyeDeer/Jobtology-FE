@@ -5,7 +5,7 @@ import type { WeeklyPlanResponse, WeeklyPlanStep } from "./weeklyPlanTypes";
 const hours = [15, 20, 30, 20, 24, 20, 40, 20, 20, 30, 20];
 const steps: WeeklyPlanStep[] = hours.map((h, index) => ({
   step_id: String(index), number: index + 1, recommended_number: index + 1,
-  title: `단계 ${index}`, name: `단계 ${index}`, requirement_key: null, state: "TODO",
+  title: `단계 ${index}`, name: `단계 ${index}`, completion_criteria: [], requirement_key: null, state: "TODO",
   phase: "CORE", ncs_level: index + 1, field_code: "DB", field_name: "DB",
   hours: h, recommended_hours: h, hours_basis: "OFFICIAL", demand_pct: null,
   start_week: 1, end_week: 1, start_date: "2026-10-19", end_date: "2026-10-25",

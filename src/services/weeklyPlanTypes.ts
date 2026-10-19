@@ -4,6 +4,7 @@ export interface WeeklyPlanStep {
   readonly recommended_number: number;
   readonly title: string;
   readonly name: string;
+  readonly completion_criteria: readonly string[];
   readonly requirement_key: string | null;
   readonly state: "TODO" | "IN_PROGRESS" | "COMPLETED";
   readonly phase: "BASIC" | "CORE" | "ADVANCED";

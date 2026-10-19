@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { WeeklyPlanResponse, WeeklyPlanStep } from "../../services/types";
-import { basisLabels, phaseLabels, prerequisiteWarning, stateLabels } from "../../services/weeklyPlan";
+import { basisLabels, phaseLabels, prerequisiteWarning, stateLabels, stepTitle } from "../../services/weeklyPlan";
 
 interface Props {
   readonly plan: WeeklyPlanResponse;
@@ -53,7 +53,7 @@ function PhaseRow({ step, steps, selected, onSelect }: { readonly step: WeeklyPl
     <span className={`wp-node wp-node--${step.state}`} aria-hidden="true">{step.state === "COMPLETED" ? "✓" : ""}</span>
     <button className="wp-step" aria-pressed={selected} onClick={onSelect}>
       <span className="wp-step-number">STEP {step.number}</span>
-      <span className="wp-step-copy"><strong>{step.name}</strong><small>{step.start_week}–{step.end_week}주차 · {step.hours}시간 {basisLabels[step.hours_basis]}</small>
+      <span className="wp-step-copy"><strong>{stepTitle(step)}</strong>{stepTitle(step) !== step.name && <small>관련 역량 · {step.name}</small>}<small>{step.start_week}–{step.end_week}주차 · {step.hours}시간 {basisLabels[step.hours_basis]}</small>
         {step.moved && <span className="wp-chip wp-chip--indigo">직접 바꾼 순서</span>}
         {warning && <span className="wp-warning">{warning}</span>}
       </span>

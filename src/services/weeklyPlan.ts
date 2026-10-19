@@ -127,6 +127,10 @@ export function stepReason(step: WeeklyPlanStep): string {
   return step.moved ? `직접 바꾼 순서예요 · 추천 순서는 ${step.recommended_number}번째` : step.reason;
 }
 
+export function stepTitle(step: WeeklyPlanStep): string {
+  return step.title.trim() || step.name;
+}
+
 export function prerequisiteWarning(step: WeeklyPlanStep, steps: readonly WeeklyPlanStep[]): string | null {
   const names = step.unmet_prerequisite_step_ids.map(id => steps.find(s => s.step_id === id)?.name).filter(Boolean);
   if (names.length < step.unmet_prerequisite_step_ids.length) return "선행 단계 정보가 없어 학습 순서를 확인할 수 없어요";

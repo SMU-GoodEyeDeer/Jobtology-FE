@@ -15,7 +15,7 @@ const saved: WeeklyPlanResponse = {
   recommended_weekly_hours: 10, rest_weeks: [], is_customized: false, saved_at: null,
   total_hours: 10, total_weeks: 2, completion_date: "2026-10-29", recommended_completion_date: "2026-10-29",
   schedule_source: "SOLVER", deadline_exceeded: false, days_past_target: 0, has_dependency_violations: false, warnings: [],
-  steps: [{ step_id: "step", number: 1, recommended_number: 1, title: "Study", name: "Study", requirement_key: null,
+  steps: [{ step_id: "step", number: 1, recommended_number: 1, title: "Study", name: "Study", completion_criteria: [], requirement_key: null,
     state: "TODO", phase: "CORE", ncs_level: null, field_code: null, field_name: null, hours: 10, recommended_hours: 10,
     hours_basis: "ESTIMATED", demand_pct: null, start_week: 2, end_week: 2, start_date: "2026-10-27", end_date: "2026-10-29",
     reason: "", moved: false, prerequisite_step_ids: [], unmet_prerequisite_step_ids: [] }],

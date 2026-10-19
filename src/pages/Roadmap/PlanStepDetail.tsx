@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion, useIsPresent, useReducedMotion } from "motion/react";
 import { SkillDefinition, SkillQualifications } from "../Analysis/SkillEvidence";
 import type { Skill, WeeklyPlanResponse, WeeklyPlanStep } from "../../services/types";
-import { basisLabels, phaseLabels, shortDate, stateLabels, stepReason, prerequisiteWarning } from "../../services/weeklyPlan";
+import { basisLabels, phaseLabels, shortDate, stateLabels, stepReason, stepTitle, prerequisiteWarning } from "../../services/weeklyPlan";
 
 interface Props {
   readonly plan: WeeklyPlanResponse;
@@ -32,7 +32,8 @@ export function PlanStepDetail({ plan, step, skill, busy, onComplete, onClose }:
     };
   }, []);
   const done = step.state === "COMPLETED";
-  const started = step.state === "IN_PROGRESS";
+  const title = stepTitle(step);
+  const criteria = (step.completion_criteria ?? []).filter(criterion => criterion.trim());
   const warning = prerequisiteWarning(step, plan.steps);
   const content = <AnimatePresence initial={false} mode="wait">
     <motion.div key={step.step_id} className="wp-detail-content"
@@ -40,7 +41,8 @@ export function PlanStepDetail({ plan, step, skill, busy, onComplete, onClose }:
       transition={{ duration: reduceMotion ? 0 : .14, ease: "easeOut" }}>
     <header className="wp-detail-header">
       <p className="wp-eyebrow">STEP {step.number} · {phaseLabels[step.phase]} 단계</p>
-      <h2 id="plan-step-title">{step.name}</h2>
+      <h2 id="plan-step-title">{title}</h2>
+      {title !== step.name && <p className="wp-skill-context">관련 역량 · {step.name}</p>}
       <span className={`wp-pill wp-pill--${step.state}`}>{stateLabels[step.state]}</span>
       {onClose && <button className="sd-close" onClick={onClose} aria-label="상세 닫기">×</button>}
     </header>
@@ -55,12 +57,17 @@ export function PlanStepDetail({ plan, step, skill, busy, onComplete, onClose }:
       {warning && <p className="wp-warning">{warning}</p>}
       {skill && <SkillDefinition skill={skill} />}
       <section className="wp-tasks">
-        <h3>이번 단계에서 할 일 <small>{done ? 3 : started ? 1 : 0}/3 완료</small></h3>
-        <ol>
-          <li className={done || started ? "done" : ""}><span>{done || started ? "✓" : "①"}</span><div>NCS 정의 읽고 핵심 용어 정리<small>30분</small></div></li>
-          <li className={done ? "done" : started ? "current" : ""} aria-current={started ? "step" : undefined}><span>{done ? "✓" : "②"}</span><div>학습 {step.hours}시간<small>주 {plan.weekly_hours}시간 기준 약 {Math.ceil(step.hours / plan.weekly_hours * 10) / 10}주</small></div></li>
-          <li className={done ? "done" : ""}><span>{done ? "✓" : "③"}</span><div>배운 내용을 적용한 결과물 1건 정리</div></li>
-        </ol>
+        {criteria.length ? <>
+          <h3>완료 기준 <small>{criteria.length}개</small></h3>
+          <ol>{criteria.map((criterion, index) => <li key={`${index}-${criterion}`}><span aria-hidden="true">{index + 1}.</span><div>{criterion}</div></li>)}</ol>
+        </> : <>
+          <h3>학습 안내</h3>
+          <p className="wp-task-guidance">이 단계에 저장된 완료 기준이 없어요. 아래 안내를 참고해 학습 내용을 정리한 뒤 완료로 표시해 주세요.</p>
+          <ol>
+            <li><span aria-hidden="true">1.</span><div>관련 역량의 핵심 개념과 용어를 정리해요.</div></li>
+            <li><span aria-hidden="true">2.</span><div>권장 학습 {step.hours}시간을 진행하고 적용한 결과물이나 학습 기록을 남겨요.</div></li>
+          </ol>
+        </>}
       </section>
       {skill && <SkillQualifications skill={skill} />}
     </div>

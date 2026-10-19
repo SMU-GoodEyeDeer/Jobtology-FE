@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import type { CSSProperties } from "react";
 import type { WeeklyPlanInput, WeeklyPlanResponse } from "../../services/types";
-import { addDays, planAllocations, basisLabels, currentWeek, localToday, prerequisiteWarning, shortDate, stepReason } from "../../services/weeklyPlan";
+import { addDays, planAllocations, basisLabels, currentWeek, localToday, prerequisiteWarning, shortDate, stepReason, stepTitle } from "../../services/weeklyPlan";
 import { PlanWeekTasks } from "./PlanWeekTasks";
 import { usePlanDrag } from "./usePlanDrag";
 
@@ -66,15 +66,16 @@ export function PlanWeeks({ plan, draft, changedIds, busy, onChange, onSelect }:
           return <div key={step.step_id} data-plan-step={step.step_id}
             className={`wp-gantt-row ${draft ? "wp-gantt-row--edit" : ""}${dragging?.id === step.step_id ? " wp-gantt-row--dragging" : ""}`} style={columns}>
             <div className={`wp-gantt-label ${reasonId === step.step_id ? "wp-gantt-label--open" : ""}`}>
-              {draft && <button className="wp-drag" disabled={busy} {...handleProps(step.step_id, step.name)} title="끌어서 순서 바꾸기">⠿</button>}
+              {draft && <button className="wp-drag" disabled={busy} {...handleProps(step.step_id, stepTitle(step))} title="끌어서 순서 바꾸기">⠿</button>}
               <span className={`wp-changed-dot ${changedIds.has(step.step_id) ? "is-changed" : ""}`} title={changedIds.has(step.step_id) ? "내가 바꾼 단계" : undefined} />
               <span className="wp-row-number">{step.number}</span><span className={`wp-field-dot ${fieldClass}`} />
-              <div className="wp-week-name"><button onClick={() => onSelect(step.step_id)}>{step.name}</button>
+              <div className="wp-week-name"><button title={stepTitle(step)} onClick={() => onSelect(step.step_id)}>{stepTitle(step)}</button>
+                {stepTitle(step) !== step.name && <small>관련 역량 · {step.name}</small>}
                 {draft && <small>{stepReason(step)}</small>}
                 {step.moved && <span className="wp-chip wp-chip--indigo">직접 바꾼 순서</span>}
                 {warning && <span className="wp-warning">{warning}</span>}
               </div>
-              {draft ? <label className="wp-hours-input"><input type="number" min={1} max={400} step={1} aria-label={`${step.name} 학습 시간`} value={draft.hours[step.step_id] ?? step.recommended_hours} disabled={busy} onChange={event => {
+              {draft ? <label className="wp-hours-input"><input type="number" min={1} max={400} step={1} aria-label={`${stepTitle(step)} 학습 시간`} value={draft.hours[step.step_id] ?? step.recommended_hours} disabled={busy} onChange={event => {
                 const value = event.currentTarget.valueAsNumber;
                 if (Number.isInteger(value) && value >= 1 && value <= 400) onChange({ ...draft, hours: { ...draft.hours, [step.step_id]: value } });
               }} /><span>시간</span><small>원래 {step.recommended_hours}시간</small></label> : <><span className="wp-chip">{step.hours}시간 · {basisLabels[step.hours_basis]}</span>
