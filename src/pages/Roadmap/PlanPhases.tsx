@@ -36,9 +36,13 @@ export function PlanPhases({ plan, selectedId, onSelect }: Props) {
         <span className="wp-phase-info"><strong>{phaseLabels[p.phase]}</strong> <span className="wp-chip">NCS {p.level}</span>
           {p.phase === current && <span className="wp-chip wp-chip--indigo">지금 여기</span>}
           <small>{p.span} · 총 {p.hours}시간</small></span>
-        <span className="wp-phase-count"><b>{p.done}/{p.steps.length} 완료</b><small>{p.steps.length}단계</small></span><span>{expanded.has(p.phase) ? "⌃" : "⌄"}</span>
+        <span className="wp-phase-count"><b>{p.done}/{p.steps.length} 완료</b><small>{p.steps.length}단계</small></span>
+        <svg className="wp-phase-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m4 6 4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
       </button>
-      {expanded.has(p.phase) && <div className="wp-phase-steps" id={`phase-${p.phase}`}>{p.steps.map(step => <PhaseRow key={step.step_id} step={step} steps={plan.steps} selected={step.step_id === selectedId} onSelect={() => onSelect(step.step_id)} />)}</div>}
+      <div className="wp-phase-fold" id={`phase-${p.phase}`} data-expanded={expanded.has(p.phase)}
+        aria-hidden={!expanded.has(p.phase)} inert={!expanded.has(p.phase)}>
+        <div className="wp-phase-fold-inner"><div className="wp-phase-steps">{p.steps.map(step => <PhaseRow key={step.step_id} step={step} steps={plan.steps} selected={step.step_id === selectedId} onSelect={() => onSelect(step.step_id)} />)}</div></div>
+      </div>
     </section>)}</div>
   </section>;
 }
