@@ -173,7 +173,7 @@ export function Roadmap() {
           <section className="rm-section">
             <div className="rm-section-header">
               <p className="rm-section-title">내 로드맵 조건</p>
-              {savingPrefs && <p className="rm-section-sub" role="status">저장 중...</p>}
+              <span className="sr-only" role="status">{savingPrefs ? "저장 중..." : ""}</span>
             </div>
             <div className="rm-chips">
               {CONDITION_CHIP_KEYS.map(({ label }) => (
