@@ -68,9 +68,9 @@ function PlanContent({ saved, skills, onSaved, onComplete }: {
       if (action === "complete" && selected) {
         await onComplete(selected.step_id, selected.state);
         onSaved(await roadmapsApi.getPlan(saved.roadmap_id));
-      } else if (action === "save" && draft && !preview.pending && !preview.error) {
+      } else if (action === "save" && preview.normalizedInput && !preview.pending && !preview.error) {
         if (resetToRecommendation) onSaved(await roadmapsApi.resetPlan(saved.roadmap_id));
-        else if (!preview.unchanged) onSaved(await roadmapsApi.savePlan(saved.roadmap_id, draft));
+        else if (!preview.unchanged) onSaved(await roadmapsApi.savePlan(saved.roadmap_id, preview.normalizedInput));
         setDraft(null);
       } else if (action === "reset") {
         onSaved(await roadmapsApi.resetPlan(saved.roadmap_id));

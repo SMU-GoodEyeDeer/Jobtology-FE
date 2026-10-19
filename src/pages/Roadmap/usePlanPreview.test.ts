@@ -52,6 +52,36 @@ describe("authoritative weekly preview", () => {
     expect(state.pending).toBe(false);
   });
 
+  it("treats an explicit recommended-hour value as unchanged", async () => {
+    await render({ ...planInput(saved), hours: { step: 10 } });
+    await act(async () => vi.advanceTimersByTimeAsync(250));
+    expect(previewPlan).not.toHaveBeenCalled();
+    expect(state.unchanged).toBe(true);
+    expect(state.normalizedInput).toEqual(planInput(saved));
+    expect(state.plan).toBe(saved);
+  });
+
+  it("restores the saved solver dates when changed hours are undone", async () => {
+    previewPlan.mockResolvedValueOnce({ ...saved, is_customized: true, completion_date: "2026-11-01" });
+    await render({ ...planInput(saved), hours: { step: 11 } });
+    await act(async () => vi.advanceTimersByTimeAsync(200));
+    expect(state.unchanged).toBe(false);
+    await render({ ...planInput(saved), hours: { step: 10 } });
+    await act(async () => vi.advanceTimersByTimeAsync(250));
+    expect(previewPlan).toHaveBeenCalledTimes(1);
+    expect(state.unchanged).toBe(true);
+    expect(state.plan.completion_date).toBe("2026-10-29");
+    expect(state.normalizedInput?.hours).toEqual({});
+  });
+
+  it("previews and exposes the same normalized save input", async () => {
+    previewPlan.mockResolvedValueOnce(saved);
+    await render({ ...planInput(saved), weekly_hours: 2, rest_weeks: [3, 1], hours: { step: 10 } });
+    await act(async () => vi.advanceTimersByTimeAsync(200));
+    expect(state.normalizedInput).toEqual({ ...planInput(saved), weekly_hours: 2, rest_weeks: [1, 3], hours: {} });
+    expect(previewPlan).toHaveBeenCalledWith("roadmap", state.normalizedInput);
+  });
+
   it("uses backend dates and deadline warnings after changing inputs", async () => {
     const input = { ...planInput(saved), weekly_hours: 1 };
     const response = { ...saved, schedule_source: "CUSTOM" as const, weekly_hours: 1, completion_date: "2026-12-27", deadline_exceeded: true, days_past_target: 56,

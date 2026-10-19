@@ -38,6 +38,18 @@ export function planInput(plan: WeeklyPlanResponse): WeeklyPlanInput {
   };
 }
 
+export function normalizePlanInput(input: WeeklyPlanInput, steps: readonly WeeklyPlanStep[]): WeeklyPlanInput {
+  const recommendedHours = new Map(steps.map(step => [step.step_id, step.recommended_hours]));
+  return {
+    weekly_hours: input.weekly_hours,
+    rest_weeks: [...input.rest_weeks].sort((a, b) => a - b),
+    order: [...input.order],
+    hours: Object.fromEntries(Object.entries(input.hours)
+      .filter(([id, hours]) => hours !== recommendedHours.get(id))
+      .sort(([a], [b]) => a.localeCompare(b))),
+  };
+}
+
 export function recommendedInput(plan: WeeklyPlanResponse): WeeklyPlanInput {
   return { weekly_hours: plan.recommended_weekly_hours, rest_weeks: [], hours: {},
     order: [...plan.steps].sort((a, b) => a.recommended_number - b.recommended_number).map(s => s.step_id) };

@@ -81,10 +81,74 @@ describe("Google account session", () => {
     let refresh!: Promise<void>;
     await act(async () => { refresh = state.refresh(); });
     await act(async () => { await state.deleteAccount(); });
+    expect(fetchMock.mock.calls[2]).toEqual(["/api/v1/me/account", expect.objectContaining({
+      headers: expect.objectContaining({ "X-CSRF-Token": session.csrf_token }),
+    })]);
     await act(async () => { completeRefresh(response(session)); await refresh; });
 
     expect(state.session).toBeNull();
     expect(getCsrfToken()).toBeNull();
+  });
+
+  it("keeps deletion retry credentials after superseding a refresh that fails", async () => {
+    let rejectRefresh!: (error: Error) => void;
+    fetchMock.mockResolvedValueOnce(response(session));
+    await mount();
+    fetchMock.mockImplementationOnce(() => new Promise((_, reject) => { rejectRefresh = reject; }))
+      .mockRejectedValueOnce(new Error("delete offline"))
+      .mockResolvedValueOnce(response(null, 204));
+    let refresh!: Promise<void>;
+    await act(async () => { refresh = state.refresh(); });
+    await act(async () => { await expect(state.deleteAccount()).rejects.toThrow("delete offline"); });
+    await act(async () => { rejectRefresh(new Error("refresh offline")); await refresh; });
+
+    expect(state.session).toEqual(session);
+    expect(state.loading).toBe(false);
+    expect(getCsrfToken()).toBe(session.csrf_token);
+    await act(async () => { await state.deleteAccount(); });
+    for (const call of [fetchMock.mock.calls[2], fetchMock.mock.calls[3]]) {
+      expect(call).toEqual(["/api/v1/me/account", expect.objectContaining({
+        headers: expect.objectContaining({ "X-CSRF-Token": session.csrf_token }),
+      })]);
+    }
+    expect(state.session).toBeNull();
+    expect(getCsrfToken()).toBeNull();
+  });
+
+  it.each([false, true])("defers refresh during deletion and keeps the correct session after success=%s", async (succeeds) => {
+    let completeDeletion!: (value: Response) => void;
+    let failDeletion!: (error: Error) => void;
+    fetchMock.mockResolvedValueOnce(response(session));
+    await mount();
+    fetchMock.mockImplementationOnce(() => new Promise((resolve, reject) => {
+      completeDeletion = resolve; failDeletion = reject;
+    }));
+    let deletion!: Promise<void>;
+    let deletionError: unknown;
+    await act(async () => { deletion = state.deleteAccount().catch(error => { deletionError = error; }); });
+    // This failing refresh must not run while deletion owns the credentials.
+    fetchMock.mockRejectedValueOnce(new Error("refresh offline"));
+    await act(async () => { await state.refresh(); });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(state.session).toEqual(session);
+    expect(getCsrfToken()).toBe(session.csrf_token);
+    await act(async () => {
+      if (succeeds) completeDeletion(response(null, 204));
+      else failDeletion(new Error("delete offline"));
+      await deletion;
+    });
+
+    expect(state.session).toEqual(succeeds ? null : session);
+    expect(getCsrfToken()).toBe(succeeds ? null : session.csrf_token);
+    if (!succeeds) {
+      expect(deletionError).toBeInstanceOf(Error);
+      fetchMock.mockReset().mockResolvedValueOnce(response(null, 204));
+      await act(async () => { await state.deleteAccount(); });
+      expect(fetchMock.mock.calls[0]).toEqual(["/api/v1/me/account", expect.objectContaining({
+        headers: expect.objectContaining({ "X-CSRF-Token": session.csrf_token }),
+      })]);
+      expect(state.session).toBeNull();
+    }
   });
 
   it("clears the local account and CSRF token without fetching a new session on logout", async () => {
