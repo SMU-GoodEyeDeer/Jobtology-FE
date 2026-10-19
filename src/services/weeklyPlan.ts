@@ -67,7 +67,7 @@ export function allocateWeeks(input: WeeklyPlanInput, steps: readonly WeeklyPlan
 }
 
 export function planAllocations(plan: WeeklyPlanResponse): WeekAllocation[] {
-  if (plan.schedule_source !== "SOLVER") return allocateWeeks(planInput(plan), plan.steps);
+  if (plan.schedule_source === "CUSTOM") return allocateWeeks(planInput(plan), plan.steps);
   // Solver dates are authoritative. Only apportion effort for the weekly display;
   // do not pack activities into a second, different schedule in the browser.
   return plan.steps.flatMap(step => {

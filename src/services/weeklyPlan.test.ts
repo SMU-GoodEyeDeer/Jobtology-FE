@@ -43,8 +43,8 @@ describe("weekly plan", () => {
     expect(result.some(a => a.week === 1 || a.week === 3)).toBe(false);
   });
 
-  it("preserves solver gaps, overlap and exact date ranges in the weekly display", () => {
-    const solver = { ...plan, schedule_source: "SOLVER" as const, steps: [
+  it.each(["SOLVER", "FALLBACK"] as const)("preserves returned gaps, overlap and exact date ranges for %s schedules", (source) => {
+    const solver = { ...plan, schedule_source: source, steps: [
       { ...steps[0], hours: 12, start_week: 3, end_week: 4, start_date: "2026-11-06", end_date: "2026-11-11" },
       { ...steps[1], hours: 4, start_week: 3, end_week: 3, start_date: "2026-11-02", end_date: "2026-11-03" },
     ] };
