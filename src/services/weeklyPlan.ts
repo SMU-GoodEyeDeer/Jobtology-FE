@@ -66,28 +66,26 @@ export function allocateWeeks(input: WeeklyPlanInput, steps: readonly WeeklyPlan
   return allocations;
 }
 
-export function recomputePlan(plan: WeeklyPlanResponse, input: WeeklyPlanInput): WeeklyPlanResponse {
-  const allocations = allocateWeeks(input, plan.steps);
-  const byId = new Map(plan.steps.map(s => [s.step_id, s]));
-  const positions = new Map(input.order.map((id, i) => [id, i]));
-  const steps = input.order.flatMap((id, i): WeeklyPlanStep[] => {
-    const step = byId.get(id);
-    if (!step) return [];
-    const weeks = allocations.filter(a => a.step_id === id);
-    const start = weeks[0]?.week ?? 1;
-    const end = weeks.at(-1)?.week ?? start;
-    const hours = input.hours[id] ?? step.recommended_hours;
-    return [{ ...step, number: i + 1, hours, moved: i + 1 !== step.recommended_number,
-      hours_basis: hours !== step.recommended_hours ? "CUSTOM" : step.hours_basis,
-      start_week: start, end_week: end,
-      start_date: addDays(plan.start_date, (start - 1) * 7), end_date: addDays(plan.start_date, end * 7 - 1),
-      unmet_prerequisite_step_ids: step.prerequisite_step_ids.filter(p => (positions.get(p) ?? -1) > i),
-    }];
+export function planAllocations(plan: WeeklyPlanResponse): WeekAllocation[] {
+  if (plan.schedule_source !== "SOLVER") return allocateWeeks(planInput(plan), plan.steps);
+  // Solver dates are authoritative. Only apportion effort for the weekly display;
+  // do not pack activities into a second, different schedule in the browser.
+  return plan.steps.flatMap(step => {
+    const start = Date.parse(step.start_date);
+    const end = Date.parse(step.end_date);
+    const days = Math.max(1, Math.round((end - start) / DAY) + 1);
+    const allocations: WeekAllocation[] = [];
+    let allocated = 0;
+    for (let week = step.start_week; week <= step.end_week; week += 1) {
+      const weekStart = Date.parse(addDays(plan.start_date, (week - 1) * 7));
+      const overlapDays = Math.max(0, Math.round((Math.min(end, weekStart + 6 * DAY) - Math.max(start, weekStart)) / DAY) + 1);
+      if (!overlapDays) continue;
+      const hours = week === step.end_week ? Math.round((step.hours - allocated) * 10) / 10 : Math.round(step.hours * overlapDays / days * 10) / 10;
+      allocated += hours;
+      allocations.push({ step_id: step.step_id, week, hours });
+    }
+    return allocations;
   });
-  const totalWeeks = steps.at(-1)?.end_week ?? 0;
-  return { ...plan, weekly_hours: input.weekly_hours, rest_weeks: [...input.rest_weeks].sort((a, b) => a - b),
-    steps, total_hours: steps.reduce((n, s) => n + s.hours, 0), total_weeks: totalWeeks,
-    completion_date: addDays(plan.start_date, Math.max(1, totalWeeks) * 7 - 1) };
 }
 
 function weekRanges(weeks: readonly number[]): string {
@@ -131,7 +129,8 @@ export function stepReason(step: WeeklyPlanStep): string {
 
 export function prerequisiteWarning(step: WeeklyPlanStep, steps: readonly WeeklyPlanStep[]): string | null {
   const names = step.unmet_prerequisite_step_ids.map(id => steps.find(s => s.step_id === id)?.name).filter(Boolean);
-  return names.length ? `선행 단계(${names.join(" · ")})보다 앞서요` : null;
+  if (names.length < step.unmet_prerequisite_step_ids.length) return "선행 단계 정보가 없어 학습 순서를 확인할 수 없어요";
+  return names.length ? `선행 단계(${names.join(" · ")})가 끝나기 전에 시작해요` : null;
 }
 
 export function moveStep(input: WeeklyPlanInput, from: string, to: string): WeeklyPlanInput {

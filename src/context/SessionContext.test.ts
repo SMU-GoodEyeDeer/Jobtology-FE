@@ -48,6 +48,45 @@ afterEach(async () => {
 });
 
 describe("Google account session", () => {
+  it("deletes the account with CSRF credentials and clears the session without calling logout", async () => {
+    fetchMock.mockResolvedValueOnce(response(session)).mockResolvedValueOnce(response(null, 204));
+    await mount();
+
+    await act(async () => { await state.deleteAccount(); });
+
+    expect(state.session).toBeNull();
+    expect(getCsrfToken()).toBeNull();
+    expect(fetchMock.mock.calls).toEqual([
+      ["/api/v1/auth/session", expect.any(Object)],
+      ["/api/v1/me/account", expect.objectContaining({ method: "DELETE", credentials: "include", headers: expect.objectContaining({ "X-CSRF-Token": session.csrf_token }) })],
+    ]);
+  });
+
+  it("keeps the session and credentials available when account deletion fails", async () => {
+    fetchMock.mockResolvedValueOnce(response(session)).mockRejectedValueOnce(new Error("offline"));
+    await mount();
+
+    await act(async () => { await expect(state.deleteAccount()).rejects.toThrow("offline"); });
+
+    expect(state.session).toEqual(session);
+    expect(getCsrfToken()).toBe(session.csrf_token);
+  });
+
+  it("ignores a session response that arrives after account deletion", async () => {
+    let completeRefresh!: (value: Response) => void;
+    fetchMock.mockResolvedValueOnce(response(session));
+    await mount();
+    fetchMock.mockImplementationOnce(() => new Promise(resolve => { completeRefresh = resolve; }))
+      .mockResolvedValueOnce(response(null, 204));
+    let refresh!: Promise<void>;
+    await act(async () => { refresh = state.refresh(); });
+    await act(async () => { await state.deleteAccount(); });
+    await act(async () => { completeRefresh(response(session)); await refresh; });
+
+    expect(state.session).toBeNull();
+    expect(getCsrfToken()).toBeNull();
+  });
+
   it("clears the local account and CSRF token without fetching a new session on logout", async () => {
     fetchMock.mockResolvedValueOnce(response(session)).mockResolvedValueOnce(response(null, 204));
     await mount();

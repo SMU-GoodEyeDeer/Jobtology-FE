@@ -9,6 +9,7 @@ interface SessionState {
   error: string | null;
   refresh: () => Promise<void>;
   logout: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
 }
 
 const SessionContext = createContext<SessionState>({
@@ -17,6 +18,7 @@ const SessionContext = createContext<SessionState>({
   error: null,
   refresh: async () => {},
   logout: async () => {},
+  deleteAccount: async () => {},
 });
 
 export function SessionProvider({ children }: { children: ReactNode }) {
@@ -71,12 +73,25 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const deleteAccount = useCallback(async () => {
+    ++requestVersion.current;
+    setError(null);
+    setLoading(false);
+    // Keep the account and credentials available if deletion fails, so it can be retried.
+    await authApi.deleteAccount();
+    ++requestVersion.current;
+    setCsrfToken(null);
+    setSession(null);
+    setLoading(false);
+    setReady(true);
+  }, []);
+
   useEffect(() => {
     refresh();
   }, [refresh]);
 
   return (
-    <SessionContext.Provider value={{ session, loading, error, refresh, logout }}>
+    <SessionContext.Provider value={{ session, loading, error, refresh, logout, deleteAccount }}>
       {ready ? children : null}
     </SessionContext.Provider>
   );

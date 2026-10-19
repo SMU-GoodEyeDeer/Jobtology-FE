@@ -1,4 +1,7 @@
 .weekly-plan { --wp-field-secondary: #bdb8fc; min-width: 0; font-size: 14px; word-break: keep-all; overflow-wrap: anywhere; }
+.wp-preview-status { color: var(--sd-muted); padding: 10px 12px; }
+.wp-plan-warnings { padding: 12px 16px; margin-bottom: 12px; border: 1px solid #f5d98b; background: #fff8e6; color: #855a05; border-radius: 10px; }
+.weekly-plan .wp-plan-warnings p + p { margin-top: 6px; }
 .weekly-plan * { box-sizing: border-box; }
 .weekly-plan button, .weekly-plan input { font: inherit; }
 .weekly-plan button { cursor: pointer; }

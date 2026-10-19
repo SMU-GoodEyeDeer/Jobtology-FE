@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import type { CSSProperties } from "react";
 import type { WeeklyPlanInput, WeeklyPlanResponse } from "../../services/types";
-import { addDays, allocateWeeks, basisLabels, currentWeek, localToday, planInput, prerequisiteWarning, shortDate, stepReason } from "../../services/weeklyPlan";
+import { addDays, planAllocations, basisLabels, currentWeek, localToday, prerequisiteWarning, shortDate, stepReason } from "../../services/weeklyPlan";
 import { PlanWeekTasks } from "./PlanWeekTasks";
 import { usePlanDrag } from "./usePlanDrag";
 
@@ -18,7 +18,7 @@ interface Props {
 export function PlanWeeks({ plan, draft, changedIds, busy, onChange, onSelect }: Props) {
   const [reasonId, setReasonId] = useState<string | null>(null);
   const { containerRef, ghostRef, dragging, announcement, handleProps, containerProps } = usePlanDrag(draft, busy, onChange);
-  const allocations = allocateWeeks(planInput(plan), plan.steps);
+  const allocations = planAllocations(plan);
   const today = localToday();
   const todayWeek = currentWeek(plan.start_date, today);
   const targetWeek = plan.target_date ? currentWeek(plan.start_date, plan.target_date) : null;
@@ -74,7 +74,7 @@ export function PlanWeeks({ plan, draft, changedIds, busy, onChange, onSelect }:
                 {step.moved && <span className="wp-chip wp-chip--indigo">직접 바꾼 순서</span>}
                 {warning && <span className="wp-warning">{warning}</span>}
               </div>
-              {draft ? <label className="wp-hours-input"><input type="number" min={1} max={400} step={1} aria-label={`${step.name} 학습 시간`} value={step.hours} disabled={busy} onChange={event => {
+              {draft ? <label className="wp-hours-input"><input type="number" min={1} max={400} step={1} aria-label={`${step.name} 학습 시간`} value={draft.hours[step.step_id] ?? step.recommended_hours} disabled={busy} onChange={event => {
                 const value = event.currentTarget.valueAsNumber;
                 if (Number.isInteger(value) && value >= 1 && value <= 400) onChange({ ...draft, hours: { ...draft.hours, [step.step_id]: value } });
               }} /><span>시간</span><small>원래 {step.recommended_hours}시간</small></label> : <><span className="wp-chip">{step.hours}시간 · {basisLabels[step.hours_basis]}</span>

@@ -1,6 +1,7 @@
 // ─── Auth ────────────────────────────────────────────────────────────────────
 export interface SessionResponse {
   user_id: string;
+  display_name?: string | null;
   csrf_token: string;
   profile_version: number;
 }
