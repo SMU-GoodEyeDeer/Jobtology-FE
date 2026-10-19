@@ -397,11 +397,13 @@
 /* ── Two-card row ── */
 .card-row {
   display: flex;
+  align-items: flex-start;
   gap: 20px;
 }
 
 .info-card {
   flex: 1;
+  min-width: 0;
   background: #ffffff;
   border-radius: 14px;
   padding: 20px 24px;
@@ -621,4 +623,12 @@
 
 .continue-btn:hover {
   background: #4338ca;
+}
+
+@media (max-width: 760px) {
+  .card-row { flex-direction: column; }
+  .card-row > * { width: 100%; }
+  .main-header { padding-inline: 20px; }
+  .main-content { padding-inline: 20px; }
+  .hero-card { padding: 24px; gap: 16px; }
 }
