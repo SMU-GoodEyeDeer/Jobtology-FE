@@ -70,6 +70,7 @@ h1 {
   font-family: inherit;
   font-weight: 700;
   cursor: pointer;
+  text-decoration: none;
   transition:
     background-color 0.2s,
     color 0.2s;

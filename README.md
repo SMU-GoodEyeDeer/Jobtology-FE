@@ -15,13 +15,15 @@ tokens. No environment override is needed. The proxy forwards the local page's
 origin for backend write validation; other origins remain subject to backend
 checks.
 
-The backend creates a guest session automatically, so Google login is not
-required to use `/onboarding` and the app pages. Local guest data is separate
-from your signed-in production session. Saves use the live backend.
+Google login is required to use `/onboarding` and the app pages. There are no
+guest accounts. The default development proxy uses the live backend, so its
+Google callback returns to the deployed frontend. For a complete local login
+flow, use a local backend with an appropriately registered Google callback and
+post-login URL. Saves made through the default proxy use the live backend.
 
 `VITE_API_BASE_URL` overrides the API address when explicitly set, for example
-when using a local mock API. Production builds keep the deployed backend URL
-unless overridden.
+when using a local backend. Requests and the Google login link use same-origin
+`/api` in production unless overridden.
 
 ## Checks
 
