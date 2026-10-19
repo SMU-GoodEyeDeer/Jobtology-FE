@@ -34,7 +34,8 @@ import type {
   WeeklyPlanResponse,
 } from "./types";
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "https://jobtology.yeongmin.net/api";
+const BASE_URL = import.meta.env.VITE_API_BASE_URL
+  ?? (import.meta.env.DEV ? "/api" : "https://jobtology.yeongmin.net/api");
 
 // CSRF token stored in memory (set after session fetch)
 let _csrfToken: string | null = null;
