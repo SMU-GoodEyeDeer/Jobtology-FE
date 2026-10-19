@@ -158,7 +158,7 @@
 .wp-drag[aria-pressed="true"] { cursor: grabbing !important; }
 .wp-gantt-row--dragging { outline: 2px dashed var(--sd-primary); outline-offset: -2px; background: var(--sd-primary-tint); }
 .wp-gantt-row--dragging > * { opacity: .35; }
-.wp-drag-preview { position: fixed; top: 0; left: 0; will-change: transform; z-index: 1000; pointer-events: none; display: flex; align-items: center; gap: 12px; width: 280px; max-width: calc(100vw - 32px); padding: 14px 16px; border: 1px solid #a5b4fc; border-radius: 12px; background: #fff; color: #1e1b4b; box-shadow: 0 12px 36px #1e1b4b24; font: 13px system-ui, sans-serif; }
+.wp-drag-preview { position: fixed; top: 0; left: 0; will-change: transform; z-index: 1000; pointer-events: none; display: flex; align-items: center; gap: 12px; width: 280px; max-width: calc(100vw - 32px); padding: 14px 16px; border: 1px solid #a5b4fc; border-radius: 12px; background: #fff; color: #1e1b4b; box-shadow: 0 12px 36px #1e1b4b24; font-family: inherit; font-size: 13px; }
 .wp-drag-preview > span { color: #6366f1; font-size: 22px; }
 .wp-drag-preview strong { display: block; line-height: 1.5; }
 .wp-drag-preview small { display: block; color: #6b7280; font-size: 11px; margin-top: 4px; }

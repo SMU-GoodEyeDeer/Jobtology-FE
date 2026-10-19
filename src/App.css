@@ -1,5 +1,7 @@
+@import './styles/fonts.css';
+
 :root {
-  font-family: Roboto, sans-serif;
+  font-family: 'Pretendard', Roboto, system-ui, sans-serif;
 
   --btn-text: #ffffff;
   --btn-bg: #4e46e5;
@@ -21,6 +23,10 @@
 
 body {
   min-height: 100vh;
+}
+
+button, input, select, textarea {
+  font-family: inherit;
 }
 
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
