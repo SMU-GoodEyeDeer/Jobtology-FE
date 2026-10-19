@@ -3,7 +3,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion, useReducedMotion } from "motion/react";
 import "./AppSidebar.css";
-import logoIcon from "../assets/logo1.svg";
+import logoIcon from "../assets/logo-mark.svg";
 import homeIcon from "../assets/Home .svg";
 import chatIcon from "../assets/Message circle.svg";
 import roadmapIcon from "../assets/Trending up.svg";
