@@ -82,10 +82,11 @@ export function AppSidebar({ children, showLogout = true }: { children?: ReactNo
             key={label}
             className={`nav-item ${pathname === path || pathname.startsWith(`${path}/`) ? "nav-item--active" : ""}`}
             title={collapsed ? label : undefined}
+            aria-label={label}
             aria-current={pathname === path || pathname.startsWith(`${path}/`) ? "page" : undefined}
             onClick={() => navigate(path)}
           >
-            <img src={icon} alt={label} className="nav-icon" />
+            <img src={icon} alt="" className="nav-icon" />
             <span>{label}</span>
           </button>
         ))}
