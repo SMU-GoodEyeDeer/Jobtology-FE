@@ -34,9 +34,10 @@
 .sd-list-heading h2 { margin: 0; font-size: 18px; font-weight: 700; }
 .sd-list-heading h2 span { margin-left: 4px; color: var(--sd-primary); }
 .sd-list-heading p { margin: 8px 0 0; color: var(--sd-muted); font-size: 13px; line-height: 1.5; }
-.sd-filters { display: flex; padding: 4px; border: 1px solid var(--sd-border); background: var(--sd-border); border-radius: 8px; gap: 4px; }
-.sd-filters button { border: 0; padding: 8px 16px; color: var(--sd-muted); background: transparent; font: inherit; font-size: 13px; border-radius: 4px; cursor: pointer; white-space: nowrap; }
-.sd-filters button[aria-pressed="true"] { background: var(--sd-surface); color: var(--sd-primary); font-weight: 700; }
+.sd-filters { position: relative; isolation: isolate; display: flex; padding: 4px; border: 1px solid var(--sd-border); background: var(--sd-border); border-radius: 8px; gap: 4px; }
+.sd-filter-indicator { position: absolute; z-index: -1; top: 4px; bottom: 4px; left: 4px; width: 64px; border-radius: 4px; background: var(--sd-surface); box-shadow: 0 1px 3px #1118270a; }
+.sd-filters button { width: 64px; border: 0; padding: 8px 0; color: var(--sd-muted); background: transparent; font: inherit; font-size: 13px; border-radius: 4px; cursor: pointer; white-space: nowrap; }
+.sd-filters button[aria-pressed="true"] { color: var(--sd-primary); font-weight: 700; }
 .sd-filters button:hover { color: var(--sd-primary); }
 .sd-columns, .sd-row { display: grid; grid-template-columns: minmax(0, 1fr) 220px 160px 16px; gap: 20px; align-items: center; }
 .sd-columns { padding: 0 20px 12px; font-size: 12px; color: var(--sd-muted); }
