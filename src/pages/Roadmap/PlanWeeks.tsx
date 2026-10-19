@@ -1,8 +1,11 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
+import { motion, useReducedMotion } from "motion/react";
 import type { CSSProperties } from "react";
 import type { WeeklyPlanInput, WeeklyPlanResponse } from "../../services/types";
-import { addDays, allocateWeeks, basisLabels, currentWeek, localToday, moveStep, planInput, prerequisiteWarning, shortDate, stepReason } from "../../services/weeklyPlan";
+import { addDays, allocateWeeks, basisLabels, currentWeek, localToday, planInput, prerequisiteWarning, shortDate, stepReason } from "../../services/weeklyPlan";
 import { PlanWeekTasks } from "./PlanWeekTasks";
+import { usePlanDrag } from "./usePlanDrag";
 
 interface Props {
   readonly plan: WeeklyPlanResponse;
@@ -15,6 +18,8 @@ interface Props {
 
 export function PlanWeeks({ plan, draft, changedIds, busy, onChange, onSelect }: Props) {
   const [reasonId, setReasonId] = useState<string | null>(null);
+  const reduceMotion = useReducedMotion();
+  const { containerRef, dragging, announcement, handleProps } = usePlanDrag(draft, busy, onChange);
   const allocations = allocateWeeks(planInput(plan), plan.steps);
   const today = localToday();
   const todayWeek = currentWeek(plan.start_date, today);
@@ -42,15 +47,15 @@ export function PlanWeeks({ plan, draft, changedIds, busy, onChange, onSelect }:
           <button aria-label="1시간 줄이기" disabled={busy || draft.weekly_hours <= 1} onClick={() => onChange({ ...draft, weekly_hours: draft.weekly_hours - 1 })}>−</button>
           <b aria-live="polite">{draft.weekly_hours}시간</b>
           <button aria-label="1시간 늘리기" disabled={busy || draft.weekly_hours >= 60} onClick={() => onChange({ ...draft, weekly_hours: draft.weekly_hours + 1 })}>+</button>
-        </div><span>총 <b>{plan.total_hours}시간</b> · {plan.total_weeks}주</span><small>끌거나 ↑↓로 순서를 바꿔요<br />주차 번호를 누르면 쉬는 주가 돼요</small>
+        </div><span>총 <b>{plan.total_hours}시간</b> · {plan.total_weeks}주</span><small id="wp-drag-help">핸들을 끌거나 선택 후 ↑↓ 키로 순서를 바꿔요<br />주차 번호를 누르면 쉬는 주가 돼요</small>
       </div> : <header className="wp-gantt-heading"><h2>주차 플랜</h2><p>막대를 누르면 단계 상세가 열려요 · ‘왜?’로 순서 이유를 확인해요</p></header>}
-      <div className="wp-gantt-scroll"><div className="wp-gantt" style={{ minWidth: (draft ? 420 : 330) + weekCount * 25 }}>
+      <div className="wp-gantt-scroll"><div ref={containerRef} className="wp-gantt" style={{ minWidth: (draft ? 420 : 330) + weekCount * 25 }}>
         <div className="wp-gantt-headers">
           <div className="wp-gantt-months" style={columns}><span className="wp-gantt-label" />{months.map(m => <span key={m.start} style={{ gridColumn: `${m.start + 1} / ${m.end + 2}` }}>{m.label}</span>)}</div>
           <div className="wp-gantt-week-head" style={columns}><span className="wp-gantt-label">학습 순서 · {plan.steps.length}단계</span>{weeks.map(week => <button key={week} disabled={!draft || busy || week > 104}
             aria-label={`${week}주차 쉬는 주`} aria-pressed={plan.rest_weeks.includes(week)} onClick={() => toggleRest(week)} className={plan.rest_weeks.includes(week) ? "wp-rest" : ""}>{plan.rest_weeks.includes(week) ? "쉼" : week}</button>)}</div>
         </div>
-        {plan.steps.map((step, index) => {
+        {plan.steps.map((step) => {
           const activeWeeks = allocations.filter(a => a.step_id === step.step_id).map(a => a.week);
           const segments: { start: number; end: number }[] = [];
           for (const week of activeWeeks) {
@@ -60,12 +65,10 @@ export function PlanWeeks({ plan, draft, changedIds, busy, onChange, onSelect }:
           }
           const warning = prerequisiteWarning(step, plan.steps);
           const fieldClass = fields.indexOf(step.field_code) % 2 ? "wp-field-secondary" : "";
-          return <div key={step.step_id} className={`wp-gantt-row ${draft ? "wp-gantt-row--edit" : ""}`} style={columns}
-            onDragOver={event => { if (draft && !busy) event.preventDefault(); }}
-            onDrop={event => { event.preventDefault(); if (draft && !busy) onChange(moveStep(draft, event.dataTransfer.getData("text/plain"), step.step_id)); }}>
+          return <motion.div key={step.step_id} data-plan-step={step.step_id} layout="position" transition={{ layout: { duration: reduceMotion ? 0 : .16 } }}
+            className={`wp-gantt-row ${draft ? "wp-gantt-row--edit" : ""}${dragging?.id === step.step_id ? " wp-gantt-row--dragging" : ""}`} style={columns}>
             <div className={`wp-gantt-label ${reasonId === step.step_id ? "wp-gantt-label--open" : ""}`}>
-              {draft && <><span className="wp-drag" draggable={!busy} onDragStart={event => event.dataTransfer.setData("text/plain", step.step_id)} title="끌어서 순서 바꾸기">⠿</span>
-                <span className="wp-reorder"><button aria-label={`${step.name} 위로`} disabled={busy || index === 0} onClick={() => { const previous = draft.order[index - 1]; if (previous) onChange(moveStep(draft, step.step_id, previous)); }}>↑</button><button aria-label={`${step.name} 아래로`} disabled={busy || index === plan.steps.length - 1} onClick={() => { const next = draft.order[index + 1]; if (next) onChange(moveStep(draft, step.step_id, next)); }}>↓</button></span></>}
+              {draft && <button className="wp-drag" disabled={busy} {...handleProps(step.step_id, step.name)} title="끌어서 순서 바꾸기">⠿</button>}
               <span className={`wp-changed-dot ${changedIds.has(step.step_id) ? "is-changed" : ""}`} title={changedIds.has(step.step_id) ? "내가 바꾼 단계" : undefined} />
               <span className="wp-row-number">{step.number}</span><span className={`wp-field-dot ${fieldClass}`} />
               <div className="wp-week-name"><button onClick={() => onSelect(step.step_id)}>{step.name}</button>
@@ -86,11 +89,15 @@ export function PlanWeeks({ plan, draft, changedIds, busy, onChange, onSelect }:
               {week === targetWeek && plan.target_date && <i className="wp-target" style={{ left: `${((Date.parse(plan.target_date) - Date.parse(plan.start_date)) / 86400000 % 7) / 7 * 100}%` }} />}
             </span>)}
             {segments.map((segment, i) => <button key={segment.start} className={`wp-bar ${fieldClass} ${step.state === "COMPLETED" ? "wp-bar--done" : ""}`} style={{ gridColumn: `${segment.start + 1} / ${segment.end + 2}` }} aria-label={`${step.name} 일정 상세`} onClick={() => onSelect(step.step_id)}>{i === 0 ? `${step.hours}h` : ""}</button>)}
-          </div>;
+          </motion.div>;
         })}
       </div></div>
       <div className="wp-legend">{fields.map((field, i) => <span key={field ?? "none"}><i className={`wp-field-dot ${i % 2 ? "wp-field-secondary" : ""}`} />{plan.steps.find(s => s.field_code === field)?.field_name ?? "분야 미제공"}</span>)}<span>✓ 완료</span><span className="wp-rest">쉬는 주</span><span>│ 오늘 {shortDate(today)}</span>{plan.target_date && <span>┆ 목표일 {shortDate(plan.target_date)}</span>}<span>● 내가 바꾼 단계</span><span>막대 숫자 = 학습 시간</span></div>
     </section>
     {!draft && <PlanWeekTasks plan={plan} onSelect={onSelect} />}
+    <span className="sr-only" role="status">{announcement}</span>
+    {dragging && createPortal(<div className="wp-drag-preview" aria-hidden="true" style={{ left: dragging.x + 16, top: dragging.y + 12 }}>
+      <span>⠿</span><div><strong>{dragging.name}</strong><small>{plan.steps.find(step => step.step_id === dragging.id)?.number}번째 위치 · 놓아서 순서 확정</small></div>
+    </div>, document.body)}
   </div>;
 }
