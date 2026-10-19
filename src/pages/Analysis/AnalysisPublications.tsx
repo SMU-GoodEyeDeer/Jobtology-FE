@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { catalogV2Api } from "../../services/api";
 import type { Neo4jPublicationResponse, Neo4jNcsAlignmentResponse } from "../../services/types";
 
-export function AnalysisPublications() {
+export function AnalysisPublications({ onLoadingChange }: { onLoadingChange?: (loading: boolean) => void }) {
   const [publications, setPublications] = useState<Neo4jPublicationResponse[]>([]);
   const [selectedPubId, setSelectedPubId] = useState<string | null>(null);
   const [alignments, setAlignments] = useState<Neo4jNcsAlignmentResponse[]>([]);
@@ -11,8 +11,8 @@ export function AnalysisPublications() {
   useEffect(() => {
     catalogV2Api.listPublications({ limit: 100 }).then((list) => {
       setPublications(list.filter((p) => p.capabilities.editorial_analysis));
-    }).catch(console.error);
-  }, []);
+    }).catch(console.error).finally(() => onLoadingChange?.(false));
+  }, [onLoadingChange]);
 
   async function loadAlignments(pubId: string) {
     if (selectedPubId === pubId) {

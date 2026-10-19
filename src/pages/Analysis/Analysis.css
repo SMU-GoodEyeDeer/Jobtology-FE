@@ -126,6 +126,8 @@
 }
 
 .an-fulfillment-pct {
+  min-height: 40px;
+  font-variant-numeric: tabular-nums;
   font-size: 36px;
   font-weight: 700;
   color: #4f46e5;
