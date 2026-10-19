@@ -21,7 +21,7 @@ const CONDITION_CHIP_KEYS = [
   { label: "학업·알바와 병행해야 해요", field: "limited_hours" as const },
   { label: "최대한 빨리 취업하고 싶어요", field: "fastest_path" as const },
   { label: "포트폴리오 프로젝트를 우선하고 싶어요", field: "needs_portfolio" as const },
-  { label: "기초부터 더 탄탄히 배우고 싶어요", field: "career_switch" as const },
+  { label: "기초 학습을 우선하고 싶어요", field: "career_switch" as const },
 ];
 
 export function Roadmap() {
@@ -59,7 +59,7 @@ export function Roadmap() {
       if (prefs.available_hours_per_week <= 15) active.add("학업·알바와 병행해야 해요");
       if (prefs.fastest_path) active.add("최대한 빨리 취업하고 싶어요");
       if (prefs.needs_portfolio) active.add("포트폴리오 프로젝트를 우선하고 싶어요");
-      if (prefs.career_switch) active.add("기초부터 더 탄탄히 배우고 싶어요");
+      if (prefs.career_switch) active.add("기초 학습을 우선하고 싶어요");
       setActiveChips(active);
     }).catch(console.error);
   }, []);
@@ -92,7 +92,7 @@ export function Roadmap() {
         budget_mode: next.has("교육비 부담이 커요") ? "LOW_COST" : "REGULAR",
         fastest_path: next.has("최대한 빨리 취업하고 싶어요"),
         needs_portfolio: next.has("포트폴리오 프로젝트를 우선하고 싶어요"),
-        career_switch: next.has("기초부터 더 탄탄히 배우고 싶어요"),
+        career_switch: next.has("기초 학습을 우선하고 싶어요"),
         ...(currentPrefs.max_out_of_pocket_krw != null ? { max_out_of_pocket_krw: currentPrefs.max_out_of_pocket_krw } : {}),
       });
     } catch (err) {
