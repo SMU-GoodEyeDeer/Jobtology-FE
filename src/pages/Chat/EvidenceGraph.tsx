@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent } from "react";
 import type { EvidenceNodeKind, RoleEvidenceGraph } from "../../services/types";
 import {
   createEvidenceSimulation,
@@ -8,6 +8,7 @@ import {
 } from "./evidenceGraphForce";
 import { isOwned, layoutEvidenceGraph } from "./evidenceGraphLayout";
 import { MAX_ZOOM, MIN_ZOOM, zoomCamera } from "./graphCamera";
+import { nodePopupPosition } from "./nodePopupPosition";
 
 type Visual = EvidenceNodeKind | "have" | "me";
 
@@ -71,10 +72,32 @@ export function EvidenceGraph({ graph, status, ownedSkills, onOpenRoadmap }: Pro
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [, setFrame] = useState(0);
   const svgRef = useRef<SVGSVGElement>(null);
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
+  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
+  const [popupSize, setPopupSize] = useState({ width: 260, height: 180 });
   const layerRef = useRef<SVGGElement>(null);
   const simRef = useRef<{ readonly graph: RoleEvidenceGraph; readonly sim: EvidenceSimulation } | null>(null);
   const dragRef = useRef<Drag | null>(null);
   const movedRef = useRef(false);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const observer = new ResizeObserver(() => setCanvasSize({ width: canvas.clientWidth, height: canvas.clientHeight }));
+    observer.observe(canvas);
+    return () => observer.disconnect();
+  }, []);
+  useEffect(() => {
+    const popup = popupRef.current;
+    if (!popup) return;
+    const observer = new ResizeObserver(() => {
+      const rect = popup.getBoundingClientRect();
+      setPopupSize({ width: rect.width, height: rect.height });
+    });
+    observer.observe(popup);
+    return () => observer.disconnect();
+  }, [selectedId]);
 
   const model = useMemo(() => {
     if (graph === null) return null;
@@ -174,11 +197,14 @@ export function EvidenceGraph({ graph, status, ownedSkills, onOpenRoadmap }: Pro
     const drag = dragRef.current;
     dragRef.current = null;
     if (svgRef.current?.hasPointerCapture(e.pointerId)) svgRef.current.releasePointerCapture(e.pointerId);
-    if (drag?.kind !== "node") return;
+    if (drag?.kind !== "node") {
+      if (drag && !movedRef.current) setSelectedId(null);
+      return;
+    }
     drag.node.fx = null;
     drag.node.fy = null;
     simRef.current?.sim.simulation.alphaTarget(0);
-    if (!movedRef.current && drag.node.id !== ME_ID) setSelectedId(drag.node.id);
+    if (e.type !== "pointercancel" && !movedRef.current && drag.node.id !== ME_ID) setSelectedId(drag.node.id);
   }
 
   function recenter() {
@@ -190,6 +216,13 @@ export function EvidenceGraph({ graph, status, ownedSkills, onOpenRoadmap }: Pro
   const me = sim?.nodes.get(ME_ID);
   const selected = selectedId === null ? undefined : model?.byId.get(selectedId);
   const selectedOwned = selectedId !== null && (model?.ownedIds.has(selectedId) ?? false);
+  const selectedPoint = selectedId ? sim?.nodes.get(selectedId) : null;
+  const scale = model ? Math.min(Math.max(1, canvasSize.width - 16) / model.seed.width, Math.max(1, canvasSize.height - 16) / model.seed.height) : 1;
+  const popupPosition = selectedPoint && model ? nodePopupPosition({
+    x: canvasSize.width / 2 + (selectedPoint.x * camera.zoom + camera.x - model.seed.width / 2) * scale,
+    y: canvasSize.height / 2 + (selectedPoint.y * camera.zoom + camera.y - model.seed.height / 2) * scale,
+    r: selectedPoint.r * camera.zoom * scale,
+  }, canvasSize, popupSize) : null;
 
   function zoom(factor: number) {
     if (model) setCamera(previous => zoomCamera(previous, factor, { x: model.seed.width / 2, y: model.seed.height / 2 }));
@@ -221,7 +254,7 @@ export function EvidenceGraph({ graph, status, ownedSkills, onOpenRoadmap }: Pro
         </div>
       </div>
 
-      <div className="graph-canvas">
+      <div ref={canvasRef} className="graph-canvas" onKeyDown={event => { if (event.key === "Escape") setSelectedId(null); }}>
         {status !== "ready" || model === null || sim === null || me === undefined ? (
           <p className="graph-empty">
             {status === "loading" ? "Neo4j에서 근거 그래프를 불러오는 중…"
@@ -255,6 +288,8 @@ export function EvidenceGraph({ graph, status, ownedSkills, onOpenRoadmap }: Pro
                 const inside = node.kind === "role";
                 return (
                   <g key={node.id} className={`graph-node${inside ? " graph-node--no-scale" : ""}`}
+                    role="button" tabIndex={0} aria-label={`${node.label} 상세정보`} aria-pressed={selectedId === node.id}
+                    onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setSelectedId(node.id); } }}
                     style={{ cursor: "pointer" }}
                     onPointerDown={(e) => startNodeDrag(e, p)}>
                     <title>{node.label}</title>
@@ -275,19 +310,21 @@ export function EvidenceGraph({ graph, status, ownedSkills, onOpenRoadmap }: Pro
             </g>
           </svg>
         )}
-      </div>
-
-      {selected && (
-        <div className="node-popup">
-          <button className="node-popup-close" onClick={() => setSelectedId(null)}>✕</button>
+      {selected && popupPosition && (
+        <div ref={popupRef} className="node-popup" data-side={popupPosition.side} role="dialog" aria-label={selected.label}
+          style={{ left: popupPosition.x, top: popupPosition.y, "--arrow-offset": `${popupPosition.arrow}px` } as CSSProperties}>
+          <div className="node-popup-content">
+          <button className="node-popup-close" aria-label="상세정보 닫기" onClick={() => setSelectedId(null)}>✕</button>
           <span className="node-popup-badge">{selectedOwned ? "보유 역량" : KIND_LABEL[selected.kind]}</span>
           <p className="node-popup-title">{selected.label}</p>
           {selected.detail && (
             <p className="node-popup-desc" style={{ whiteSpace: "pre-line" }}>{selected.detail}</p>
           )}
           <button className="node-popup-btn" onClick={onOpenRoadmap}>로드맵에서 보기</button>
+          </div>
         </div>
       )}
+      </div>
 
       <div className="graph-legend">
         {LEGEND.map(({ visual, label }) => (
