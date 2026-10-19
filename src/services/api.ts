@@ -34,13 +34,14 @@ import type {
   WeeklyPlanResponse,
 } from "./types";
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL
-  ?? (import.meta.env.DEV ? "/api" : "https://jobtology.yeongmin.net/api");
+const BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "/api").replace(/\/$/, "");
+
+export const GOOGLE_LOGIN_URL = `${BASE_URL}/v1/auth/google/login`;
 
 // CSRF token stored in memory (set after session fetch)
 let _csrfToken: string | null = null;
 
-export function setCsrfToken(token: string) {
+export function setCsrfToken(token: string | null) {
   _csrfToken = token;
 }
 

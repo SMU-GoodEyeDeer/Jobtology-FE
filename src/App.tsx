@@ -11,6 +11,7 @@ import { Roadmap } from "./pages/Roadmap/Roadmap";
 import { Analysis } from "./pages/Analysis/Analysis";
 import { Progress } from "./pages/Progress/Progress";
 import { MyInfo } from "./pages/MyInfo/MyInfo";
+import { RequireSession } from "./components/RequireSession";
 import "./App.css";
 
 const INTRO_PATHS = ["/", "/onboarding"];
@@ -35,15 +36,17 @@ function AnimatedRoutes() {
       >
         <Routes location={location}>
           <Route path="/" element={<Onboarding />} />
-          <Route path="/onboarding" element={<OnboardingChat />} />
-          <Route path="/survey/*" element={<Navigate to="/onboarding" replace />} />
-          <Route path="/home" element={<Home />} />
-          <Route path="/home/first" element={<HomeFirst />} />
-          <Route path="/chat" element={<Chat />} />
-          <Route path="/roadmap" element={<Roadmap />} />
-          <Route path="/analysis" element={<Analysis />} />
-          <Route path="/progress" element={<Progress />} />
-          <Route path="/myinfo" element={<MyInfo />} />
+          <Route element={<RequireSession />}>
+            <Route path="/onboarding" element={<OnboardingChat />} />
+            <Route path="/survey/*" element={<Navigate to="/onboarding" replace />} />
+            <Route path="/home" element={<Home />} />
+            <Route path="/home/first" element={<HomeFirst />} />
+            <Route path="/chat" element={<Chat />} />
+            <Route path="/roadmap" element={<Roadmap />} />
+            <Route path="/analysis" element={<Analysis />} />
+            <Route path="/progress" element={<Progress />} />
+            <Route path="/myinfo" element={<MyInfo />} />
+          </Route>
         </Routes>
       </motion.div>
     </AnimatePresence>

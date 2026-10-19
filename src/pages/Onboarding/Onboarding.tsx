@@ -5,15 +5,13 @@ import UsersIcon from "../../assets/Users.svg";
 import CheckCircleIcon from "../../assets/Check circle.svg";
 import RefreshCcwIcon from "../../assets/Refresh ccw.svg";
 import { useSession } from "../../context/SessionContext";
-import { goalsApi } from "../../services/api";
+import { GOOGLE_LOGIN_URL, goalsApi } from "../../services/api";
 import { BrandMark } from "../OnboardingChat/parts";
 import { markIntroStart } from "../OnboardingChat/timings";
 
-const GOOGLE_LOGIN_URL = "https://jobtology.yeongmin.net/api/v1/auth/google/login";
-
 export function Onboarding() {
   const navigate = useNavigate();
-  const { session, loading } = useSession();
+  const { session, loading, error, refresh } = useSession();
 
   useEffect(() => {
     if (loading || session) markIntroStart();
@@ -49,8 +47,17 @@ export function Onboarding() {
           채용공고 데이터를 근거로, 내 상황에 맞는 목표 직무까지의 경로를
           제시하는 AI 커리어 내비게이션이에요!
         </p>
-        <button className="cta-btn" onClick={() => { window.location.href = GOOGLE_LOGIN_URL; }}>1분 만에 내 경로 찾기</button>
-        <p className="caption">빠른 설문조사로 간편하게!</p>
+        {error ? (
+          <>
+            <p className="caption" role="alert">{error}</p>
+            <button className="cta-btn" onClick={() => { void refresh(); }}>다시 시도</button>
+          </>
+        ) : (
+          <>
+            <a className="cta-btn" href={GOOGLE_LOGIN_URL}>1분 만에 내 경로 찾기</a>
+            <p className="caption">Google 계정으로 로그인하고 시작해요.</p>
+          </>
+        )}
       </div>
 
       <div className="cards">
