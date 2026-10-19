@@ -7,7 +7,7 @@ export function useGoals() {
   const [goals, setGoals] = useState<GoalResponse[]>([]);
   const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const { getName } = useOccupations();
+  const { getName, loading: occupationsLoading } = useOccupations();
 
   useEffect(() => {
     goalsApi.list().then((res) => {
@@ -27,5 +27,5 @@ export function useGoals() {
   // Helper: get readable name for any goal
   const getGoalName = (goal: GoalResponse) => getName(goal.occupation_id);
 
-  return { goals, selectedGoalId, setSelectedGoalId, selectedGoal, selectedGoalName, getGoalName, loading };
+  return { goals, selectedGoalId, setSelectedGoalId, selectedGoal, selectedGoalName, getGoalName, loading: loading || occupationsLoading };
 }

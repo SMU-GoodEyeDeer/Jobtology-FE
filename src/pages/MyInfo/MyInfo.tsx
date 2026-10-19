@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import "../Home/Home.css";
 import "./MyInfo.css";
 import { AppSidebar } from "../../components/AppSidebar";
+import { LoadingContent } from "../../components/LoadingContent";
 import chevronDownIcon from "../../assets/Chevron down.svg";
 import { profileApi, capabilitiesApi, goalsApi } from "../../services/api";
 import { useGoals } from "../../hooks/useGoals";
@@ -47,7 +48,9 @@ export function MyInfo() {
   const [goalOpen, setGoalOpen] = useState(false);
   const goalRef = useRef<HTMLDivElement>(null);
 
-  const { goals, selectedGoalId, setSelectedGoalId, selectedGoalName, getGoalName } = useGoals();
+  const { goals, selectedGoalId, setSelectedGoalId, selectedGoalName, getGoalName, loading: goalsLoading } = useGoals();
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [capabilitiesLoading, setCapabilitiesLoading] = useState(true);
 
   // Profile state
   const [major, setMajor] = useState("");
@@ -101,14 +104,14 @@ export function MyInfo() {
       setEnrollmentStatus(p.enrollment_status ?? "");
       setGraduationOn(p.expected_graduation_on ?? "");
       setProfileVersion(p.version);
-    }).catch(console.error);
+    }).catch(console.error).finally(() => setProfileLoading(false));
   }, []);
 
   // Load capabilities on mount
   useEffect(() => {
     capabilitiesApi.list().then((res) => {
       setCapabilities(res.items as CapabilityItem[]);
-    }).catch(console.error);
+    }).catch(console.error).finally(() => setCapabilitiesLoading(false));
   }, []);
 
   useEffect(() => {
@@ -221,6 +224,7 @@ export function MyInfo() {
         </header>
 
         <main className="main-content">
+          <LoadingContent loading={goalsLoading || profileLoading || capabilitiesLoading}>
           {/* 목표 관리 */}
           {goals.length > 0 && (
             <div className="mi-goals-card">
@@ -399,6 +403,7 @@ export function MyInfo() {
             </div>
 
           </div>
+          </LoadingContent>
         </main>
       </div>
     </div>

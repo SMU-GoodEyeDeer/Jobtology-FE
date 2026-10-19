@@ -19,11 +19,15 @@
 
 .mi-profile-card {
   flex: 1.1;
+  min-width: 0;
 }
 
 .mi-spec-card {
   flex: 1;
+  min-width: 0;
 }
+
+@media (max-width: 900px) { .mi-two-col { flex-direction: column; } .mi-two-col > * { width: 100%; } }
 
 /* ── Card header ── */
 .mi-card-header {
