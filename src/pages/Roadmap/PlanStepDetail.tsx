@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion, useIsPresent, useReducedMotion } from "motion/react";
 import { SkillDefinition, SkillQualifications } from "../Analysis/SkillEvidence";
 import type { Skill, WeeklyPlanResponse, WeeklyPlanStep } from "../../services/types";
 import { basisLabels, phaseLabels, shortDate, stateLabels, stepReason, prerequisiteWarning } from "../../services/weeklyPlan";
@@ -15,6 +16,8 @@ interface Props {
 
 export function PlanStepDetail({ plan, step, skill, busy, onComplete, onClose }: Props) {
   const navigate = useNavigate();
+  const present = useIsPresent();
+  const reduceMotion = useReducedMotion();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
@@ -63,10 +66,12 @@ export function PlanStepDetail({ plan, step, skill, busy, onComplete, onClose }:
       <button className="wp-button" onClick={() => navigate("/analysis")}>역량 분석에서 보기</button>
     </footer>
   </>;
-  return onClose ? <dialog ref={dialogRef} className="wp-detail wp-dialog" aria-labelledby="plan-step-title"
+  return onClose ? <motion.dialog ref={dialogRef} className="wp-detail wp-dialog" aria-labelledby="plan-step-title" data-exiting={!present}
+    initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
+    transition={{ duration: reduceMotion ? 0 : .22, ease: [.22, 1, .36, 1] }}
     onCancel={event => { event.preventDefault(); closeRef.current?.(); }}
     onClick={event => { if (event.target === event.currentTarget) {
       const rect = event.currentTarget.getBoundingClientRect();
       if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) onClose();
-    } }}>{content}</dialog> : <aside className="wp-detail" aria-labelledby="plan-step-title">{content}</aside>;
+    } }}>{content}</motion.dialog> : <aside className="wp-detail" aria-labelledby="plan-step-title">{content}</aside>;
 }

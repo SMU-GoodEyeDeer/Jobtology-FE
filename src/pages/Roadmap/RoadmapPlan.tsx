@@ -99,7 +99,9 @@ function PlanContent({ saved, skills, onSaved, onComplete }: {
       {tab === "steps" ? <><PlanPhases plan={plan} selectedId={selectedId} onSelect={select} />{selected && <PlanStepDetail key="pane" plan={plan} step={selected} skill={skills.find(s => s.requirement_key != null && s.requirement_key === selected.requirement_key)} busy={busy || draft !== null} onComplete={() => void mutate("complete")} />}</> : <PlanWeeks plan={plan} draft={draft} changedIds={customized.changedIds} busy={busy} onChange={setDraft} onSelect={select} />}
     </motion.div>
     </AnimatePresence>
+    <AnimatePresence>
     {drawer && selected && <PlanStepDetail key="drawer" plan={plan} step={selected} skill={skills.find(s => s.requirement_key != null && s.requirement_key === selected.requirement_key)} busy={busy || draft !== null} onComplete={() => void mutate("complete")} onClose={() => setDrawer(false)} />}
+    </AnimatePresence>
     <AnimatePresence>
     {draft && <motion.footer className="wp-save-bar wp-card" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }} transition={fade}><span className="wp-chip wp-chip--indigo">변경 {differences.count}건</span><span>완료 예정 {fullDate(saved.completion_date)} → <b>{fullDate(plan.completion_date)}</b></span>{target && <span className={`wp-chip ${late ? "wp-chip--amber" : "wp-chip--green"}`}>{target}</span>}
       <button className="wp-text-button" disabled={busy} onClick={() => setDraft(recommendedInput(saved))}>추천 플랜으로 되돌리기</button>
