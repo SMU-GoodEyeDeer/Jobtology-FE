@@ -6,6 +6,7 @@ import chevronDownIcon from "../../assets/Chevron down.svg";
 import { capabilitiesApi, chatApi, profileApi, roleEvidenceGraphApi } from "../../services/api";
 import type { ChatCapabilityCandidate, ChatMessagePayload, RoleEvidenceGraph } from "../../services/types";
 import { EvidenceGraph } from "./EvidenceGraph";
+import { ReplyText } from "./ReplyText";
 import { ROUTE_SUGGESTION, initialSuggestions, withRouteSuggestion } from "./chatSuggestions";
 import { useGoals } from "../../hooks/useGoals";
 import { useRoadmap } from "../../hooks/useRoadmap";
@@ -26,7 +27,7 @@ function toHistory(messages: Message[]): ChatMessagePayload[] {
 }
 
 type Message =
-  | { role: "ai"; text: string; chips?: string[]; candidates?: ChatCapabilityCandidate[] }
+  | { role: "ai"; text: string; chips?: string[]; candidates?: ChatCapabilityCandidate[]; animate?: boolean }
   | { role: "ai-route" }
   | { role: "user"; text: string };
 
@@ -40,19 +41,14 @@ function makeInitialMessages(goalName: string): Message[] {
   ];
 }
 
-function renderText(text: string) {
-  const parts = text.split(/(\*\*[^*]+\*\*)/g);
-  return parts.map((p, i) =>
-    p.startsWith("**") ? <strong key={i}>{p.slice(2, -2)}</strong> : p
-  );
-}
-
 function AiIcon({ size = 16 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <rect x="3" y="5" width="18" height="2" rx="1" fill="white"/>
-      <rect x="3" y="11" width="18" height="2" rx="1" fill="white"/>
-      <rect x="3" y="17" width="12" height="2" rx="1" fill="white"/>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 3v3M9 3h6M4 11H2m20 0h-2" />
+      <rect x="4" y="6" width="16" height="14" rx="5" />
+      <circle cx="9" cy="12" r="1" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="12" r="1" fill="currentColor" stroke="none" />
+      <path d="M9 16h6" />
     </svg>
   );
 }
@@ -83,6 +79,7 @@ export function Chat() {
 
   const goalRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const replyRequest = useRef(0);
 
   useEffect(() => {
     chatApi.status().then((res) => setAiAvailable(res.available)).catch(() => setAiAvailable(false));
@@ -102,6 +99,10 @@ export function Chat() {
     const goalName = selectedGoalName;
     setMessages(makeInitialMessages(goalName));
     setAiSuggestions(null);
+    setCandidateStatus({});
+    setIsTyping(false);
+    replyRequest.current += 1;
+    return () => { replyRequest.current += 1; };
   }, [selectedGoal]);
 
   // Load the role's recommendation-evidence graph from Neo4j
@@ -140,26 +141,23 @@ export function Chat() {
     setInput("");
     setSelectedSuggestion(null);
     setIsTyping(true);
+    const request = ++replyRequest.current;
     if (aiAvailable && sentText !== ROUTE_SUGGESTION) {
       try {
         const res = await chatApi.send(toHistory(next));
-        setMessages((prev) => [...prev, { role: "ai", text: res.reply, candidates: res.candidates }]);
+        if (request !== replyRequest.current) return;
+        setMessages((prev) => [...prev, { role: "ai", text: res.reply, candidates: res.candidates, animate: true }]);
         if (res.suggestions?.length) setAiSuggestions(withRouteSuggestion(res.suggestions));
       } catch {
+        if (request !== replyRequest.current) return;
         setMessages((prev) => [...prev, { role: "ai", text: "지금은 AI 답변을 받을 수 없어요. 잠시 후 다시 시도해주세요." }]);
       } finally {
-        setIsTyping(false);
+        if (request === replyRequest.current) setIsTyping(false);
       }
       return;
     }
-    setTimeout(() => {
-      setIsTyping(false);
-      if (sentText === ROUTE_SUGGESTION) {
-        setMessages((prev) => [...prev, { role: "ai-route" }]);
-      } else {
-        setMessages((prev) => [...prev, { role: "ai", text: "네! 더 궁금한 게 있으면 언제든지 물어보세요." }]);
-      }
-    }, 1400);
+    setIsTyping(false);
+    setMessages((prev) => [...prev, sentText === ROUTE_SUGGESTION ? { role: "ai-route" } : { role: "ai", text: "지금은 AI 상담을 연결할 수 없어요. 잠시 후 다시 시도해주세요." }]);
   }
 
   async function saveCandidate(key: string, candidate: ChatCapabilityCandidate) {
@@ -248,18 +246,10 @@ export function Chat() {
           <div className="chat-panel">
             <div className="ai-header-card">
               <div className="ai-header-icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <rect x="3" y="5" width="18" height="2" rx="1" fill="white"/>
-                  <rect x="3" y="11" width="18" height="2" rx="1" fill="white"/>
-                  <rect x="3" y="17" width="12" height="2" rx="1" fill="white"/>
-                </svg>
+                <AiIcon size={24} />
               </div>
               <div>
                 <p className="ai-header-name">커리어 추천 AI</p>
-                <p className="ai-header-status">
-                  <span className="ai-status-dot" />
-                  채용공고 데이터 · 지식그래프 연결됨
-                </p>
               </div>
             </div>
 
@@ -296,7 +286,7 @@ export function Chat() {
                   <div key={i} className="msg-ai-wrap">
                     <div className="msg-ai-icon"><AiIcon /></div>
                     <div>
-                      <div className="msg-ai-bubble">{renderText(msg.text)}</div>
+                      <div className="msg-ai-bubble"><ReplyText text={msg.text} animate={msg.animate} /></div>
                       {msg.chips && (
                         <div className="msg-chips">
                           {msg.chips.map((c) => (
@@ -343,15 +333,14 @@ export function Chat() {
                 ) : (
                   <div key={i} className="msg-user-wrap">
                     <div className="msg-user-bubble">{msg.text}</div>
-                    <div className="msg-user-avatar">나</div>
                   </div>
                 )
               )}
               {isTyping && (
                 <div className="msg-ai-wrap">
                   <div className="msg-ai-icon"><AiIcon /></div>
-                  <div className="msg-ai-bubble msg-typing">
-                    <span /><span /><span />
+                  <div className="msg-ai-bubble msg-typing" role="status" aria-label="AI가 답변을 작성하고 있어요">
+                    <span aria-hidden="true" /><span aria-hidden="true" /><span aria-hidden="true" />
                   </div>
                 </div>
               )}
@@ -383,7 +372,7 @@ export function Chat() {
                   }
                 }}
               />
-              <button className="chat-send-btn" onClick={handleSend}>보내기</button>
+              <button className="chat-send-btn" disabled={!input.trim() || isTyping} onClick={handleSend}>보내기</button>
             </div>
           </div>
 
