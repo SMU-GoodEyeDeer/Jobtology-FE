@@ -165,11 +165,11 @@
 .wp-week-next p { display: flex; gap: 12px; justify-content: space-between; }
 .roadmap-page .main-area { min-width: 0; }
 .roadmap-page .main-content > * { flex-shrink: 0; }
-.roadmap-page .main-header { min-height: 80px; align-items: center; padding-top: 16px; }
+.roadmap-page .main-header { align-items: center; }
 .roadmap-page .main-title { font-size: 22px; white-space: nowrap; }
 .rm-heading { min-width: 0; }
 .rm-heading-sub { margin: 6px 0 0; color: #6b7280; font-size: 13px; }
-.roadmap-page .main-content { gap: 12px; padding-top: 12px; }
+.roadmap-page .main-content { gap: 12px; }
 .roadmap-page .rm-section { background: transparent; border: 0; padding: 0; gap: 10px; flex-direction: row; align-items: center; }
 .roadmap-page .rm-section-header { flex-shrink: 0; }
 .roadmap-page .rm-section-header .rm-section-title { font-size: 13px; color: #6b7280; }
