@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./AppSidebar.css";
 import logoIcon from "../assets/logo1.svg";
@@ -10,6 +10,7 @@ import analysisIcon from "../assets/Bar chart.svg";
 import progressIcon from "../assets/today.svg";
 import userIcon from "../assets/User.svg";
 import { useSession } from "../context/SessionContext";
+import { usePanelResize } from "../hooks/usePanelResize";
 
 const NAV_ITEMS = [
   { icon: homeIcon, label: "홈", path: "/home" },
@@ -32,6 +33,7 @@ export function AppSidebar({ children, showLogout = true }: { children?: ReactNo
   const { pathname } = useLocation();
   const { logout } = useSession();
   const [collapsed, setCollapsed] = useState(() => preferredCollapsed(window.matchMedia(NARROW_QUERY).matches));
+  const { size, resizing, separatorProps } = usePanelResize({ storageKey: "jobtology.sidebar.width", initial: 260, min: 240, max: 360 });
 
   useEffect(() => {
     const media = window.matchMedia(NARROW_QUERY);
@@ -47,7 +49,7 @@ export function AppSidebar({ children, showLogout = true }: { children?: ReactNo
   }
 
   return (
-    <aside className={`sidebar${collapsed ? " sidebar--collapsed" : ""}`}>
+    <aside className={`sidebar${collapsed ? " sidebar--collapsed" : ""}${resizing ? " sidebar--resizing" : ""}`} style={{ "--sidebar-width": `${size}px` } as CSSProperties}>
       <div className="sidebar-logo">
         <img src={logoIcon} alt="로고" className="sidebar-logo-icon" />
         <span className="sidebar-logo-text">Jobtology</span>
@@ -94,6 +96,7 @@ export function AppSidebar({ children, showLogout = true }: { children?: ReactNo
           </button>
         )}
       </div>
+      {!collapsed && <div className="sidebar-resize" {...separatorProps} aria-label="사이드바 너비 조절" title="끌어서 너비 조절 · 두 번 클릭하여 초기화" />}
     </aside>
   );
 }

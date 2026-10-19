@@ -1,7 +1,9 @@
 /* ── Sidebar ── */
 .sidebar {
-  width: 240px;
-  min-width: 240px;
+  position: relative;
+  width: var(--sidebar-width, 260px);
+  min-width: var(--sidebar-width, 260px);
+  flex-shrink: 0;
   background: #ffffff;
   display: flex;
   flex-direction: column;
@@ -126,6 +128,13 @@
   overflow-x: hidden;
   transition: width 0.2s ease, min-width 0.2s ease;
 }
+
+.sidebar--resizing { transition: none; user-select: none; }
+.sidebar-resize { position: absolute; z-index: 20; right: 0; top: 0; bottom: 0; width: 7px; cursor: col-resize; touch-action: none; }
+.sidebar-resize::after { content: ""; position: absolute; right: 0; top: 0; bottom: 0; width: 3px; background: transparent; transition: background .15s; }
+.sidebar-resize:hover::after, .sidebar-resize:focus-visible::after, .sidebar--resizing .sidebar-resize::after { background: #a5b4fc; }
+.sidebar-resize:focus-visible { outline: 2px solid #6366f1; outline-offset: -2px; }
+.sidebar-bottom { min-height: 0; overflow-y: auto; }
 
 .sidebar-toggle {
   margin-left: auto;
