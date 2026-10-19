@@ -6,7 +6,7 @@ export function usePanelResize({ storageKey, initial, min, max, direction = 1 }:
 }) {
   const [size, setSize] = useState(() => {
     const saved = Number(localStorage.getItem(storageKey));
-    return Number.isFinite(saved) && saved > 0 ? Math.min(max, Math.max(min, saved)) : initial;
+    return Number.isFinite(saved) && saved > 0 ? saved : initial;
   });
   const [resizing, setResizing] = useState(false);
   const drag = useRef<{ x: number; size: number } | null>(null);
