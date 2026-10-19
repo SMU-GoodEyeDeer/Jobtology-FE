@@ -496,10 +496,17 @@
 }
 
 .graph-node {
-  transition: transform 0.15s;
+  transition: transform 0.15s, opacity 0.18s;
   transform-box: fill-box;
   transform-origin: center;
 }
+
+.graph-node circle { transition: stroke-width .18s, stroke-opacity .18s; }
+.graph-node--highlighted circle { stroke: currentColor; stroke-width: 8px; stroke-opacity: .25; }
+.graph-node--dimmed { opacity: .18; }
+.graph-edge { transition: opacity .18s, stroke-width .18s; }
+.graph-edge--highlighted { opacity: .8; stroke-width: 2px; }
+.graph-edge--dimmed { opacity: .08; }
 
 .graph-node:not(.graph-node--no-scale):hover {
   transform: scale(1.12);
@@ -643,6 +650,18 @@
   gap: 5px;
   font-size: 11px;
   color: #6b7280;
+  border: 0;
+  border-radius: 5px;
+  padding: 3px 4px;
+  background: transparent;
+  cursor: pointer;
+  transition: color .15s, background .15s;
+}
+
+.legend-item:hover, .legend-item[data-active="true"] { color: #4338ca; background: #eef2ff; }
+.legend-item:focus-visible { outline: 2px solid #818cf8; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .graph-node, .graph-node circle, .graph-edge, .legend-item { transition: none; }
 }
 
 .legend-dot {

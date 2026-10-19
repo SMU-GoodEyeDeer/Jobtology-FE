@@ -60,6 +60,10 @@ function shorten(label: string, max: number): string {
   return label.length > max ? `${label.slice(0, max - 1)}…` : label;
 }
 
+function legendVisual(kind: EvidenceNodeKind, owned: boolean): Visual {
+  return owned ? "have" : kind === "ncs_competency" ? "technology" : kind;
+}
+
 interface Props {
   readonly graph: RoleEvidenceGraph | null;
   readonly status: "idle" | "loading" | "error" | "ready";
@@ -70,6 +74,8 @@ interface Props {
 export function EvidenceGraph({ graph, status, ownedSkills, onOpenRoadmap }: Props) {
   const [camera, setCamera] = useState({ x: 0, y: 0, zoom: 1 });
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [hoveredLegend, setHoveredLegend] = useState<Visual | null>(null);
+  const [focusedLegend, setFocusedLegend] = useState<Visual | null>(null);
   const [, setFrame] = useState(0);
   const svgRef = useRef<SVGSVGElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -123,6 +129,14 @@ export function EvidenceGraph({ graph, status, ownedSkills, onOpenRoadmap }: Pro
     };
     return { graph, seed, ownedIds, byId: new Map(graph.nodes.map((node) => [node.id, node])) };
   }, [graph, ownedSkills]);
+
+  const activeLegend = hoveredLegend ?? focusedLegend;
+  const highlightedIds = useMemo(() => {
+    const ids = new Set(model?.graph.nodes.filter(node => legendVisual(node.kind, model.ownedIds.has(node.id)) === activeLegend).map(node => node.id));
+    if (activeLegend === "have" && ids.size > 0) ids.add(ME_ID);
+    return ids;
+  }, [model, activeLegend]);
+  const highlighting = highlightedIds.size > 0;
 
   useEffect(() => {
     setSelectedId(null);
@@ -276,6 +290,7 @@ export function EvidenceGraph({ graph, status, ownedSkills, onOpenRoadmap }: Pro
             <g ref={layerRef} transform={`translate(${camera.x}, ${camera.y}) scale(${camera.zoom})`}>
               {sim.links.map((link) => (
                 <line key={`${link.source.id}>${link.target.id}`}
+                  className={`graph-edge${highlighting ? highlightedIds.has(link.source.id) || highlightedIds.has(link.target.id) ? " graph-edge--highlighted" : " graph-edge--dimmed" : ""}`}
                   x1={link.source.x} y1={link.source.y} x2={link.target.x} y2={link.target.y}
                   {...(link.dashed
                     ? { stroke: "#16a34a", strokeWidth: 1.2, strokeDasharray: "4 4", opacity: 0.6 }
@@ -284,13 +299,14 @@ export function EvidenceGraph({ graph, status, ownedSkills, onOpenRoadmap }: Pro
               {model.graph.nodes.map((node) => {
                 const p = sim.nodes.get(node.id);
                 if (p === undefined) return null;
-                const visual: Visual = model.ownedIds.has(node.id) ? "have" : node.kind;
+                const visual = legendVisual(node.kind, model.ownedIds.has(node.id));
                 const inside = node.kind === "role";
                 return (
-                  <g key={node.id} className={`graph-node${inside ? " graph-node--no-scale" : ""}`}
+                  <g key={node.id} className={`graph-node${inside ? " graph-node--no-scale" : ""}${highlighting ? highlightedIds.has(node.id) ? " graph-node--highlighted" : " graph-node--dimmed" : ""}`}
+                    data-legend={visual}
                     role="button" tabIndex={0} aria-label={`${node.label} 상세정보`} aria-pressed={selectedId === node.id}
                     onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setSelectedId(node.id); } }}
-                    style={{ cursor: "pointer" }}
+                    style={{ cursor: "pointer", color: COLORS[visual] }}
                     onPointerDown={(e) => startNodeDrag(e, p)}>
                     <title>{node.label}</title>
                     <circle cx={p.x} cy={p.y} r={p.r} fill={COLORS[visual]} />
@@ -302,7 +318,7 @@ export function EvidenceGraph({ graph, status, ownedSkills, onOpenRoadmap }: Pro
                   </g>
                 );
               })}
-              <g className="graph-node" style={{ cursor: "pointer" }} onPointerDown={(e) => startNodeDrag(e, me)}>
+              <g className={`graph-node${highlighting ? highlightedIds.has(ME_ID) ? " graph-node--highlighted" : " graph-node--dimmed" : ""}`} style={{ cursor: "pointer", color: COLORS.me }} onPointerDown={(e) => startNodeDrag(e, me)}>
                 <circle cx={me.x} cy={me.y} r={me.r} fill={COLORS.me} />
                 <text x={me.x} y={me.y} textAnchor="middle" dominantBaseline="middle" fill="#fff"
                   fontSize={16} fontWeight={600} fontFamily="inherit" style={{ pointerEvents: "none" }}>나</text>
@@ -326,12 +342,16 @@ export function EvidenceGraph({ graph, status, ownedSkills, onOpenRoadmap }: Pro
       )}
       </div>
 
-      <div className="graph-legend">
+      <div className="graph-legend" role="group" aria-label="노드 유형별 강조"
+        onKeyDown={event => { if (event.key === "Escape") { setHoveredLegend(null); setFocusedLegend(null); } }}>
         {LEGEND.map(({ visual, label }) => (
-          <span key={visual} className="legend-item">
+          <button key={visual} type="button" className="legend-item" data-active={activeLegend === visual}
+            aria-label={`${label} 노드 강조`}
+            onPointerEnter={() => setHoveredLegend(visual)} onPointerLeave={() => setHoveredLegend(null)}
+            onFocus={() => setFocusedLegend(visual)} onBlur={() => setFocusedLegend(null)}>
             <span className="legend-dot" style={{ background: COLORS[visual] }} />
             {label}
-          </span>
+          </button>
         ))}
       </div>
     </>
