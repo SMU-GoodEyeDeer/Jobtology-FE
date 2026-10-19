@@ -29,7 +29,8 @@ export function SkillList({ skills, goalId, emptyMessage }: SkillListProps) {
   const [filter, setFilter] = useState<"전체" | Skill["type"]>("전체");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [overlay, setOverlay] = useState(() => window.matchMedia("(max-width: 1099px)").matches);
-  const trigger = useRef<HTMLButtonElement | null>(null);
+  const triggerId = useRef<string | null>(null);
+  const rowButtons = useRef(new Map<string, HTMLButtonElement>());
   const [panelMounted, setPanelMounted] = useState(false);
   const restoreFocus = useRef(false);
   const roadmap = useActiveSkillRoadmap(goalId);
@@ -79,10 +80,11 @@ export function SkillList({ skills, goalId, emptyMessage }: SkillListProps) {
           const subline = [skill.ncs_level != null ? `NCS 수준 ${skill.ncs_level}` : "",
             skill.qualifications?.length ? `관련 자격증 ${skill.qualifications.length}개` : ""].filter(Boolean).join(" · ");
           return <button type="button" className="sd-row" key={identity} aria-pressed={selectedId === identity}
+            ref={button => { if (button) rowButtons.current.set(identity, button); else rowButtons.current.delete(identity); }}
             onPointerEnter={() => void prefetchSkillResources(skill)} onFocus={() => void prefetchSkillResources(skill)}
             aria-controls={selectedId === identity ? "skill-panel-heading" : undefined}
-            onClick={event => {
-              trigger.current = event.currentTarget;
+            onClick={() => {
+              triggerId.current = identity;
               if (selectedId === identity) close(); else {
                 restoreFocus.current = false;
                 setPanelMounted(true);
@@ -107,7 +109,7 @@ export function SkillList({ skills, goalId, emptyMessage }: SkillListProps) {
       if (selection.current) return;
       setPanelMounted(false);
       if (restoreFocus.current) requestAnimationFrame(() => {
-        if (trigger.current?.isConnected) trigger.current.focus({ preventScroll: true });
+        if (triggerId.current) rowButtons.current.get(triggerId.current)?.focus({ preventScroll: true });
       });
     }}>
       {selected && <SelectedSkillPanel key={skillIdentity(selected)} skill={selected}
