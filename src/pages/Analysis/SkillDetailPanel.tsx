@@ -1,25 +1,27 @@
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import type { Skill, StepState } from "../../services/types";
+import type { RoadmapDetailResponse, Skill, StepState } from "../../services/types";
 import { formatHours, formatPeriod, linkedRoadmapSteps } from "../../services/skillDetail";
 import { SkillBadge } from "./SkillBadge";
 import { DetailSkeleton, SkillDefinition, SkillQualifications } from "./SkillEvidence";
-import { useActiveSkillRoadmap } from "./useSkillResources";
+import { useSkillEvidenceReady } from "./useSkillResources";
+import type { Resource } from "./useSkillResources";
 
 interface PanelProps {
   readonly skill: Skill;
-  readonly goalId: string | null;
+  readonly roadmap: Resource<RoadmapDetailResponse | null>;
   readonly overlay: boolean;
   readonly onClose: () => void;
 }
 
 const stepLabels: Record<StepState, string> = { TODO: "예정", IN_PROGRESS: "진행 중", COMPLETED: "완료" };
 
-export function SkillDetailPanel({ skill, goalId, overlay, onClose }: PanelProps) {
+export function SkillDetailPanel({ skill, roadmap, overlay, onClose }: PanelProps) {
   const heading = useRef<HTMLHeadingElement>(null);
   const panel = useRef<HTMLElement>(null);
   const navigate = useNavigate();
-  const roadmap = useActiveSkillRoadmap(goalId);
+  const evidenceReady = useSkillEvidenceReady(skill);
+  const ready = evidenceReady && roadmap.state !== "loading";
   const steps = linkedRoadmapSteps(skill, roadmap.state === "ready" ? roadmap.data?.steps ?? [] : []);
 
   useEffect(() => { heading.current?.focus({ preventScroll: true }); }, [skill]);
@@ -62,7 +64,9 @@ export function SkillDetailPanel({ skill, goalId, overlay, onClose }: PanelProps
         {skill.demand_pct != null && <span className="sd-badge sd-badge--neutral">공고 {skill.demand_pct}%</span>}
       </div>
     </header>
-    <div className="sd-panel-body">
+    <div className="sd-panel-body" aria-busy={!ready}>
+      {!ready && <div className="sd-panel-loading"><DetailSkeleton /><DetailSkeleton /><DetailSkeleton /></div>}
+      <div className="sd-panel-content" hidden={!ready}>
       <SkillDefinition key={skill.ncs_base_code ?? "missing"} skill={skill} />
       <section className="sd-section">
         <h3>내 상태</h3>
@@ -87,9 +91,10 @@ export function SkillDetailPanel({ skill, goalId, overlay, onClose }: PanelProps
             <button type="button" className="sd-step-link" onClick={() => navigate("/roadmap")}>보기</button>
           </div>)}
       </section>
+      </div>
     </div>
-    {steps.length > 0 && <footer className="sd-panel-footer">
-      <button type="button" onClick={() => navigate("/roadmap")}>로드맵에서 보기</button>
-    </footer>}
+    <footer className="sd-panel-footer">
+      <button type="button" disabled={!ready} onClick={() => navigate("/roadmap")}>로드맵에서 보기</button>
+    </footer>
   </aside>;
 }

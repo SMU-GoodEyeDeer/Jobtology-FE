@@ -4,6 +4,7 @@ import type { Skill } from "../../services/types";
 import { formatDemand, formatHours, skillIdentity } from "../../services/skillDetail";
 import { SkillBadge } from "./SkillBadge";
 import { SkillDetailPanel } from "./SkillDetailPanel";
+import { prefetchSkillResources, useActiveSkillRoadmap } from "./useSkillResources";
 
 interface SkillListProps {
   readonly skills: readonly Skill[];
@@ -16,6 +17,8 @@ export function SkillList({ skills, goalId, emptyMessage }: SkillListProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [overlay, setOverlay] = useState(() => window.matchMedia("(max-width: 1099px)").matches);
   const trigger = useRef<HTMLButtonElement | null>(null);
+  const roadmap = useActiveSkillRoadmap(goalId);
+  useEffect(() => { skills.slice(0, 3).forEach(skill => { void prefetchSkillResources(skill); }); }, [skills]);
   const visible = skills.filter(skill => filter === "전체" || skill.type === filter);
   const selected = visible.find(skill => skillIdentity(skill) === selectedId);
   const close = useCallback(() => {
@@ -31,7 +34,7 @@ export function SkillList({ skills, goalId, emptyMessage }: SkillListProps) {
   }, []);
 
   const panel = selected ? <SkillDetailPanel key={skillIdentity(selected)} skill={selected}
-    goalId={goalId} overlay={overlay} onClose={close} /> : null;
+    roadmap={roadmap} overlay={overlay} onClose={close} /> : null;
 
   return <div className={`sd-layout${selected && !overlay ? " sd-layout--selected" : ""}`}>
     <section className="sd-list" aria-labelledby="skill-list-heading">
@@ -53,6 +56,7 @@ export function SkillList({ skills, goalId, emptyMessage }: SkillListProps) {
           const subline = [skill.ncs_level != null ? `NCS 수준 ${skill.ncs_level}` : "",
             skill.qualifications?.length ? `관련 자격증 ${skill.qualifications.length}개` : ""].filter(Boolean).join(" · ");
           return <button type="button" className="sd-row" key={identity} aria-pressed={selectedId === identity}
+            onPointerEnter={() => void prefetchSkillResources(skill)} onFocus={() => void prefetchSkillResources(skill)}
             aria-controls={selectedId === identity ? "skill-panel-heading" : undefined}
             onClick={event => {
               trigger.current = event.currentTarget;
