@@ -7,6 +7,8 @@ import { capabilitiesApi, chatApi, profileApi, roleEvidenceGraphApi } from "../.
 import type { ChatCapabilityCandidate, ChatMessagePayload, RoleEvidenceGraph } from "../../services/types";
 import { EvidenceGraph } from "./EvidenceGraph";
 import { ReplyText } from "./ReplyText";
+import { usePanelResize } from "../../hooks/usePanelResize";
+import type { CSSProperties } from "react";
 import { ROUTE_SUGGESTION, initialSuggestions, withRouteSuggestion } from "./chatSuggestions";
 import { useGoals } from "../../hooks/useGoals";
 import { useRoadmap } from "../../hooks/useRoadmap";
@@ -80,6 +82,17 @@ export function Chat() {
   const goalRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const replyRequest = useRef(0);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const [bodyWidth, setBodyWidth] = useState(1000);
+  const { size: graphWidth, resizing, separatorProps } = usePanelResize({
+    storageKey: "jobtology.chat.graphWidth", initial: 420, min: 280, max: Math.max(280, Math.min(900, bodyWidth - 316)), direction: -1,
+  });
+  useEffect(() => {
+    if (!bodyRef.current) return;
+    const observer = new ResizeObserver(([entry]) => setBodyWidth(entry.contentRect.width));
+    observer.observe(bodyRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     chatApi.status().then((res) => setAiAvailable(res.available)).catch(() => setAiAvailable(false));
@@ -241,7 +254,7 @@ export function Chat() {
           </div>
         </header>
 
-        <div className="chat-body">
+        <div ref={bodyRef} className={`chat-body${resizing ? " chat-body--resizing" : ""}`} style={{ "--graph-width": `${graphWidth}px` } as CSSProperties}>
           {/* Left: Chat panel */}
           <div className="chat-panel">
             <div className="ai-header-card">
@@ -375,6 +388,8 @@ export function Chat() {
               <button className="chat-send-btn" disabled={!input.trim() || isTyping} onClick={handleSend}>보내기</button>
             </div>
           </div>
+
+          <div className="chat-divider" {...separatorProps} aria-label="채팅과 그래프 너비 조절" title="끌어서 너비 조절 · 두 번 클릭하여 초기화"><span /></div>
 
           {/* Right: Graph panel */}
           <div className="graph-panel" style={{ position: "relative" }}>
