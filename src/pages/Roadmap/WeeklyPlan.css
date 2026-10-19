@@ -168,7 +168,7 @@
 .roadmap-page .main-header { align-items: center; }
 .roadmap-page .main-title { font-size: 22px; white-space: nowrap; }
 .rm-heading { min-width: 0; }
-.rm-heading-sub { margin: 6px 0 0; color: #6b7280; font-size: 13px; }
+.rm-heading-sub { min-height: 18px; line-height: 18px; margin: 6px 0 0; color: #6b7280; font-size: 13px; }
 .roadmap-page .main-content { gap: 12px; }
 .roadmap-page .rm-section { background: transparent; border: 0; padding: 0; gap: 10px; flex-direction: row; align-items: center; }
 .roadmap-page .rm-section-header { flex-shrink: 0; }

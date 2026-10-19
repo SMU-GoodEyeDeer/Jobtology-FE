@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { roadmapsApi } from "../../services/api";
 import type { StepState, WeeklyPlanInput, WeeklyPlanResponse, Skill } from "../../services/types";
@@ -15,10 +15,12 @@ interface Props {
   readonly goalId: string;
   readonly onComplete: (id: string, state: StepState) => Promise<void>;
   readonly children: ReactNode;
+  readonly onReady?: (id: string) => void;
 }
 
-export function RoadmapPlan({ roadmapId, goalId, onComplete, children }: Props) {
+export function RoadmapPlan({ roadmapId, goalId, onComplete, children, onReady }: Props) {
   const { plan, setPlan, loading, skills } = useWeeklyPlan(roadmapId, goalId);
+  useEffect(() => { if (!loading) onReady?.(roadmapId); }, [loading, roadmapId, onReady]);
   if (loading) return <div className="rm-card" role="status">플랜을 불러오는 중...</div>;
   if (!plan) return children;
   return <PlanContent saved={plan} skills={skills} onSaved={setPlan} onComplete={onComplete} />;

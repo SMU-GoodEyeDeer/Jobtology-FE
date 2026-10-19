@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import "../Home/Home.css";
 import "./Roadmap.css";
 import { AppSidebar } from "../../components/AppSidebar";
+import { LoadingContent } from "../../components/LoadingContent";
 import chevronDownIcon from "../../assets/Chevron down.svg";
 import { routePrefsApi, profileApi, roadmapsApi, catalogV2Api } from "../../services/api";
 import { useGoals } from "../../hooks/useGoals";
@@ -32,8 +33,10 @@ export function Roadmap() {
   const [goalOpen, setGoalOpen] = useState(false);
   const goalRef = useRef<HTMLDivElement>(null);
 
-  const { goals, selectedGoalId, setSelectedGoalId, selectedGoalName, getGoalName } = useGoals();
-  const { roadmaps, activeRoadmap, loading, updateStepState, progressPct, refetch } = useRoadmap(selectedGoalId);
+  const { goals, selectedGoalId, setSelectedGoalId, selectedGoalName, getGoalName, loading: goalsLoading } = useGoals();
+  const { roadmaps, activeRoadmap, loading, error, updateStepState, progressPct, refetch } = useRoadmap(selectedGoalId, !goalsLoading);
+  const [readyPlanId, setReadyPlanId] = useState<string | null>(null);
+  const [publicationsLoading, setPublicationsLoading] = useState(true);
 
   const [activeChips, setActiveChips] = useState<Set<string>>(new Set());
   const [savingPrefs, setSavingPrefs] = useState(false);
@@ -44,7 +47,7 @@ export function Roadmap() {
   useEffect(() => {
     catalogV2Api.listPublications({ limit: 100 }).then((list) => {
       setRoutePublications(list.filter((p) => p.capabilities.route_planning));
-    }).catch(console.error);
+    }).catch(console.error).finally(() => setPublicationsLoading(false));
   }, []);
 
   // Load route preferences to populate chips
@@ -117,7 +120,7 @@ export function Roadmap() {
     }
   }
 
-  const isPartialRoute = usePartialRoute(activeRoadmap?.proposal_id ?? null);
+  const { partial: isPartialRoute, loading: proposalLoading } = usePartialRoute(activeRoadmap?.proposal_id ?? null);
   const completedSteps = activeRoadmap?.steps.filter((s) => s.state === "COMPLETED").length ?? 0;
   const totalSteps = activeRoadmap?.steps.length ?? 0;
 
@@ -141,7 +144,7 @@ export function Roadmap() {
       <div className="main-area">
         <header className="main-header">
           <div className="rm-heading"><h2 className="main-title">내 로드맵</h2>
-            {activeRoadmap && <p className="rm-heading-sub">{activeRoadmap.title} · {completedSteps}/{totalSteps}단계 완료</p>}
+            <p className="rm-heading-sub">{activeRoadmap ? `${activeRoadmap.title} · ${completedSteps}/${totalSteps}단계 완료` : "목표에 맞는 학습 계획을 확인하세요"}</p>
           </div>
           <div className="goal-wrapper" ref={goalRef}>
             <button className="goal-button" onClick={() => setGoalOpen((v) => !v)}>
@@ -166,6 +169,7 @@ export function Roadmap() {
         </header>
 
         <main className="main-content">
+          <LoadingContent loading={goalsLoading || loading || publicationsLoading || proposalLoading || (!!activeRoadmap && readyPlanId !== activeRoadmap.roadmap_id)} label="로드맵과 주차 플랜을 불러오는 중이에요">
           {/* 내 로드맵 조건 */}
           <section className="rm-section">
             <div className="rm-section-header">
@@ -189,12 +193,10 @@ export function Roadmap() {
           </section>
 
           {isPartialRoute && <p className="rm-card-sub" role="note">{PARTIAL_ROUTE_NOTICE}</p>}
-          {loading ? (
-            <div className="rm-card" style={{ padding: 32, textAlign: "center", color: "#9ca3af" }}>
-              로드맵을 불러오는 중...
-            </div>
+          {error ? (
+            <div className="rm-card" role="alert"><p>로드맵을 불러오지 못했어요.</p><button className="rm-bottom-btn" onClick={() => void refetch()}>다시 시도</button></div>
           ) : activeRoadmap ? (
-            <RoadmapPlan key={activeRoadmap.roadmap_id} roadmapId={activeRoadmap.roadmap_id} goalId={activeRoadmap.goal_id} onComplete={handleStepComplete}>
+            <RoadmapPlan key={activeRoadmap.roadmap_id} roadmapId={activeRoadmap.roadmap_id} goalId={activeRoadmap.goal_id} onComplete={handleStepComplete} onReady={setReadyPlanId}>
               <LegacyRoadmap roadmap={activeRoadmap} onComplete={handleStepComplete} />
             </RoadmapPlan>
           ) : (
@@ -210,6 +212,7 @@ export function Roadmap() {
             <button className="rm-bottom-btn" onClick={() => navigate("/analysis")}>부족한 역량 보기</button>
             <button className="rm-bottom-btn" onClick={() => navigate("/progress")}>내 진행 상황</button>
           </div>
+          </LoadingContent>
         </main>
       </div>
     </div>

@@ -1,40 +1,42 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { roadmapsApi, profileApi } from "../services/api";
 import type { RoadmapDetailResponse, RoadmapResponse, StepState } from "../services/types";
 
-export function useRoadmap(goalId: string | null) {
+export function useRoadmap(goalId: string | null, enabled = true) {
   const [roadmaps, setRoadmaps] = useState<RoadmapResponse[]>([]);
   const [activeRoadmap, setActiveRoadmap] = useState<RoadmapDetailResponse | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const requestId = useRef(0);
 
   const fetchRoadmaps = useCallback(async () => {
+    if (!enabled) return;
+    const currentRequest = ++requestId.current;
     setLoading(true);
+    setError(null);
     try {
       const res = await roadmapsApi.list();
       const all = res.items;
-      setRoadmaps(all);
 
       // Find active roadmap for this goal
       const match = goalId
         ? all.find((r) => r.goal_id === goalId && r.status === "ACTIVE")
         : all.find((r) => r.status === "ACTIVE");
 
-      if (match) {
-        const detail = await roadmapsApi.get(match.roadmap_id);
-        setActiveRoadmap(detail);
-      } else {
-        setActiveRoadmap(null);
-      }
+      const detail = match ? await roadmapsApi.get(match.roadmap_id) : null;
+      if (currentRequest !== requestId.current) return;
+      setRoadmaps(all);
+      setActiveRoadmap(detail);
     } catch (err) {
-      setError((err as Error).message);
+      if (currentRequest === requestId.current) setError((err as Error).message);
     } finally {
-      setLoading(false);
+      if (currentRequest === requestId.current) setLoading(false);
     }
-  }, [goalId]);
+  }, [goalId, enabled]);
 
   useEffect(() => {
     fetchRoadmaps();
+    return () => { requestId.current += 1; };
   }, [fetchRoadmaps]);
 
   async function updateStepState(stepId: string, state: StepState) {
@@ -64,5 +66,5 @@ export function useRoadmap(goalId: string | null) {
         )
       : 0;
 
-  return { roadmaps, activeRoadmap, loading, error, updateStepState, progressPct, refetch: fetchRoadmaps };
+  return { roadmaps, activeRoadmap, loading: !enabled || loading, error, updateStepState, progressPct, refetch: fetchRoadmaps };
 }
