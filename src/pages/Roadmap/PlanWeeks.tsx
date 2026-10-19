@@ -72,7 +72,7 @@ export function PlanWeeks({ plan, draft, changedIds, busy, onChange, onSelect }:
               <span className={`wp-changed-dot ${changedIds.has(step.step_id) ? "is-changed" : ""}`} title={changedIds.has(step.step_id) ? "내가 바꾼 단계" : undefined} />
               <span className="wp-row-number">{step.number}</span><span className={`wp-field-dot ${fieldClass}`} />
               <div className="wp-week-name"><button onClick={() => onSelect(step.step_id)}>{step.name}</button>
-                {draft && <small>{warning ?? stepReason(step)}</small>}
+                {draft && <small>{stepReason(step)}</small>}
                 {step.moved && <span className="wp-chip wp-chip--indigo">직접 바꾼 순서</span>}
                 {warning && <span className="wp-warning">{warning}</span>}
               </div>
