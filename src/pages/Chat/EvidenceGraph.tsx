@@ -7,6 +7,7 @@ import {
   type SimNode,
 } from "./evidenceGraphForce";
 import { isOwned, layoutEvidenceGraph } from "./evidenceGraphLayout";
+import { MAX_ZOOM, MIN_ZOOM, zoomCamera } from "./graphCamera";
 
 type Visual = EvidenceNodeKind | "have" | "me";
 
@@ -66,7 +67,7 @@ interface Props {
 }
 
 export function EvidenceGraph({ graph, status, ownedSkills, onOpenRoadmap }: Props) {
-  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [camera, setCamera] = useState({ x: 0, y: 0, zoom: 1 });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [, setFrame] = useState(0);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -102,7 +103,7 @@ export function EvidenceGraph({ graph, status, ownedSkills, onOpenRoadmap }: Pro
 
   useEffect(() => {
     setSelectedId(null);
-    setPan({ x: 0, y: 0 });
+    setCamera({ x: 0, y: 0, zoom: 1 });
   }, [graph]);
 
   useEffect(() => {
@@ -125,6 +126,11 @@ export function EvidenceGraph({ graph, status, ownedSkills, onOpenRoadmap }: Pro
     return { x: point.x, y: point.y };
   }
 
+  function toSvgPoint(x: number, y: number) {
+    const matrix = svgRef.current?.getScreenCTM();
+    return matrix ? new DOMPoint(x, y).matrixTransform(matrix.inverse()) : null;
+  }
+
   function startNodeDrag(e: PointerEvent, node: SimNode) {
     e.stopPropagation();
     svgRef.current?.setPointerCapture(e.pointerId);
@@ -138,7 +144,7 @@ export function EvidenceGraph({ graph, status, ownedSkills, onOpenRoadmap }: Pro
   function startPan(e: PointerEvent) {
     svgRef.current?.setPointerCapture(e.pointerId);
     movedRef.current = false;
-    dragRef.current = { kind: "pan", startX: e.clientX, startY: e.clientY, panX: pan.x, panY: pan.y };
+    dragRef.current = { kind: "pan", startX: e.clientX, startY: e.clientY, panX: camera.x, panY: camera.y };
   }
 
   function onPointerMove(e: PointerEvent) {
@@ -155,9 +161,12 @@ export function EvidenceGraph({ graph, status, ownedSkills, onOpenRoadmap }: Pro
         drag.node.fy = point.y;
         return;
       }
-      case "pan":
-        setPan({ x: drag.panX + dx, y: drag.panY + dy });
+      case "pan": {
+        const start = toSvgPoint(drag.startX, drag.startY);
+        const point = toSvgPoint(e.clientX, e.clientY);
+        if (start && point) setCamera(previous => ({ ...previous, x: drag.panX + point.x - start.x, y: drag.panY + point.y - start.y }));
         return;
+      }
     }
   }
 
@@ -173,7 +182,7 @@ export function EvidenceGraph({ graph, status, ownedSkills, onOpenRoadmap }: Pro
   }
 
   function recenter() {
-    setPan({ x: 0, y: 0 });
+    setCamera({ x: 0, y: 0, zoom: 1 });
     simRef.current?.sim.simulation.alpha(0.6).restart();
   }
 
@@ -182,14 +191,34 @@ export function EvidenceGraph({ graph, status, ownedSkills, onOpenRoadmap }: Pro
   const selected = selectedId === null ? undefined : model?.byId.get(selectedId);
   const selectedOwned = selectedId !== null && (model?.ownedIds.has(selectedId) ?? false);
 
+  function zoom(factor: number) {
+    if (model) setCamera(previous => zoomCamera(previous, factor, { x: model.seed.width / 2, y: model.seed.height / 2 }));
+  }
+
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const wheel = (event: WheelEvent) => {
+      event.preventDefault();
+      const point = toSvgPoint(event.clientX, event.clientY);
+      if (point) setCamera(previous => zoomCamera(previous, Math.exp(-Math.max(-100, Math.min(100, event.deltaY)) * .003), point));
+    };
+    svg.addEventListener("wheel", wheel, { passive: false });
+    return () => svg.removeEventListener("wheel", wheel);
+  }, [model, sim]);
+
   return (
     <>
       <div className="graph-panel-header">
         <div>
           <p className="graph-title">추천 근거 그래프</p>
-          <p className="graph-sub">Neo4j 지식그래프 · 노드를 끌면 연결된 노드가 따라 움직여요</p>
+          <p className="graph-sub">지식그래프 · 노드를 클릭하여 상세정보를 확인하세요</p>
         </div>
-        <button className="graph-center-btn" onClick={recenter}>중앙 정렬</button>
+        <div className="graph-controls" role="group" aria-label="그래프 보기 조절">
+          <button className="graph-zoom-btn" aria-label="그래프 축소" disabled={!sim || camera.zoom <= MIN_ZOOM} onClick={() => zoom(1 / 1.2)}>−</button>
+          <button className="graph-center-btn" onClick={recenter} title="확대와 위치 초기화">{Math.round(camera.zoom * 100)}%</button>
+          <button className="graph-zoom-btn" aria-label="그래프 확대" disabled={!sim || camera.zoom >= MAX_ZOOM} onClick={() => zoom(1.2)}>+</button>
+        </div>
       </div>
 
       <div className="graph-canvas">
@@ -211,7 +240,7 @@ export function EvidenceGraph({ graph, status, ownedSkills, onOpenRoadmap }: Pro
             onPointerUp={onPointerUp}
             onPointerCancel={onPointerUp}
           >
-            <g ref={layerRef} transform={`translate(${pan.x}, ${pan.y})`}>
+            <g ref={layerRef} transform={`translate(${camera.x}, ${camera.y}) scale(${camera.zoom})`}>
               {sim.links.map((link) => (
                 <line key={`${link.source.id}>${link.target.id}`}
                   x1={link.source.x} y1={link.source.y} x2={link.target.x} y2={link.target.y}

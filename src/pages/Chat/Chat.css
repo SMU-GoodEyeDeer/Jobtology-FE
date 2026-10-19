@@ -407,6 +407,8 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
   padding: 16px 20px 12px;
   border-bottom: 1px solid #f3f4f6;
 }
@@ -452,6 +454,15 @@
 .graph-center-btn:hover {
   background: #f9fafb;
 }
+
+.graph-controls { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.graph-zoom-btn { width: 28px; height: 28px; display: grid; place-items: center; border: 1px solid #e5e7eb; border-radius: 8px; background: #fff; color: #374151; font-size: 18px; cursor: pointer; }
+.graph-zoom-btn:hover { background: #f3f4f6; }
+.graph-zoom-btn:disabled { opacity: .4; cursor: default; }
+.graph-center-btn { min-width: 52px; font-variant-numeric: tabular-nums; }
+.graph-sub { line-height: 1.6; }
+.graph-panel-header, .graph-legend { flex-shrink: 0; }
+.graph-canvas { min-height: 0; }
 
 .graph-canvas {
   flex: 1;
