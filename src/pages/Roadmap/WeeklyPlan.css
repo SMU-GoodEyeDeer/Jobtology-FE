@@ -74,6 +74,20 @@
 .wp-step-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
 .wp-step-copy strong { font-size: 15px; word-break: keep-all; overflow-wrap: anywhere; }
 .wp-step > .wp-chip, .wp-step > .wp-pill { font-size: 11px; flex-shrink: 0; }
+.wp-step, .wp-week-name > button, .wp-bar, .wp-current-task .wp-text-button {
+  transition: background-color .18s, border-color .18s, box-shadow .18s, transform .15s ease;
+}
+.wp-step:hover { background: var(--sd-hover); transform: translateX(2px); }
+.wp-step[aria-pressed="true"]:hover { background: var(--sd-primary-tint); }
+.wp-step:active, .wp-week-name > button:active, .wp-bar:active, .wp-current-task .wp-text-button:active { transform: scale(.98); }
+.wp-bar:hover { box-shadow: 0 3px 8px #4e46e530; }
+.wp-node { transition: box-shadow .18s; }
+.wp-phase-row:has(.wp-step[aria-pressed="true"]) .wp-node { box-shadow: 0 0 0 4px var(--sd-primary-tint); }
+.wp-detail-content { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .wp-step, .wp-week-name > button, .wp-bar, .wp-current-task .wp-text-button, .wp-node { transition: none; }
+  .wp-step:hover, .wp-step:active, .wp-week-name > button:active, .wp-bar:active, .wp-current-task .wp-text-button:active { transform: none; }
+}
 .wp-detail { min-width: 0; border: 1px solid var(--sd-border); border-radius: 16px; background: var(--sd-surface); display: flex; flex-direction: column; overflow: hidden; }
 .wp-detail-header { position: relative; padding: 24px 24px 12px; }
 .wp-eyebrow { color: var(--sd-primary); font-size: 12px; font-weight: 700; margin-bottom: 10px !important; }
