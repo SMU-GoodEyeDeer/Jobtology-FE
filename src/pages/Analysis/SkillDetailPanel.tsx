@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion, useReducedMotion } from "motion/react";
 import type { RoadmapDetailResponse, Skill, StepState } from "../../services/types";
 import { formatHours, formatPeriod, linkedRoadmapSteps } from "../../services/skillDetail";
 import { SkillBadge } from "./SkillBadge";
@@ -20,6 +21,7 @@ export function SkillDetailPanel({ skill, roadmap, overlay, onClose }: PanelProp
   const heading = useRef<HTMLHeadingElement>(null);
   const panel = useRef<HTMLElement>(null);
   const navigate = useNavigate();
+  const reducedMotion = useReducedMotion();
   const evidenceReady = useSkillEvidenceReady(skill);
   const ready = evidenceReady && roadmap.state !== "loading";
   const steps = linkedRoadmapSteps(skill, roadmap.state === "ready" ? roadmap.data?.steps ?? [] : []);
@@ -54,7 +56,10 @@ export function SkillDetailPanel({ skill, roadmap, overlay, onClose }: PanelProp
   ].filter(Boolean).join(" / ");
   const demand = [evidence, skill.demand_pct != null ? `${skill.demand_pct}%` : ""].filter(Boolean).join(" · ");
 
-  return <aside ref={panel} className={`sd-panel${overlay ? " sd-panel--overlay" : ""}`}
+  return <motion.aside ref={panel} className={`sd-panel${overlay ? " sd-panel--overlay" : ""}`}
+    initial={{ opacity: 0, x: overlay ? "100%" : 28 }} animate={{ opacity: 1, x: 0 }}
+    exit={{ opacity: 0, x: overlay ? "100%" : 28 }}
+    transition={{ duration: reducedMotion ? 0 : .2, ease: [.22, 1, .36, 1] }}
     role={overlay ? "dialog" : "complementary"} aria-modal={overlay || undefined} aria-labelledby="skill-panel-heading">
     <header className="sd-panel-header">
       <p className="sd-eyebrow">선택한 역량</p>
@@ -96,5 +101,5 @@ export function SkillDetailPanel({ skill, roadmap, overlay, onClose }: PanelProp
     <footer className="sd-panel-footer">
       <button type="button" disabled={!ready} onClick={() => navigate("/roadmap")}>로드맵에서 보기</button>
     </footer>
-  </aside>;
+  </motion.aside>;
 }
