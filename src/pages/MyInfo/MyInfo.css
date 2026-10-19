@@ -1,4 +1,41 @@
 /* ── Two column layout ── */
+.mi-account-card {
+  margin-top: 24px;
+  padding: 24px;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.mi-account-description,
+.mi-delete-confirm p {
+  color: #4b5563;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.mi-delete-btn {
+  padding: 9px 14px;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fff;
+  color: #b91c1c;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.mi-delete-btn--confirm { background: #b91c1c; color: #fff; border-color: #b91c1c; }
+.mi-delete-btn:disabled { cursor: default; opacity: .5; }
+.mi-delete-btn:focus-visible, .mi-delete-acknowledgement input:focus-visible { outline: 2px solid #b91c1c; outline-offset: 3px; }
+.mi-delete-confirm { padding-top: 8px; }
+.mi-delete-confirm h4 { margin: 0; color: #991b1b; font-size: 15px; }
+.mi-delete-acknowledgement { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; line-height: 1.6; color: #374151; }
+.mi-delete-acknowledgement input { flex-shrink: 0; margin-top: 4px; }
+.mi-account-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+.mi-delete-confirm .mi-delete-error { color: #b91c1c; }
+
 .mi-two-col {
   display: flex;
   gap: 20px;

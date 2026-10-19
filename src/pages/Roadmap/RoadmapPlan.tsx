@@ -3,8 +3,9 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import type { ReactNode } from "react";
 import { roadmapsApi } from "../../services/api";
 import type { StepState, WeeklyPlanInput, WeeklyPlanResponse, Skill } from "../../services/types";
-import { fullDate, planChanges, planInput, recomputePlan, recommendedInput, shortDate, targetDeltaDays, targetLabel } from "../../services/weeklyPlan";
+import { fullDate, planChanges, planInput, recommendedInput, shortDate, targetDeltaDays, targetLabel } from "../../services/weeklyPlan";
 import { useWeeklyPlan } from "./useWeeklyPlan";
+import { usePlanPreview } from "./usePlanPreview";
 import { PlanPhases } from "./PlanPhases";
 import { PlanWeeks } from "./PlanWeeks";
 import { PlanStepDetail } from "./PlanStepDetail";
@@ -24,7 +25,7 @@ export function RoadmapPlan({ roadmapId, goalId, onComplete, children, onReady }
   useEffect(() => { if (!loading) onReady?.(roadmapId); }, [loading, roadmapId, onReady]);
   if (loading) return <div className="rm-card" role="status">플랜을 불러오는 중...</div>;
   if (!plan) return children;
-  return <PlanContent saved={plan} skills={skills} onSaved={setPlan} onComplete={onComplete} />;
+  return <PlanContent key={roadmapId} saved={plan} skills={skills} onSaved={setPlan} onComplete={onComplete} />;
 }
 
 function PlanContent({ saved, skills, onSaved, onComplete }: {
@@ -38,15 +39,27 @@ function PlanContent({ saved, skills, onSaved, onComplete }: {
   const [drawer, setDrawer] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [resetToRecommendation, setResetToRecommendation] = useState(false);
+  const [original, setOriginal] = useState<WeeklyPlanResponse | null>(saved.is_customized ? null : saved);
   const reduceMotion = useReducedMotion();
   const fade = { duration: reduceMotion ? 0 : .14, ease: "easeOut" as const };
-  const plan = draft ? recomputePlan(saved, draft) : saved;
-  const recommended = recomputePlan(saved, recommendedInput(saved));
+  const preview = usePlanPreview(saved, draft, resetToRecommendation);
+  const plan = preview.plan;
+  const recommended = original ?? saved;
   const differences = planChanges(draft ? saved : recommended, plan);
   const customized = planChanges(recommended, plan);
   const selected = plan.steps.find(s => s.step_id === selectedId);
   const target = targetLabel(plan);
   const late = (targetDeltaDays(plan.completion_date, plan.target_date) ?? 0) > 0;
+
+  useEffect(() => {
+    if (!saved.is_customized) { setOriginal(saved); return; }
+    let cancelled = false;
+    roadmapsApi.previewPlan(saved.roadmap_id, null).then(value => { if (!cancelled) setOriginal(value); }).catch(() => { if (!cancelled) setOriginal(null); });
+    return () => { cancelled = true; };
+  }, [saved]);
+
+  function changeDraft(value: WeeklyPlanInput) { setResetToRecommendation(false); setDraft(value); }
 
   async function mutate(action: "save" | "reset" | "complete") {
     if (busy) return;
@@ -55,8 +68,9 @@ function PlanContent({ saved, skills, onSaved, onComplete }: {
       if (action === "complete" && selected) {
         await onComplete(selected.step_id, selected.state);
         onSaved(await roadmapsApi.getPlan(saved.roadmap_id));
-      } else if (action === "save" && draft) {
-        onSaved(await roadmapsApi.savePlan(saved.roadmap_id, planInput(plan)));
+      } else if (action === "save" && preview.normalizedInput && !preview.pending && !preview.error) {
+        if (resetToRecommendation) onSaved(await roadmapsApi.resetPlan(saved.roadmap_id));
+        else if (!preview.unchanged) onSaved(await roadmapsApi.savePlan(saved.roadmap_id, preview.normalizedInput));
         setDraft(null);
       } else if (action === "reset") {
         onSaved(await roadmapsApi.resetPlan(saved.roadmap_id));
@@ -88,15 +102,18 @@ function PlanContent({ saved, skills, onSaved, onComplete }: {
       {draft ? <span className="wp-chip wp-chip--amber">수정 중 · 저장 전</span> : saved.is_customized && <span className="wp-chip wp-chip--indigo">내가 수정한 플랜{saved.saved_at ? ` · ${shortDate(saved.saved_at)} 저장` : ""}</span>}
       <div className="wp-toolbar-actions">
         {!draft && saved.is_customized && <button className="wp-text-button" disabled={busy} onClick={() => { if (window.confirm("수정한 플랜을 지우고 추천 플랜으로 돌아갈까요?")) void mutate("reset"); }}>추천 플랜 다시 보기</button>}
-        {!draft && <button className="wp-button" disabled={busy} onClick={() => { setDraft(planInput(saved)); setError(null); switchTab("weeks"); }}>플랜 수정</button>}
+        {!draft && <button className="wp-button" disabled={busy} onClick={() => { changeDraft(planInput(saved)); setError(null); switchTab("weeks"); }}>플랜 수정</button>}
       </div>
     </header>
     {error && <p className="wp-error" role="alert">{error}</p>}
+    {preview.error && <div className="wp-error" role="alert"><p>{preview.error}</p><button className="wp-text-button" disabled={busy} onClick={preview.retry}>일정 다시 확인</button></div>}
+    {preview.pending && <p className="wp-preview-status" role="status">변경한 일정을 확인하고 있어요. 완료일과 경고는 확인 후 갱신돼요.</p>}
+    {(plan.warnings?.length ?? 0) > 0 && <div className="wp-plan-warnings" role="status" aria-label="일정 경고">{plan.warnings.map((warning, index) => <p key={`${warning.code}-${index}`}>{warning.message}{warning.code === "TARGET_DATE_EXCEEDED" ? " 이 일정으로 저장할 수 있어요." : ""}</p>)}</div>}
     {customized.labels.length > 0 && <div className="wp-diffs"><b>수정 내용</b>{customized.labels.map(label => <span className="wp-chip" key={label}>{label}</span>)}</div>}
     <AnimatePresence initial={false} mode="wait">
     <motion.div key={`${tab}-${draft ? "edit" : "view"}`} role="tabpanel" id="plan-view" aria-labelledby={`plan-tab-${tab}`} className={tab === "steps" ? "wp-split" : ""}
       initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={fade}>
-      {tab === "steps" ? <><PlanPhases plan={plan} selectedId={selectedId} onSelect={select} />{selected && <PlanStepDetail key="pane" plan={plan} step={selected} skill={skills.find(s => s.requirement_key != null && s.requirement_key === selected.requirement_key)} busy={busy || draft !== null} onComplete={() => void mutate("complete")} />}</> : <PlanWeeks plan={plan} draft={draft} changedIds={customized.changedIds} busy={busy} onChange={setDraft} onSelect={select} />}
+      {tab === "steps" ? <><PlanPhases plan={plan} selectedId={selectedId} onSelect={select} />{selected && <PlanStepDetail key="pane" plan={plan} step={selected} skill={skills.find(s => s.requirement_key != null && s.requirement_key === selected.requirement_key)} busy={busy || draft !== null} onComplete={() => void mutate("complete")} />}</> : <PlanWeeks plan={plan} draft={draft} changedIds={customized.changedIds} busy={busy} onChange={changeDraft} onSelect={select} />}
     </motion.div>
     </AnimatePresence>
     <AnimatePresence>
@@ -104,9 +121,9 @@ function PlanContent({ saved, skills, onSaved, onComplete }: {
     </AnimatePresence>
     <AnimatePresence>
     {draft && <motion.footer className="wp-save-bar wp-card" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }} transition={fade}><span className="wp-chip wp-chip--indigo">변경 {differences.count}건</span><span>완료 예정 {fullDate(saved.completion_date)} → <b>{fullDate(plan.completion_date)}</b></span>{target && <span className={`wp-chip ${late ? "wp-chip--amber" : "wp-chip--green"}`}>{target}</span>}
-      <button className="wp-text-button" disabled={busy} onClick={() => setDraft(recommendedInput(saved))}>추천 플랜으로 되돌리기</button>
+      <button className="wp-text-button" disabled={busy} onClick={() => { setResetToRecommendation(true); setDraft(recommendedInput(recommended)); }}>추천 플랜으로 되돌리기</button>
       <button className="wp-button" disabled={busy} onClick={() => { setDraft(null); setError(null); }}>취소</button>
-      <button className="wp-button wp-button--primary" disabled={busy} onClick={() => void mutate("save")}>{busy ? "저장 중..." : "저장"}</button>
+      <button className="wp-button wp-button--primary" disabled={busy || preview.pending || !!preview.error} onClick={() => void mutate("save")}>{busy ? "저장 중..." : preview.pending ? "일정 확인 중..." : "저장"}</button>
     </motion.footer>}
     </AnimatePresence>
   </div>;

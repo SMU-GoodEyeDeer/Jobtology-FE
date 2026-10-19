@@ -91,7 +91,7 @@ export function Home() {
           <section className="hero-card">
             <div className="hero-left">
               <span className="hero-badge">MY CAREER NAVIGATOR</span>
-              <h1 className="hero-name">안녕하세요{session ? ", " + session.user_id.slice(0, 8) + "님" : "!"}</h1>
+              <h1 className="hero-name">안녕하세요{session ? ", " + (session.display_name?.trim() || "사용자") + "님" : "!"}</h1>
               <p className="hero-role">{selectedGoalName}</p>
               <p className="hero-sub">오늘도 목표를 향해 성장하고 있어요.</p>
               <button className="hero-btn">이어서 진행하기</button>

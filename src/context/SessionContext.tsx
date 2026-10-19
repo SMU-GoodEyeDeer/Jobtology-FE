@@ -9,6 +9,7 @@ interface SessionState {
   error: string | null;
   refresh: () => Promise<void>;
   logout: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
 }
 
 const SessionContext = createContext<SessionState>({
@@ -17,6 +18,7 @@ const SessionContext = createContext<SessionState>({
   error: null,
   refresh: async () => {},
   logout: async () => {},
+  deleteAccount: async () => {},
 });
 
 export function SessionProvider({ children }: { children: ReactNode }) {
@@ -26,12 +28,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const requestVersion = useRef(0);
+  const deletionRequest = useRef<Promise<void> | null>(null);
 
   const refresh = useCallback(async () => {
+    if (deletionRequest.current) return;
     const version = ++requestVersion.current;
     setLoading(true);
     setError(null);
-    setCsrfToken(null);
     try {
       const data = await authApi.getSession();
       if (version !== requestVersion.current) return;
@@ -44,6 +47,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       if (status !== 401) {
         setError("로그인 상태를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.");
       }
+      setCsrfToken(null);
       setSession(null);
     } finally {
       if (version === requestVersion.current) {
@@ -71,12 +75,29 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const deleteAccount = useCallback(() => {
+    if (deletionRequest.current) return deletionRequest.current;
+    ++requestVersion.current;
+    setError(null);
+    setLoading(false);
+    // Keep the account and credentials available if deletion fails, so it can be retried.
+    const pending = authApi.deleteAccount().then(() => {
+      ++requestVersion.current;
+      setCsrfToken(null);
+      setSession(null);
+      setLoading(false);
+      setReady(true);
+    }).finally(() => { deletionRequest.current = null; });
+    deletionRequest.current = pending;
+    return pending;
+  }, []);
+
   useEffect(() => {
     refresh();
   }, [refresh]);
 
   return (
-    <SessionContext.Provider value={{ session, loading, error, refresh, logout }}>
+    <SessionContext.Provider value={{ session, loading, error, refresh, logout, deleteAccount }}>
       {ready ? children : null}
     </SessionContext.Provider>
   );

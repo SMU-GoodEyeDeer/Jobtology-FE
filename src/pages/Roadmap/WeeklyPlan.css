@@ -1,4 +1,7 @@
 .weekly-plan { --wp-field-secondary: #bdb8fc; min-width: 0; font-size: 14px; word-break: keep-all; overflow-wrap: anywhere; }
+.wp-preview-status { color: var(--sd-muted); padding: 10px 12px; }
+.wp-plan-warnings { padding: 12px 16px; margin-bottom: 12px; border: 1px solid #f5d98b; background: #fff8e6; color: #855a05; border-radius: 10px; }
+.weekly-plan .wp-plan-warnings p + p { margin-top: 6px; }
 .weekly-plan * { box-sizing: border-box; }
 .weekly-plan button, .weekly-plan input { font: inherit; }
 .weekly-plan button { cursor: pointer; }
@@ -92,6 +95,7 @@
 .wp-detail-header { position: relative; padding: 24px 24px 12px; }
 .wp-eyebrow { color: var(--sd-primary); font-size: 12px; font-weight: 700; margin-bottom: 10px !important; }
 .wp-detail h2 { font-size: 22px; margin: 0 28px 10px 0; line-height: 1.5; overflow-wrap: anywhere; }
+.weekly-plan .wp-skill-context { font-size: 13px; color: var(--sd-muted); margin-bottom: 10px; }
 .wp-detail-body { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 24px 24px; scrollbar-width: thin; }
 .wp-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0 0 16px; }
 .wp-stats > div { padding: 12px; border: 1px solid var(--sd-border); border-radius: 12px; }
@@ -107,6 +111,8 @@
 .wp-reason p { font-size: 13px; line-height: 1.6; }
 .wp-detail .sd-definition { background: var(--sd-canvas); font-size: 13px; padding: 14px; }
 .wp-tasks { margin-top: 20px; }
+.weekly-plan .wp-task-guidance { color: var(--sd-muted); font-size: 12px; line-height: 1.7; margin-top: 8px; }
+.wp-task-skill { display: block; }
 .wp-tasks h3 { display: flex; justify-content: space-between; }
 .wp-tasks h3 small { font-weight: 400; }
 .wp-tasks ol { margin: 12px 0 0; padding: 0; list-style: none; }

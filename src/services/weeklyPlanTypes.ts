@@ -4,6 +4,7 @@ export interface WeeklyPlanStep {
   readonly recommended_number: number;
   readonly title: string;
   readonly name: string;
+  readonly completion_criteria: readonly string[];
   readonly requirement_key: string | null;
   readonly state: "TODO" | "IN_PROGRESS" | "COMPLETED";
   readonly phase: "BASIC" | "CORE" | "ADVANCED";
@@ -37,7 +38,19 @@ export interface WeeklyPlanResponse {
   readonly total_weeks: number;
   readonly completion_date: string;
   readonly recommended_completion_date: string;
+  readonly schedule_source: "SOLVER" | "CUSTOM" | "FALLBACK";
+  readonly deadline_exceeded: boolean;
+  readonly days_past_target: number;
+  readonly has_dependency_violations: boolean;
+  readonly warnings: readonly WeeklyPlanWarning[];
   readonly steps: readonly WeeklyPlanStep[];
+}
+
+export interface WeeklyPlanWarning {
+  readonly code: "TARGET_DATE_EXCEEDED" | "PREREQUISITE_VIOLATION" | "MISSING_SOLVER_SCHEDULE";
+  readonly message: string;
+  readonly step_ids: readonly string[];
+  readonly prerequisite_step_ids: readonly string[];
 }
 
 export interface WeeklyPlanInput {

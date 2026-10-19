@@ -10,6 +10,7 @@ import { profileApi, capabilitiesApi, goalsApi } from "../../services/api";
 import { useGoals } from "../../hooks/useGoals";
 import type { GoalStatus } from "../../services/types";
 import { useSession } from "../../context/SessionContext";
+import { AccountSettings } from "./AccountSettings";
 
 const SPEC_TABS = ["언어·도구", "자격증", "어학", "경력·활동"] as const;
 type SpecTab = typeof SPEC_TABS[number];
@@ -403,6 +404,7 @@ export function MyInfo() {
 
           </div>
           </LoadingContent>
+          <AccountSettings />
         </main>
       </div>
     </div>
