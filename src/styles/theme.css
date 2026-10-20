@@ -100,3 +100,12 @@ input, select, textarea { accent-color: var(--accent-solid); }
 :root[data-theme="dark"] .onboarding .card img { filter: brightness(0) invert(1); }
 .onboarding .card img { filter: brightness(0) opacity(.75); }
 :root[data-theme="dark"] .graph-node circle { stroke: #c4b5fd60; stroke-width: 1px; }
+
+/* Native snapshots crossfade the whole palette without overriding interaction/layout transitions. */
+::view-transition-old(root), ::view-transition-new(root) {
+  animation-duration: 220ms;
+  animation-timing-function: ease-in-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+}

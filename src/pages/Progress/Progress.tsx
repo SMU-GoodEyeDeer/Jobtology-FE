@@ -1,3 +1,4 @@
+import { GoalArrow } from "../../components/GoalArrow";
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "../Home/Home.css";
@@ -79,7 +80,7 @@ export function Progress() {
           <div className="goal-wrapper" ref={goalRef}>
             <button className="goal-button" aria-expanded={goalOpen} aria-controls="goal-dropdown" onClick={() => setGoalOpen((v) => !v)}>
               {selectedGoalName}
-              <img src={chevronDownIcon} alt="▾" className="goal-arrow" />
+              <GoalArrow />
             </button>
             <GoalDropdown open={goalOpen}>
                 {goals.map((goal) => (

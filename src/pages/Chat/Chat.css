@@ -117,7 +117,7 @@
 .chat-layout .goal-arrow {
   width: 19px;
   height: 26px;
-  opacity: 0.5;
+  color: var(--text-secondary);
 }
 
 .chat-layout .goal-dropdown {

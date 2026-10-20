@@ -16,6 +16,7 @@ beforeEach(() => {
 afterEach(async () => {
   await act(async () => root.unmount()); container.remove();
   vi.restoreAllMocks(); vi.unstubAllGlobals(); localStorage.clear();
+  Reflect.deleteProperty(document, "startViewTransition");
   delete document.documentElement.dataset.theme; delete document.documentElement.dataset.themePreference;
   document.documentElement.style.colorScheme = "";
 });
@@ -60,4 +61,23 @@ it("keeps theme changes usable when browser storage is blocked", async () => {
   await render(); expect(document.documentElement.dataset.theme).toBe("light");
   await toggle(); expect(document.documentElement.dataset.theme).toBe("dark");
   await toggle(); expect(document.documentElement.dataset.theme).toBe("light");
+});
+it("commits both theme directions inside a supported view transition", async () => {
+  vi.mocked(window.matchMedia).mockReturnValue({ matches: false } as MediaQueryList);
+  const transition = vi.fn((update: () => void) => { update(); return { ready: Promise.resolve() }; });
+  Object.defineProperty(document, "startViewTransition", { configurable: true, value: transition });
+  await render(); await toggle();
+  expect(document.documentElement.dataset.theme).toBe("dark");
+  expect(localStorage.getItem("jobtology.theme")).toBe("dark");
+  await toggle();
+  expect(document.documentElement.dataset.theme).toBe("light");
+  expect(transition).toHaveBeenCalledTimes(2);
+  expect(window.matchMedia).toHaveBeenCalledWith("(prefers-reduced-motion: reduce)");
+});
+it("switches instantly when reduced motion is requested", async () => {
+  const transition = vi.fn();
+  Object.defineProperty(document, "startViewTransition", { configurable: true, value: transition });
+  await render(); await toggle();
+  expect(document.documentElement.dataset.theme).toBe("dark");
+  expect(transition).not.toHaveBeenCalled();
 });

@@ -4,6 +4,8 @@ The **다크 모드** toggle is available in the sidebar, the specs dialog, the 
 
 `public/theme-init.js` applies the preference before the app/styles load to avoid flashing the opposite theme. `ThemeProvider` synchronizes storage events and sets the native `color-scheme`, including date inputs and selects.
 
+Manual theme changes crossfade over 220ms using the browser's View Transition API. Reduced-motion preferences and browsers without that API switch instantly. Startup and cross-tab synchronization do not animate. Goal chevrons and the sidebar logo use theme colors directly, including the logo's smaller nodes and connecting lines.
+
 `src/styles/theme.css` defines the semantic palette used throughout the app. Use `--surface`, `--text`, `--muted` and status pairs for ordinary content; use `--accent-solid` with `--on-accent` for filled buttons. Text on a strong hero background uses `--on-strong-muted`, not a border color. Analysis/roadmap `--sd-*` variables reference this same palette. Colored graph categories stay distinguishable, with theme-aware labels and edges.
 
-Tests cover the toggle's accessible state, light defaults regardless of OS settings, startup preference resolution, persisted choices, cross-tab synchronization and blocked storage. Browser checks use local synthetic data across the main pages, plus the full-screen phone editor. These checks are contrast spot checks, not a full accessibility certification.
+Tests cover the toggle's accessible state, light defaults regardless of OS settings, startup preference resolution, persisted choices, cross-tab synchronization, blocked storage, both animated theme directions and reduced motion. Browser checks use local synthetic data across the main pages, plus the full-screen phone editor. These checks are contrast spot checks, not a full accessibility certification.
