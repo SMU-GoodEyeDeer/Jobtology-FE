@@ -30,5 +30,10 @@ describe("live resource navigation and transport", () => {
     expect(new URL(roadmapSkillHref("BACKEND:2001020301", "2001020302"), "https://app.example").searchParams.get("requirement")).toBe("BACKEND:2001020301");
     expect(analysisSkillHref(null, "2001020301")).toBe("/analysis?ncs=2001020301");
     expect(analysisSkillHref(null, "label instead of code")).toBe("/analysis");
+    const params = new URL(roadmapSkillHref("BACKEND:2001020301", null, "step:실습/a?b&c"), "https://app.example").searchParams;
+    expect(params.get("requirement")).toBe("BACKEND:2001020301");
+    expect(params.get("step")).toBe("step:실습/a?b&c");
+    expect(roadmapSkillHref(null, "2001020301", "second")).toBe("/roadmap?ncs=2001020301&step=second");
+    expect(roadmapSkillHref(null, null, "second")).toBe("/roadmap?step=second");
   });
 });

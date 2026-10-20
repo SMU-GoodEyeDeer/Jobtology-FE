@@ -52,6 +52,21 @@ describe("real posting browser", () => {
     expect(resourcesApi.postings).toHaveBeenLastCalledWith(expect.objectContaining({ q: "백엔드", offset: 0 }));
     expect(container.querySelector(".posting-detail")).toBeNull();
   });
+  it("keeps trimmed draft filters when choosing today and clears paging and posting selection", async () => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date(2026, 9, 20, 12));
+    try {
+      await renderPage("?q=old&ncs_category=20010203&region=서울&open_on=2026-01-01&offset=20&posting=urn%3Aposting%3Aa%2Fb");
+      await act(async () => {
+        changeInput(container.querySelector<HTMLInputElement>('input[placeholder="공고명 또는 기관명"]')!, " 백엔드 ");
+        changeInput(container.querySelector<HTMLInputElement>('input[placeholder="예: 200102"]')!, " 20010204 ");
+        changeInput(container.querySelector<HTMLInputElement>('input[placeholder="예: 서울"]')!, " 부산 ");
+      });
+      await act(async () => button("오늘 기준").click());
+      expect(resourcesApi.postings).toHaveBeenLastCalledWith({ q: "백엔드", ncs_category: "20010204", region: "부산", open_on: "2026-10-20", offset: 0, limit: 20 });
+      expect(container.querySelector(".posting-detail")).toBeNull();
+      expect(container.querySelector<HTMLInputElement>('input[type="date"]')?.value).toBe("2026-10-20");
+    } finally { vi.useRealTimers(); }
+  });
   it("does not fabricate results for an empty feed and lets a failed feed retry", async () => {
     vi.mocked(resourcesApi.postings).mockRejectedValueOnce(new Error("offline")).mockResolvedValueOnce({ ...list, items: [], total: 0 });
     await renderPage();

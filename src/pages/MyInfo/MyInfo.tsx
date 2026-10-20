@@ -161,6 +161,12 @@ export function MyInfo() {
       setMutationNotice("프로필을 저장했어요. 학적 정보는 보관되며, 역량 판정은 직무와 연결된 스펙을 기준으로 계산해요.");
     } catch (err) {
       const status = (err as { status?: number })?.status;
+      if (status === 409) {
+        try {
+          const latest = await profileApi.get();
+          setProfileVersion(latest.profile_version ?? latest.version);
+        } catch { /* Keep the conflict message and local edits if refreshing fails. */ }
+      }
       setProfileError(status === 409 ? "다른 정보가 먼저 변경됐어요. 입력 내용은 유지했어요. 저장을 다시 눌러 주세요." : status === 422 ? "프로필 입력값을 확인해 주세요. 입력 내용은 유지했어요." : "프로필을 저장하지 못했어요. 입력 내용은 유지했어요. 연결을 확인한 뒤 다시 저장해 주세요.");
     } finally {
       mutationInFlight.current = false;
@@ -177,12 +183,13 @@ export function MyInfo() {
     try {
       const profile = await profileApi.get();
       const category = TAB_TO_CATEGORY[specTab];
+      const requestVersion = profile.profile_version ?? profile.version;
       const created = await capabilitiesApi.create({
-        expected_profile_version: profile.profile_version ?? profile.version,
+        expected_profile_version: requestVersion,
         category,
         raw_text: trimmed,
       });
-      setProfileVersion(created.profile_version);
+      setProfileVersionValue(previous => previous === requestVersion ? Math.max(previous, created.profile_version) : previous);
       setCapabilities(prev => [...prev.filter(item => item.capability_id !== created.capability_id), {
         capability_id: created.capability_id, category, raw_text: trimmed, lifecycle: "ACTIVE",
       }]);
@@ -202,8 +209,9 @@ export function MyInfo() {
     setCapabilitiesError(null); setMutationNotice(null); setAnalysisError(null); setProfileSaved(false);
     try {
       const profile = await profileApi.get();
-      const deleted = await capabilitiesApi.delete(capabilityId, { expected_profile_version: profile.profile_version ?? profile.version });
-      setProfileVersion(deleted.profile_version);
+      const requestVersion = profile.profile_version ?? profile.version;
+      const deleted = await capabilitiesApi.delete(capabilityId, { expected_profile_version: requestVersion });
+      setProfileVersionValue(previous => previous === requestVersion ? Math.max(previous, deleted.profile_version) : previous);
       setCapabilities((prev) => prev.filter((c) => c.capability_id !== capabilityId));
       setMutationNotice("역량을 삭제했어요. 분석 결과를 갱신하려면 다시 분석해 주세요.");
     } catch (err) {

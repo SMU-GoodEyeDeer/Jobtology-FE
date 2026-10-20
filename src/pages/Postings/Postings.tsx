@@ -35,8 +35,11 @@ export function Postings() {
   const current = result?.key === key ? result : null;
   function search(event: FormEvent) {
     event.preventDefault();
+    applyFilters(draft.openOn);
+  }
+  function applyFilters(openOn: string) {
     const next = new URLSearchParams();
-    for (const [field, value] of Object.entries({ q: draft.q.trim(), ncs_category: draft.category.trim(), region: draft.region.trim(), open_on: draft.openOn })) if (value) next.set(field, value);
+    for (const [field, value] of Object.entries({ q: draft.q.trim(), ncs_category: draft.category.trim(), region: draft.region.trim(), open_on: openOn })) if (value) next.set(field, value);
     setParams(next);
   }
   function update(field: string, value: string | null) {
@@ -53,7 +56,7 @@ export function Postings() {
           <label>근무 지역<input value={draft.region} onChange={event => setDraft({ ...draft, region: event.target.value })} placeholder="예: 서울" maxLength={100} /></label>
           <label>접수 기간에 포함할 날짜<input type="date" value={draft.openOn} onChange={event => setDraft({ ...draft, openOn: event.target.value })} /></label>
           <button className="postings-primary" type="submit">검색</button>
-          <button className="postings-secondary" type="button" onClick={() => setParams({ open_on: localToday() })}>오늘 기준</button>
+          <button className="postings-secondary" type="button" onClick={() => applyFilters(localToday())}>오늘 기준</button>
           <button className="postings-reset" type="button" onClick={() => setParams({})}>초기화</button>
         </form>
         <p className="postings-note">수집된 공고를 보여드려요. 날짜 필터는 수집된 접수 기간 기준이며, 실제 모집 여부는 공고 원문을 확인해 주세요.</p>

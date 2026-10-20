@@ -5,5 +5,8 @@ function skillHref(page: "roadmap" | "analysis", requirementKey?: string | null,
   else if (ncsBaseCode && /^[0-9]{10}$/.test(ncsBaseCode)) query.set("ncs", ncsBaseCode);
   return `/${page}${query.size ? `?${query}` : ""}`;
 }
-export const roadmapSkillHref = (requirementKey?: string | null, ncsBaseCode?: string | null) => skillHref("roadmap", requirementKey, ncsBaseCode);
+export function roadmapSkillHref(requirementKey?: string | null, ncsBaseCode?: string | null, stepId?: string | null): string {
+  const href = skillHref("roadmap", requirementKey, ncsBaseCode);
+  return stepId ? `${href}${href.includes("?") ? "&" : "?"}${new URLSearchParams({ step: stepId })}` : href;
+}
 export const analysisSkillHref = (requirementKey?: string | null, ncsBaseCode?: string | null) => skillHref("analysis", requirementKey, ncsBaseCode);

@@ -127,6 +127,63 @@ describe("MyInfo persistence", () => {
     expect(container.querySelector('[role="alert"]')).toBeNull();
   });
 
+  it.each(["profile_version", "version"])("refreshes %s after a PUT conflict so one explicit retry can save", async versionField => {
+    await mount(); await input("#mi-major", "내 수정 내용");
+    api.profileApi.update.mockImplementationOnce(async () => {
+      bumpVersion();
+      api.profileApi.get.mockResolvedValueOnce({ [versionField]: profile.version });
+      throw { status: 409 };
+    });
+    await act(async () => button("저장").click());
+    expect(api.profileApi.get).toHaveBeenCalledTimes(3);
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain("입력 내용은 유지했어요");
+    expect(container.querySelector<HTMLInputElement>("#mi-major")?.value).toBe("내 수정 내용");
+    await act(async () => button("저장").click());
+    expect(api.profileApi.update).toHaveBeenCalledTimes(2);
+    expect(api.profileApi.update).toHaveBeenLastCalledWith(expect.objectContaining({ expected_profile_version: 5, major_raw: "내 수정 내용" }));
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+  });
+
+  it("keeps the 409 message and edits if the conflict refresh fails", async () => {
+    await mount(); await input("#mi-major", "내 수정 내용");
+    api.profileApi.update.mockImplementationOnce(async () => {
+      api.profileApi.get.mockRejectedValueOnce(new Error("offline"));
+      throw { status: 409 };
+    });
+    await act(async () => button("저장").click());
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain("다른 정보가 먼저 변경됐어요");
+    expect(container.querySelector<HTMLInputElement>("#mi-major")?.value).toBe("내 수정 내용");
+    expect(button("저장").disabled).toBe(false);
+  });
+
+  it.each([422, 500])("does not refresh profile state after a %s save failure", async status => {
+    await mount(); await input("#mi-major", "내 수정 내용");
+    api.profileApi.update.mockRejectedValueOnce({ status });
+    await act(async () => button("저장").click());
+    expect(api.profileApi.get).toHaveBeenCalledTimes(2);
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain(status === 422 ? "입력값을 확인" : "저장하지 못했어요");
+    expect(container.querySelector<HTMLInputElement>("#mi-major")?.value).toBe("내 수정 내용");
+  });
+
+  it.each(["add", "delete"])("does not hide an external profile change after a successful spec %s", async operation => {
+    capabilities = [{ capability_id: "old", category: "LANGUAGE_TOOL", raw_text: "Java", lifecycle: "ACTIVE" }];
+    await mount(); await input("#mi-major", "내 수정 내용");
+    profile = { ...profile, major_raw: "외부에서 바뀐 학과" }; bumpVersion();
+    if (operation === "add") {
+      await input('[aria-label="언어·도구 추가"]', "Python");
+      await act(async () => button("추가").click());
+      expect(container.querySelector(".mi-spec-list")?.textContent).toContain("Python");
+    } else {
+      await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Java 삭제"]')!.click());
+      expect(container.querySelector(".mi-spec-list")?.textContent).not.toContain("Java");
+    }
+    await act(async () => button("저장").click());
+    expect(api.profileApi.update).not.toHaveBeenCalled();
+    expect(profile.major_raw).toBe("외부에서 바뀐 학과");
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain("다른 정보가 먼저 변경됐어요");
+    expect(container.querySelector<HTMLInputElement>("#mi-major")?.value).toBe("내 수정 내용");
+  });
+
   it("uses February/August semester selectors and month-end dates while preserving an untouched legacy date", async () => {
     await mount();
     expect(container.querySelector('input[type="date"]')).toBeNull();

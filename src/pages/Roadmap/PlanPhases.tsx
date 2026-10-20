@@ -11,8 +11,10 @@ interface Props {
 
 export function PlanPhases({ plan, selectedId, onSelect }: Props) {
   const current = plan.steps.find(s => s.state !== "COMPLETED")?.phase ?? plan.steps[0]?.phase;
-  const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set(current ? [current] : []));
   const selectedPhase = plan.steps.find(step => step.step_id === selectedId)?.phase;
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set([
+    ...(current ? [current] : []), ...(selectedPhase ? [selectedPhase] : []),
+  ]));
   useEffect(() => {
     if (selectedPhase) setExpanded(previous => new Set([...previous, selectedPhase]));
   }, [selectedPhase]);
@@ -46,16 +48,16 @@ export function PlanPhases({ plan, selectedId, onSelect }: Props) {
       </button>
       <div className="wp-phase-fold" id={`phase-${p.phase}`} data-expanded={expanded.has(p.phase)}
         aria-hidden={!expanded.has(p.phase)} inert={!expanded.has(p.phase)}>
-        <div className="wp-phase-fold-inner"><div className="wp-phase-steps">{p.steps.map((step, index) => <PhaseRow key={step.step_id} step={step} groupNumber={index + 1} steps={plan.steps} selected={step.step_id === selectedId} onSelect={() => onSelect(step.step_id)} />)}</div></div>
+        <div className="wp-phase-fold-inner"><div className="wp-phase-steps">{p.steps.map((step, index) => <PhaseRow key={step.step_id} step={step} groupNumber={index + 1} steps={plan.steps} selected={step.step_id === selectedId} visible={expanded.has(p.phase)} onSelect={() => onSelect(step.step_id)} />)}</div></div>
       </div>
     </section>)}</div>
   </section>;
 }
 
-function PhaseRow({ step, groupNumber, steps, selected, onSelect }: { readonly step: WeeklyPlanStep; readonly groupNumber: number; readonly steps: readonly WeeklyPlanStep[]; readonly selected: boolean; readonly onSelect: () => void }) {
+function PhaseRow({ step, groupNumber, steps, selected, visible, onSelect }: { readonly step: WeeklyPlanStep; readonly groupNumber: number; readonly steps: readonly WeeklyPlanStep[]; readonly selected: boolean; readonly visible: boolean; readonly onSelect: () => void }) {
   const warning = prerequisiteWarning(step, steps);
   const row = useRef<HTMLDivElement>(null);
-  useEffect(() => { if (selected) row.current?.scrollIntoView?.({ block: "nearest", behavior: "instant" }); }, [selected]);
+  useEffect(() => { if (selected && visible) row.current?.scrollIntoView?.({ block: "nearest", behavior: "instant" }); }, [selected, visible]);
   return <div ref={row} className="wp-phase-row">
     <span className={`wp-node wp-node--${step.state}`} aria-hidden="true">{step.state === "COMPLETED" ? "✓" : ""}</span>
     <button className="wp-step" aria-pressed={selected} onClick={onSelect}>

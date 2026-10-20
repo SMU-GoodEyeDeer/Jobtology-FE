@@ -6,9 +6,10 @@ import type { Root } from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Skill } from "../../services/types";
+import { skillIdentity } from "../../services/skillDetail";
 import { SkillList } from "./SkillList";
 vi.mock("./useSkillResources", () => ({ prefetchSkillResources: vi.fn().mockResolvedValue([]), useActiveSkillRoadmap: () => ({ state: "ready", data: null }) }));
-vi.mock("./SkillDetailPanel", () => ({ SkillDetailPanel: ({ skill, onClose }: { skill: Skill; onClose: () => void }) => createElement("aside", { "data-selected-skill": skill.requirement_key }, skill.name, createElement("button", { onClick: onClose }, "패널 닫기")) }));
+vi.mock("./SkillDetailPanel", () => ({ SkillDetailPanel: ({ skill, onClose }: { skill: Skill; onClose: () => void }) => createElement("aside", { "data-selected-skill": skillIdentity(skill) }, skill.name, createElement("button", { onClick: onClose }, "패널 닫기")) }));
 vi.mock("motion/react", () => ({
   useReducedMotion: () => true,
   AnimatePresence: ({ children }: { children: ReactNode }) => children,
@@ -32,6 +33,16 @@ async function render(query: string, items = skills, linksReady = true) {
   await act(async () => root.render(createElement(MemoryRouter, { initialEntries: [`/analysis?${query}`] }, createElement(SkillList, { skills: items, goalId: "goal", emptyMessage: "empty", linksReady }))));
 }
 describe("analysis competency deep links", () => {
+  it("selects only the requested NCS skill when legacy skills share a name and lack requirement keys", async () => {
+    const legacy = skills.map(({ requirement_key: _key, ...skill }) => skill);
+    await render("ncs=2001020302", legacy);
+    expect(container.querySelector("[data-selected-skill]")?.getAttribute("data-selected-skill")).toBe("2001020302");
+    expect(container.querySelectorAll('.sd-row[aria-pressed="true"]')).toHaveLength(1);
+    expect(container.querySelectorAll('.sd-row--linked')).toHaveLength(1);
+    const firstRow = container.querySelector<HTMLButtonElement>(".sd-row")!;
+    await act(async () => firstRow.click());
+    expect(container.querySelector("[data-selected-skill]")?.getAttribute("data-selected-skill")).toBe("2001020301");
+  });
   it("selects, highlights and scrolls the exact identity, not a matching label", async () => {
     await render("requirement=BACKEND%3A2001020302");
     expect(container.querySelector("[data-selected-skill]")?.getAttribute("data-selected-skill")).toBe("BACKEND:2001020302");

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { examOutlook, examOutlookText, formatDemand, formatHours, linkedRoadmapSteps, pickNextExamSession, formatSessionLine, qualificationCaption, qualificationLabel, yearStart } from "./skillDetail";
+import { examOutlook, examOutlookText, formatDemand, formatHours, linkedRoadmapSteps, pickNextExamSession, formatSessionLine, qualificationCaption, qualificationLabel, skillIdentity, yearStart } from "./skillDetail";
 import type { ExamSession, RoadmapStep, Skill } from "./types";
 
 const skill: Skill = { name: "UI 구현", type: "필수" };
@@ -10,6 +10,11 @@ const session: ExamSession = {
 };
 
 describe("skill detail formatting", () => {
+  it("identifies skills by requirement, then NCS code, then legacy name", () => {
+    expect(skillIdentity({ ...skill, requirement_key: "ui", ncs_base_code: "2001020301" })).toBe("ui");
+    expect(skillIdentity({ ...skill, ncs_base_code: "2001020301" })).toBe("2001020301");
+    expect(skillIdentity(skill)).toBe(skill.name);
+  });
   it.each([
     [{}, "—"],
     [{ demand_pct: 0, demand_postings: 0 }, "0% · 0건"],

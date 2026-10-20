@@ -38,8 +38,9 @@ function PlanContent({ saved, skills, onSaved, onComplete }: {
   const [search] = useSearchParams();
   const requirement = search.get("requirement");
   const ncs = search.get("ncs");
-  const requested = !!(requirement || ncs);
-  const linkedStep = roadmapTarget(saved, skills, requirement, ncs);
+  const stepId = search.get("step");
+  const requested = !!(requirement || ncs || stepId);
+  const linkedStep = roadmapTarget(saved, skills, requirement, ncs, stepId);
   const [tab, setTab] = useState<"steps" | "weeks">("steps");
   const [draft, setDraft] = useState<WeeklyPlanInput | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(linkedStep?.step_id ?? saved.steps.find(s => s.state !== "COMPLETED")?.step_id ?? saved.steps[0]?.step_id ?? null);
@@ -61,7 +62,7 @@ function PlanContent({ saved, skills, onSaved, onComplete }: {
 
   useEffect(() => {
     if (linkedStep) { setSelectedId(linkedStep.step_id); setTab("steps"); setDrawer(false); }
-  }, [linkedStep?.step_id, requirement, ncs]);
+  }, [linkedStep?.step_id, requirement, ncs, stepId]);
 
   useEffect(() => {
     if (!saved.is_customized) { setOriginal(saved); return; }

@@ -36,9 +36,12 @@ export function SkillDetailPanel({ skill, roadmap, overlay, onClose }: PanelProp
     function handleKey(event: KeyboardEvent) {
       if (event.key === "Escape") { event.preventDefault(); onClose(); }
       if (event.key !== "Tab" || !overlay) return;
-      const controls = panel.current?.querySelectorAll<HTMLElement>('button:not([disabled]), a[href], summary, [tabindex="0"]');
-      const first = controls?.[0];
-      const last = controls?.[controls.length - 1];
+      const controls = Array.from(panel.current?.querySelectorAll<HTMLElement>('button, a[href], summary, [tabindex]') ?? [])
+        .filter(control => control.tabIndex >= 0 && !control.matches(":disabled")
+          && !control.closest("[hidden], [inert]") && control.getClientRects().length > 0
+          && getComputedStyle(control).visibility === "visible");
+      const first = controls[0];
+      const last = controls[controls.length - 1];
       if (event.shiftKey && (document.activeElement === first || document.activeElement === heading.current)) {
         event.preventDefault(); last?.focus();
       } else if (!event.shiftKey && document.activeElement === last) {
@@ -95,13 +98,13 @@ export function SkillDetailPanel({ skill, roadmap, overlay, onClose }: PanelProp
             <span className="sd-step-number">{step.position != null ? step.position + 1 : step.order ?? "—"}</span>
             <div><strong>{step.title}</strong><p className="sd-muted">{formatPeriod(step.planned_start, step.planned_end)}
               <span className={`sd-badge sd-step-state--${step.state}`}>{stepLabels[step.state]}</span></p></div>
-            <button type="button" className="sd-step-link" onClick={() => navigate(roadmapSkillHref(skill.requirement_key))}>보기</button>
+            <button type="button" className="sd-step-link" onClick={() => navigate(roadmapSkillHref(skill.requirement_key, skill.ncs_base_code, step.step_id))}>보기</button>
           </div>)}
       </section>
       </div>
     </div>
     <footer className="sd-panel-footer">
-      <button type="button" disabled={!ready} onClick={() => navigate(roadmapSkillHref(skill.requirement_key))}>로드맵에서 보기</button>
+      <button type="button" disabled={!ready} onClick={() => navigate(roadmapSkillHref(skill.requirement_key, skill.ncs_base_code))}>로드맵에서 보기</button>
     </footer>
   </motion.aside>;
 }

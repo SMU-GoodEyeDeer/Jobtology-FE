@@ -1,7 +1,7 @@
 import type { ExamSession, RoadmapStep, Skill, SkillQualification } from "./types";
 
 export function skillIdentity(skill: Skill): string {
-  return skill.requirement_key ?? skill.name;
+  return skill.requirement_key ?? skill.ncs_base_code ?? skill.name;
 }
 
 export function formatDemand(skill: Skill): string {
