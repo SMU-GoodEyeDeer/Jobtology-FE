@@ -20,6 +20,8 @@
 .posting-card strong { color: var(--text); font-size: 15px; line-height: 1.6; }
 .posting-card span, .posting-card small { font-size: 12px; line-height: 1.5; }
 .posting-card .posting-card-org { color: var(--accent); font-weight: 600; }
+.posting-card-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.posting-card-source { padding: 2px 7px; border: 1px solid var(--accent-border); border-radius: 6px; color: var(--accent-strong); background: var(--accent-tint); white-space: nowrap; }
 .posting-card:hover, .posting-card--selected { background: var(--accent-tint); }
 .posting-card--selected { box-shadow: inset 3px 0 var(--accent-focus); }
 .postings-state { padding: 40px 16px; text-align: center; font-size: 14px; color: var(--muted); line-height: 1.7; }
@@ -48,7 +50,7 @@
 .posting-detail dl div { display: grid; grid-template-columns: 85px 1fr; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--surface-soft); font-size: 13px; line-height: 1.7; }
 .posting-detail dt { color: var(--muted); }
 .posting-detail dd { margin: 0; color: var(--text-secondary); overflow-wrap: anywhere; }
-.postings-source { font-size: 11px; color: var(--tertiary); overflow-wrap: anywhere; }
+.postings-source { margin: 12px 0 0; padding-bottom: 12px; font-size: 11px; line-height: 1.6; color: var(--tertiary); overflow-wrap: anywhere; }
 .postings-page :focus-visible { outline: 2px solid var(--accent-focus); outline-offset: 3px; }
 @media(max-width: 1100px) { .postings-content { padding: 20px; } .postings-grid--selected { grid-template-columns: minmax(0, 1fr); } .postings-detail-panel { position: static; grid-row: 1; } .postings-header-caption { display: none; } }
 @media(max-width: 600px) {

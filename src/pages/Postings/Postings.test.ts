@@ -15,7 +15,7 @@ const posting: PostingItem = {
   posting_id: "urn:posting:a/b", title: "실제 수집 개발자 채용", organization_code: "org", organization_name: "수집 기관", date_posted: "2026-10-01", closing_date: "2026-10-31", ongoing: true,
   regions: ["서울"], employment_types: ["정규직"], recruitment_type: "신입", education: null, ncs_categories: [{ code: "20010203", name: "개발" }], headcount: 0, source_url: "https://example.org/posting",
 };
-const list: PostingsResponse = { items: [posting], sources: [{ source_id: "alio", run_id: "run", data_as_of: "2026-10-20T00:00:00Z" }], total: 25, limit: 20, offset: 0 };
+const list: PostingsResponse = { items: [posting], sources: [{ source_id: "job_alio", run_id: "run", data_as_of: "2026-10-20T00:00:00Z" }], total: 25, limit: 20, offset: 0 };
 const detail: PostingResponse = { item: posting, sources: list.sources };
 let root: Root; let container: HTMLDivElement;
 beforeEach(() => {
@@ -39,9 +39,24 @@ describe("real posting browser", () => {
     expect(resourcesApi.posting).toHaveBeenCalledWith("urn:posting:a/b");
     expect(container.querySelector(".posting-detail")?.textContent).toContain("수집 기관");
     expect(container.querySelector(".posting-detail")?.textContent).toContain("0명");
-    expect(container.querySelector(".posting-detail")?.textContent).toContain("수집 기준 2026-10-20");
+    expect(container.querySelector(".posting-detail")?.textContent).toContain("데이터 반영 2026-10-20");
     expect(container.querySelector('.posting-detail a')?.getAttribute("href")).toBe("https://example.org/posting");
     expect(container.textContent).toContain("현재 접수 여부");
+  });
+  it("shows each supplied source without reordering a server-paginated feed or inventing NCS mappings", async () => {
+    const jobkorea = { ...posting, posting_id: "jobkorea:001", source_id: "jobkorea", ncs_categories: [] };
+    const alio = { ...posting, posting_id: "001", source_id: "job_alio" };
+    const sources = [{ source_id: "jobkorea", run_id: "jk-ready", data_as_of: "2026-10-08T02:31:45Z" }, ...list.sources];
+    vi.mocked(resourcesApi.postings).mockResolvedValue({ ...list, sources, items: [jobkorea, alio], total: 2 });
+    vi.mocked(resourcesApi.posting).mockResolvedValue({ item: jobkorea, sources: [sources[0]] });
+    await renderPage();
+    expect(Array.from(container.querySelectorAll(".posting-card-source")).map(item => item.textContent)).toEqual(["잡코리아", "JOB-ALIO"]);
+    expect(Array.from(container.querySelectorAll(".postings-source")).map(item => item.textContent)).toEqual(["잡코리아 · 데이터 반영 2026-10-08", "JOB-ALIO · 데이터 반영 2026-10-20"]);
+    await act(async () => container.querySelector<HTMLButtonElement>(".posting-card")!.click());
+    expect(resourcesApi.posting).toHaveBeenLastCalledWith("jobkorea:001");
+    expect(container.querySelector(".posting-detail")?.textContent).toContain("잡코리아 · 데이터 반영 2026-10-08");
+    const ncs = Array.from(container.querySelectorAll(".posting-detail dl div")).find(row => row.querySelector("dt")?.textContent === "NCS 분야");
+    expect(ncs?.querySelector("dd")?.textContent).toBe("제공되지 않음");
   });
   it("paginates real results and resets paging and detail when search changes", async () => {
     await renderPage("?q=old&offset=20&posting=urn%3Aposting%3Aa%2Fb");

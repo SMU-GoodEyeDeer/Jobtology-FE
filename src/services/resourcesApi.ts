@@ -7,6 +7,7 @@ export interface LiveSource {
 }
 export interface PostingItem {
   readonly posting_id: string;
+  readonly source_id?: string | null;
   readonly title: string | null;
   readonly organization_code: string | null;
   readonly organization_name: string | null;
@@ -30,6 +31,14 @@ export interface PostingsResponse {
   readonly offset: number;
 }
 export interface PostingResponse { readonly sources: readonly LiveSource[]; readonly item: PostingItem }
+export function postingSourceName(sourceId: string): string {
+  switch (sourceId) {
+    case "jobkorea": return "잡코리아";
+    case "job_alio": return "JOB-ALIO";
+    case "nara_job": return "나라일터";
+    default: return sourceId;
+  }
+}
 export function postingSearchParams(filters: PostingFilters): URLSearchParams {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(filters)) if (value !== undefined && value !== "") params.set(key, String(value));

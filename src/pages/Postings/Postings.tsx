@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AppSidebar } from "../../components/AppSidebar";
-import { resourcesApi } from "../../services/resourcesApi";
+import { postingSourceName, resourcesApi } from "../../services/resourcesApi";
 import type { PostingsResponse } from "../../services/resourcesApi";
 import { localToday } from "../../services/skillDetail";
 import { PostingDetail } from "./PostingDetail";
@@ -89,7 +89,7 @@ export function Postings() {
           <button className="postings-secondary" type="button" onClick={() => applyFilters(localToday())}>오늘 기준</button>
           <button className="postings-reset" type="button" onClick={() => setParams({})}>초기화</button>
         </form>
-        <p className="postings-note">수집된 공고를 보여드려요. 날짜 필터는 수집된 접수 기간 기준이며, 실제 모집 여부는 공고 원문을 확인해 주세요.</p>
+        <p className="postings-note">잡코리아 공고를 먼저 보여드려요. 날짜 필터는 수집된 접수 기간 기준이며, 실제 모집 여부는 공고 원문을 확인해 주세요.</p>
         <div className={`postings-grid${postingId ? " postings-grid--selected" : ""}`}>
           <section className="postings-list" aria-label="채용공고 목록" aria-busy={!current}>
             {!current ? <p className="postings-state" role="status">공고를 불러오는 중이에요…</p>
@@ -98,13 +98,13 @@ export function Postings() {
                 <div className="postings-list-heading"><h2 ref={listHeading} tabIndex={-1}>검색 결과 <span>{current.data.total.toLocaleString()}건</span></h2><small>{offset + (current.data.items.length ? 1 : 0)}–{offset + current.data.items.length}</small></div>
                 <PostingsPagination total={current.data.total} page={page} pageSize={PAGE_SIZE} position="top" onChange={changePage} />
                 {current.data.items.length ? current.data.items.map(item => <button className={`posting-card${postingId === item.posting_id ? " posting-card--selected" : ""}`} key={item.posting_id} aria-pressed={postingId === item.posting_id} onClick={() => update("posting", item.posting_id)}>
-                  <span className="posting-card-org">{item.organization_name || "기관명 미제공"}</span>
+                  <span className="posting-card-header"><span className="posting-card-org">{item.organization_name || "기관명 미제공"}</span>{item.source_id && <span className="posting-card-source">{postingSourceName(item.source_id)}</span>}</span>
                   <strong>{item.title || "제목 미제공 공고"}</strong>
                   <span>{[item.regions.join(" · "), item.employment_types.join(" · ")].filter(Boolean).join(" / ") || "지역·고용 형태 미제공"}</span>
                   <small>{item.closing_date ? `접수 마감일 ${item.closing_date}` : "접수 마감일 미제공"}</small>
                 </button>) : <p className="postings-state">조건에 맞는 수집 공고가 없어요. 다른 검색어나 날짜로 찾아보세요.</p>}
                 <PostingsPagination total={current.data.total} page={page} pageSize={PAGE_SIZE} position="bottom" onChange={changePage} />
-                {current.data.sources.map(source => <p className="postings-source" key={`${source.source_id}:${source.run_id}`}>{source.source_id}{source.data_as_of ? ` · 수집 기준 ${source.data_as_of.slice(0, 10)}` : " · 수집 기준일 미제공"}</p>)}
+                {current.data.sources.map(source => <p className="postings-source" key={`${source.source_id}:${source.run_id}`}>{postingSourceName(source.source_id)}{source.data_as_of ? ` · 데이터 반영 ${source.data_as_of.slice(0, 10)}` : " · 데이터 반영일 미제공"}</p>)}
               </>}
           </section>
           {postingId && <section className="postings-detail-panel" aria-label="선택한 공고"><button className="postings-close" onClick={() => update("posting", null)}>상세 닫기 ×</button><PostingDetail key={postingId} postingId={postingId} /></section>}
