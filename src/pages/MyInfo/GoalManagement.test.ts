@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, createElement } from "react";
+import { act, createElement, Fragment } from "react";
 import { createRoot } from "react-dom/client";
 import type { Root } from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
@@ -9,7 +9,7 @@ import { useGoals } from "../../hooks/useGoals";
 import { GoalManagement } from "./GoalManagement";
 
 const api = vi.hoisted(() => ({
-  goalsApi: { list: vi.fn(), get: vi.fn(), create: vi.fn(), update: vi.fn() },
+  goalsApi: { list: vi.fn(), get: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
   profileApi: { get: vi.fn() }, analysisApi: { create: vi.fn() },
 }));
 vi.mock("../../services/api", () => api);
@@ -28,7 +28,10 @@ const existing: GoalResponse = { goal_id: "existing", version: 1, goal_mode: "TA
 
 function Harness() {
   const state = useGoals();
-  return createElement(GoalManagement, { goals: state.goals, loading: state.loading, error: state.error, refresh: state.refresh, onProfileVersionChange: profileChanged });
+  return createElement(Fragment, null,
+    createElement("output", { "data-selected-goal": true }, state.selectedGoalId ?? "none"),
+    createElement(GoalManagement, { goals: state.goals, loading: state.loading, error: state.error, refresh: state.refresh, onProfileVersionChange: profileChanged }),
+  );
 }
 
 async function mount(goals: GoalResponse[] = []) {
@@ -75,6 +78,11 @@ beforeEach(() => {
     version += 1;
     stored = stored.map(goal => goal.goal_id === id ? { ...goal, ...request, occupation_id: request.occupation_id ?? null } : goal);
     return { goal_id: id, status: request.status };
+  });
+  api.goalsApi.delete.mockImplementation(async (id: string) => {
+    version += 1;
+    stored = stored.filter(goal => goal.goal_id !== id);
+    return { goal_id: id, profile_version: version };
   });
   api.analysisApi.create.mockResolvedValue({ recompute_request_id: "analysis-request" });
   container = document.createElement("div"); document.body.append(container); root = createRoot(container);
@@ -203,5 +211,109 @@ describe("goal management", () => {
     await act(async () => button("목표 목록 다시 불러오기").click());
     expect(container.textContent).toContain("백엔드 개발자");
     expect(container.querySelector('[role="alert"]')).toBeNull();
+  });
+
+  it("names the goal and explains permanent removal before deletion, with safe cancellation", async () => {
+    await mount([existing]);
+    await act(async () => button("삭제").click());
+    const confirmation = container.querySelector('[aria-labelledby="mi-goal-delete-title"]')!;
+    expect(confirmation.textContent).toContain("‘백엔드 개발자’ 목표를 영구 삭제할까요");
+    expect(confirmation.textContent).toContain("로드맵, 분석 결과와 학습 진행 기록이 모두 삭제");
+    expect(confirmation.textContent).toContain("계정, 프로필과 등록한 역량은 유지");
+    expect(api.goalsApi.delete).not.toHaveBeenCalled();
+    await act(async () => button("취소").click());
+    expect(container.querySelector('[aria-labelledby="mi-goal-delete-title"]')).toBeNull();
+    expect(api.goalsApi.delete).not.toHaveBeenCalled();
+    expect(stored).toHaveLength(1);
+  });
+
+  it("deletes the only active goal with a fresh version and refreshes into the no-goal state", async () => {
+    await mount([existing]); version = 15;
+    await act(async () => button("삭제").click());
+    await act(async () => button("목표 영구 삭제").click());
+    expect(api.goalsApi.delete).toHaveBeenCalledWith("existing", { expected_profile_version: 15 });
+    expect(profileChanged).toHaveBeenCalledWith(16);
+    expect(container.textContent).toContain("아직 목표가 없어요");
+    expect(container.querySelector("[data-selected-goal]")?.textContent).toBe("none");
+    expect(api.goalsApi.list).toHaveBeenCalledTimes(2);
+    expect(api.goalsApi.update).not.toHaveBeenCalled();
+    expect(api.analysisApi.create).not.toHaveBeenCalled();
+  });
+
+  it("does not activate or analyze a remaining draft when deleting the active goal", async () => {
+    await mount([existing, { ...existing, goal_id: "draft", status: "DRAFT", occupation_id: "FRONTEND_DEVELOPER" }]);
+    await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="백엔드 개발자 목표 삭제"]')!.click());
+    await act(async () => button("목표 영구 삭제").click());
+    expect(stored).toHaveLength(1);
+    expect(stored[0]).toMatchObject({ goal_id: "draft", status: "DRAFT" });
+    expect(container.querySelector("[data-selected-goal]")?.textContent).toBe("draft");
+    expect(button("활성화").disabled).toBe(false);
+    expect(api.goalsApi.update).not.toHaveBeenCalled();
+    expect(api.analysisApi.create).not.toHaveBeenCalled();
+  });
+
+  it("retains the confirmation after failure and fetches a fresh version for retry", async () => {
+    await mount([existing]); api.goalsApi.delete.mockRejectedValueOnce(new Error("offline"));
+    await act(async () => button("삭제").click());
+    await act(async () => button("목표 영구 삭제").click());
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain("목표를 삭제하지 못했어요");
+    expect(stored).toHaveLength(1);
+    version = 9;
+    await act(async () => button("목표 영구 삭제").click());
+    expect(api.goalsApi.delete.mock.calls).toEqual([["existing", { expected_profile_version: 7 }], ["existing", { expected_profile_version: 9 }]]);
+    expect(profileChanged).toHaveBeenCalledWith(10);
+    expect(container.querySelector('[aria-labelledby="mi-goal-delete-title"]')).toBeNull();
+  });
+
+  it("refreshes on a delete conflict and waits for an explicit retry", async () => {
+    await mount([existing]); api.goalsApi.delete.mockRejectedValueOnce({ status: 409 });
+    await act(async () => button("삭제").click());
+    await act(async () => button("목표 영구 삭제").click());
+    expect(api.goalsApi.delete).toHaveBeenCalledTimes(1);
+    expect(api.goalsApi.list).toHaveBeenCalledTimes(2);
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain("정보가 변경됐어요");
+    expect(stored).toHaveLength(1);
+    version = 8;
+    await act(async () => button("목표 영구 삭제").click());
+    expect(api.goalsApi.delete).toHaveBeenLastCalledWith("existing", { expected_profile_version: 8 });
+  });
+
+  it("recovers if deletion committed but its response was lost and retry returns 404", async () => {
+    await mount([existing]);
+    api.goalsApi.delete.mockImplementationOnce(async () => { stored = []; version = 8; throw new Error("lost response"); })
+      .mockRejectedValueOnce({ status: 404 });
+    await act(async () => button("삭제").click());
+    await act(async () => button("목표 영구 삭제").click());
+    await act(async () => button("목표 영구 삭제").click());
+    expect(container.querySelector('[aria-labelledby="mi-goal-delete-title"]')).toBeNull();
+    expect(container.textContent).toContain("이미 삭제됐거나");
+    expect(container.textContent).toContain("아직 목표가 없어요");
+    expect(container.querySelector("[data-selected-goal]")?.textContent).toBe("none");
+    expect(profileChanged).toHaveBeenCalledWith(8);
+  });
+
+  it("prevents duplicate requests and cancellation while deleting", async () => {
+    await mount([existing]);
+    let finish!: (value: unknown) => void;
+    api.goalsApi.delete.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    await act(async () => button("삭제").click());
+    await act(async () => button("목표 영구 삭제").click());
+    expect(button("삭제 중...").disabled).toBe(true);
+    expect(button("취소").disabled).toBe(true);
+    await act(async () => button("삭제 중...").click());
+    expect(api.goalsApi.delete).toHaveBeenCalledTimes(1);
+    await act(async () => { stored = []; version = 8; finish({ goal_id: "existing", profile_version: 8 }); });
+    expect(container.textContent).toContain("아직 목표가 없어요");
+  });
+
+  it("clears pending analysis retry when its goal is deleted", async () => {
+    await mount(); api.analysisApi.create.mockRejectedValueOnce(new Error("analysis offline"));
+    await act(async () => button("목표 추가").click()); await chooseOccupation(); await submit();
+    expect(button("분석 다시 요청")).toBeDefined();
+    await act(async () => button("삭제").click());
+    expect([...container.querySelectorAll("button")].some(button => button.textContent === "분석 다시 요청")).toBe(false);
+    await act(async () => button("목표 영구 삭제").click());
+    expect(api.analysisApi.create).toHaveBeenCalledTimes(1);
+    expect(container.querySelector("form")).toBeNull();
   });
 });
