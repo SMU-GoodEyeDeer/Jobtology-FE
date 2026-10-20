@@ -861,3 +861,14 @@
 @keyframes typing-pulse { 0%, 60%, 100% { opacity: .4; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-3px); } }
 @keyframes reply-reveal { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .reply-token, .msg-typing > span { animation: none; } }
+
+.node-postings { display: grid; gap: 10px; }
+.node-posting-card { display: grid; gap: 6px; border: 1px solid #e2e8f0; padding: 10px; border-radius: 8px; text-decoration: none; color: #334155; font-size: 12px; }
+.node-posting-card:hover { background: #f1f5ff; }
+.node-posting-card strong { line-height: 1.6; }
+.node-posting-card small, .node-posting-card span { font-size: 11px; color: #64748b; }
+.node-posting-card span:last-child { color: #4f46e5; }
+.node-popup-link { border: 0; background: transparent; color: #4f46e5; font: inherit; font-size: 12px; line-height: 1.7; cursor: pointer; text-decoration: underline; text-align: left; padding: 4px 0; }
+.node-popup .sd-qualification { margin: 0; padding: 10px; }
+.node-popup .sd-qualification strong, .node-popup .sd-qualification p { font-size: 12px; }
+.node-popup .sd-qualification small { font-size: 10px; }

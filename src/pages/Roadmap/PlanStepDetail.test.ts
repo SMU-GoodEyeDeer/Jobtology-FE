@@ -6,6 +6,8 @@ import type { WeeklyPlanResponse, WeeklyPlanStep } from "../../services/types";
 import { PlanStepDetail } from "./PlanStepDetail";
 import { PlanPhases } from "./PlanPhases";
 import { PlanWeekTasks } from "./PlanWeekTasks";
+import { PlanWeeks } from "./PlanWeeks";
+import { roadmapTarget } from "./roadmapTarget";
 
 const project: WeeklyPlanStep = {
   step_id: "project", number: 1, recommended_number: 1, title: "포트폴리오 프로젝트: REST API 만들기", name: "백엔드 API 개발",
@@ -60,5 +62,34 @@ describe("roadmap activity deliverables", () => {
       expect(tasks).toContain(project.title);
       expect(tasks).toContain(`관련 역량 · ${project.name}`);
     } finally { vi.useRealTimers(); }
+  });
+
+  it("numbers NCS groups locally and keeps learning priority explicit after reordering", () => {
+    const mixed = { ...plan, steps: [
+      { ...project, step_id: "core", number: 1, phase: "CORE" as const },
+      { ...project, step_id: "basic-2", number: 2, phase: "BASIC" as const },
+      { ...project, step_id: "basic-1", number: 3, phase: "BASIC" as const },
+    ] };
+    const html = renderToStaticMarkup(createElement(PlanPhases, { plan: mixed, selectedId: "core", onSelect: () => {} }));
+    expect(html).toContain("기초 1"); expect(html).toContain("기초 2"); expect(html).toContain("핵심 1");
+    expect(html).toContain("학습 우선순위 3");
+    expect(html).not.toContain("STEP 3");
+  });
+
+  it("uses an accessible help icon for the schedule explanation", () => {
+    const html = renderToStaticMarkup(createElement(PlanWeeks, { plan, draft: null, changedIds: new Set<string>(), busy: false, onChange: () => {}, onSelect: () => {} }));
+    expect(html).toContain(`aria-label="${project.name} 배치 이유"`);
+    expect(html).toContain('<span aria-hidden="true">?</span>');
+    expect(html).not.toContain("왜?");
+  });
+
+  it("resolves roadmap deep links by canonical identity or validated NCS code only", () => {
+    const linked = { ...project, requirement_key: "BACKEND_DEVELOPER:2001020211" };
+    const response = { ...plan, steps: [linked] };
+    expect(roadmapTarget(response, [], linked.requirement_key, null)).toBe(linked);
+    expect(roadmapTarget(response, [], null, "2001020211")).toBe(linked);
+    expect(roadmapTarget(response, [], "FRONTEND_DEVELOPER:2001020211", null)).toBeNull();
+    expect(roadmapTarget(response, [], null, "백엔드 API 개발")).toBeNull();
+    expect(roadmapTarget({ ...plan, steps: [project] }, [], null, "2001020211")).toBeNull();
   });
 });

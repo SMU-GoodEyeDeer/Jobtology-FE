@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { NcsLevel } from "../../components/NcsLevel";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import type { ComponentProps } from "react";
@@ -12,6 +14,7 @@ interface SkillListProps {
   readonly skills: readonly Skill[];
   readonly goalId: string | null;
   readonly emptyMessage: string;
+  readonly linksReady?: boolean;
 }
 
 function SelectedSkillPanel(props: ComponentProps<typeof SkillDetailPanel>) {
@@ -24,7 +27,15 @@ function SelectedSkillPanel(props: ComponentProps<typeof SkillDetailPanel>) {
   </div>, document.body) : panel;
 }
 
-export function SkillList({ skills, goalId, emptyMessage }: SkillListProps) {
+export function SkillList({ skills, goalId, emptyMessage, linksReady = true }: SkillListProps) {
+  const [params] = useSearchParams();
+  const requirement = params.get("requirement");
+  const ncsBase = params.get("ncs");
+  const linkTarget = requirement || ncsBase;
+  const linkedSkill = requirement ? skills.find(skill => skill.requirement_key === requirement)
+    : ncsBase && /^[0-9]{10}$/.test(ncsBase) ? skills.find(skill => skill.ncs_base_code === ncsBase) : undefined;
+  const linkedIdentity = linkedSkill ? skillIdentity(linkedSkill) : null;
+  const appliedLink = useRef<string | null>(null);
   const reducedMotion = useReducedMotion();
   const [filter, setFilter] = useState<"전체" | Skill["type"]>("전체");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -45,6 +56,23 @@ export function SkillList({ skills, goalId, emptyMessage }: SkillListProps) {
   }, []);
 
   useEffect(() => {
+    if (!linksReady || !linkedIdentity || !linkTarget) return;
+    const signature = `${goalId}:${linkTarget}:${linkedIdentity}`;
+    if (appliedLink.current === signature) return;
+    appliedLink.current = signature;
+    setFilter("전체");
+    triggerId.current = linkedIdentity;
+    restoreFocus.current = false;
+    setPanelMounted(true);
+    setSelectedId(linkedIdentity);
+    const frame = requestAnimationFrame(() => rowButtons.current.get(linkedIdentity)?.scrollIntoView?.({ behavior: reducedMotion ? "auto" : "smooth", block: "center" }));
+    return () => {
+      cancelAnimationFrame(frame);
+      if (appliedLink.current === signature) appliedLink.current = null;
+    };
+  }, [goalId, linkTarget, linkedIdentity, linksReady, reducedMotion]);
+
+  useEffect(() => {
     const media = window.matchMedia("(max-width: 1099px)");
     const update = () => setOverlay(media.matches);
     media.addEventListener("change", update);
@@ -55,7 +83,7 @@ export function SkillList({ skills, goalId, emptyMessage }: SkillListProps) {
     <section className="sd-list" aria-labelledby="skill-list-heading">
       <div className="sd-list-heading">
         <div><h2 id="skill-list-heading">부족한 역량 <span>{skills.length}</span></h2>
-          <p>역량을 누르면 무엇을 해야 하는지 풀어서 보여드려요</p></div>
+          <p>역량을 누르면 무엇을 해야 하는지 풀어서 보여드려요</p><NcsLevel compact /></div>
         <div className="sd-filters" role="group" aria-label="역량 유형">
           <motion.span className="sd-filter-indicator" aria-hidden="true" initial={false}
             animate={{ x: ["전체", "필수", "우대"].indexOf(filter) * 68 }}
@@ -70,6 +98,7 @@ export function SkillList({ skills, goalId, emptyMessage }: SkillListProps) {
             }}>{value}</button>)}
         </div>
       </div>
+      {linksReady && linkTarget && !linkedIdentity && <p className="sd-link-notice" role="status">선택한 항목이 현재 목표의 부족한 역량 목록에 없어요. 이미 충족했거나 현재 분석에 포함되지 않은 항목일 수 있어요.</p>}
       <div className="sd-columns" aria-hidden="true"><span>역량</span><span>공고 요구</span><span className="sd-hours">예상 시간</span><span /></div>
       <AnimatePresence initial={false} mode="wait">
       <motion.div key={filter} className="sd-rows"
@@ -79,7 +108,7 @@ export function SkillList({ skills, goalId, emptyMessage }: SkillListProps) {
           const identity = skillIdentity(skill);
           const subline = [skill.ncs_level != null ? `NCS 수준 ${skill.ncs_level}` : "",
             skill.qualifications?.length ? `관련 자격증 ${skill.qualifications.length}개` : ""].filter(Boolean).join(" · ");
-          return <button type="button" className="sd-row" key={identity} aria-pressed={selectedId === identity}
+          return <button type="button" className={`sd-row${linkedIdentity === identity ? " sd-row--linked" : ""}`} data-requirement={skill.requirement_key} key={identity} aria-pressed={selectedId === identity}
             ref={button => { if (button) rowButtons.current.set(identity, button); else rowButtons.current.delete(identity); }}
             onPointerEnter={() => void prefetchSkillResources(skill)} onFocus={() => void prefetchSkillResources(skill)}
             aria-controls={selectedId === identity ? "skill-panel-heading" : undefined}

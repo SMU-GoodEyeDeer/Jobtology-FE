@@ -76,6 +76,11 @@ describe("exam sessions", () => {
     // Then
     expect(actual).toBe(session);
   });
+  it("finds future practical dates even when written dates exist and are past", () => {
+    const given = { ...session, practical: { ...session.written!, exam_start: "2026-12-01" } };
+    expect(pickNextExamSession([given], "2026-11-02")).toBe(given);
+    expect(formatSessionLine(given)).toContain("실기 시험 12.01");
+  });
   it("includes today's session", () => {
     // Given / When
     const actual = pickNextExamSession([session], "2026-11-01");
@@ -94,13 +99,13 @@ describe("exam sessions", () => {
     // When
     const actual = formatSessionLine(practical);
     // Then
-    expect(actual).toBe("2026년 3회 · 실기 접수 10.20–10.23 · 시험 11.01");
+    expect(actual).toBe("2026년 3회 · 실기 접수 10.20–10.23 · 실기 시험 11.01");
   });
   it("formats written dates", () => {
     // Given / When
     const actual = formatSessionLine(session);
     // Then
-    expect(actual).toBe("2026년 3회 · 필기 접수 10.20–10.23 · 시험 11.01");
+    expect(actual).toBe("2026년 3회 · 필기 접수 10.20–10.23 · 필기 시험 11.01");
   });
   it("omits missing dates and metadata", () => {
     // Given / When
@@ -168,7 +173,7 @@ describe("exam outlook", () => {
     const actual = examOutlook([session], "2026-11-02");
     // Then
     expect(actual).toEqual({ kind: "ended", year: 2026 });
-    expect(examOutlookText(actual)).toBe("2026년 시험이 모두 끝났어요 · 2027년 일정은 아직 공개 전이에요");
+    expect(examOutlookText(actual)).toBe("확인된 2026년 일정에는 남은 접수·시험일이 없어요");
   });
   it("reports no schedule when nothing was published this year", () => {
     // Given / When

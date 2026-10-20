@@ -1,4 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent } from "react";
+import { useNavigate } from "react-router-dom";
+import { analysisSkillHref, roadmapSkillHref } from "../../services/skillNavigation";
+import { postingsHref } from "../../services/resourcesApi";
+import { PostingEvidence } from "./PostingEvidence";
+import { QualificationCard } from "../Analysis/SkillEvidence";
 import type { EvidenceNodeKind, RoleEvidenceGraph } from "../../services/types";
 import {
   createEvidenceSimulation,
@@ -72,6 +77,7 @@ interface Props {
 }
 
 export function EvidenceGraph({ graph, status, ownedSkills, onOpenRoadmap }: Props) {
+  const navigate = useNavigate();
   const [camera, setCamera] = useState({ x: 0, y: 0, zoom: 1 });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [hoveredLegend, setHoveredLegend] = useState<Visual | null>(null);
@@ -336,7 +342,17 @@ export function EvidenceGraph({ graph, status, ownedSkills, onOpenRoadmap }: Pro
           {selected.detail && (
             <p className="node-popup-desc" style={{ whiteSpace: "pre-line" }}>{selected.detail}</p>
           )}
-          <button className="node-popup-btn" onClick={onOpenRoadmap}>로드맵에서 보기</button>
+          {selected.kind === "posting_evidence" ? <PostingEvidence key={selected.id} category={selected.ncs_category} />
+            : selected.kind === "qualification" ? (selected.qualification_code
+              ? <QualificationCard qualification={{ code: selected.qualification_code, name: selected.label }} />
+              : <p className="node-popup-desc">시험 일정과 연결할 자격 코드가 제공되지 않았어요.</p>)
+            : <>
+              {selected.kind === "ncs_occupation" && selected.ncs_category && <button className="node-popup-btn" onClick={() => navigate(postingsHref({ ncs_category: selected.ncs_category! }))}>연결된 채용공고 보기</button>}
+              <button className="node-popup-btn" onClick={() => selected.requirement_key || selected.ncs_base_code
+                ? navigate(roadmapSkillHref(selected.requirement_key, selected.ncs_base_code)) : onOpenRoadmap()}>로드맵에서 보기</button>
+              <button className="node-popup-link" onClick={() => navigate(analysisSkillHref(selected.requirement_key, selected.ncs_base_code))}>역량분석에서 보기 →</button>
+              {SKILL_KINDS.has(selected.kind) && !selected.requirement_key && !selected.ncs_base_code && <p className="node-popup-desc">현재 분석의 특정 역량으로 연결할 식별자가 제공되지 않았어요.</p>}
+            </>}
           </div>
         </div>
       )}

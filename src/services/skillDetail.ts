@@ -42,9 +42,8 @@ export function localToday(): string {
 
 export function pickNextExamSession(items: readonly ExamSession[], today: string): ExamSession | null {
   const dated = items.flatMap(item => {
-    const dates = item.written ?? item.practical;
-    if (!dates) return [];
-    const upcoming = [dates.registration_start, dates.registration_end, dates.exam_start, dates.exam_end]
+    const upcoming = [item.written, item.practical].flatMap(dates => dates
+      ? [dates.registration_start, dates.registration_end, dates.exam_start, dates.exam_end] : [])
       .filter((date): date is string => date != null && date.slice(0, 10) >= today).sort();
     return upcoming[0] ? [{ item, date: upcoming[0] }] : [];
   });
@@ -52,12 +51,14 @@ export function pickNextExamSession(items: readonly ExamSession[], today: string
 }
 
 export function formatSessionLine(item: ExamSession): string {
-  const dates = item.written ?? item.practical;
-  const label = item.written ? "필기" : "실기";
   const metadata = [item.year != null ? `${item.year}년` : "", item.round != null ? `${item.round}회` : ""].filter(Boolean).join(" ");
-  const registration = formatPeriod(dates?.registration_start, dates?.registration_end);
-  const exam = shortDate(dates?.exam_start ?? dates?.exam_end);
-  return [metadata, registration ? `${label} 접수 ${registration}` : "", exam ? `시험 ${exam}` : ""].filter(Boolean).join(" · ");
+  const stages = ([["필기", item.written], ["실기", item.practical]] as const).flatMap(([label, dates]) => {
+    if (!dates) return [];
+    const registration = formatPeriod(dates.registration_start, dates.registration_end);
+    const exam = formatPeriod(dates.exam_start, dates.exam_end);
+    return [registration ? `${label} 접수 ${registration}` : "", exam ? `${label} 시험 ${exam}` : ""].filter(Boolean);
+  });
+  return [metadata, ...stages].filter(Boolean).join(" · ");
 }
 
 export function qualificationLabel(qualification: SkillQualification): string {
@@ -89,7 +90,7 @@ export function examOutlook(items: readonly ExamSession[], today: string): ExamO
 export function examOutlookText(outlook: ExamOutlook): string {
   switch (outlook.kind) {
     case "upcoming": return formatSessionLine(outlook.session);
-    case "ended": return `${outlook.year}년 시험이 모두 끝났어요 · ${outlook.year + 1}년 일정은 아직 공개 전이에요`;
+    case "ended": return `확인된 ${outlook.year}년 일정에는 남은 접수·시험일이 없어요`;
     case "none": return "등록된 시험 일정이 없어요";
   }
 }

@@ -9,6 +9,7 @@ import { HomeFirst } from "./pages/Home/HomeFirst";
 import { Chat } from "./pages/Chat/Chat";
 import { Roadmap } from "./pages/Roadmap/Roadmap";
 import { Analysis } from "./pages/Analysis/Analysis";
+import { Postings } from "./pages/Postings/Postings";
 import { Progress } from "./pages/Progress/Progress";
 import { MyInfo } from "./pages/MyInfo/MyInfo";
 import { RequireSession } from "./components/RequireSession";
@@ -44,6 +45,7 @@ function AnimatedRoutes() {
             <Route path="/chat" element={<Chat />} />
             <Route path="/roadmap" element={<Roadmap />} />
             <Route path="/analysis" element={<Analysis />} />
+            <Route path="/postings" element={<Postings />} />
             <Route path="/progress" element={<Progress />} />
             <Route path="/myinfo" element={<MyInfo />} />
           </Route>

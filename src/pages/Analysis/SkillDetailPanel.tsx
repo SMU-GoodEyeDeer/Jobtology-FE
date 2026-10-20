@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { motion, useReducedMotion } from "motion/react";
 import type { RoadmapDetailResponse, Skill, StepState } from "../../services/types";
 import { formatHours, formatPeriod, linkedRoadmapSteps } from "../../services/skillDetail";
+import { NcsLevel } from "../../components/NcsLevel";
+import { roadmapSkillHref } from "../../services/skillNavigation";
 import { SkillBadge } from "./SkillBadge";
 import { DetailSkeleton, SkillDefinition, SkillQualifications } from "./SkillEvidence";
 import { useSkillEvidenceReady } from "./useSkillResources";
@@ -34,7 +36,7 @@ export function SkillDetailPanel({ skill, roadmap, overlay, onClose }: PanelProp
     function handleKey(event: KeyboardEvent) {
       if (event.key === "Escape") { event.preventDefault(); onClose(); }
       if (event.key !== "Tab" || !overlay) return;
-      const controls = panel.current?.querySelectorAll<HTMLButtonElement>("button:not([disabled])");
+      const controls = panel.current?.querySelectorAll<HTMLElement>('button:not([disabled]), a[href], summary, [tabindex="0"]');
       const first = controls?.[0];
       const last = controls?.[controls.length - 1];
       if (event.shiftKey && (document.activeElement === first || document.activeElement === heading.current)) {
@@ -78,7 +80,7 @@ export function SkillDetailPanel({ skill, roadmap, overlay, onClose }: PanelProp
         <dl className="sd-facts">
           {skill.status && <div><dt>상태</dt><dd><span className={`sd-badge sd-badge--${skill.status === "UNMET" ? "unmet" : "input"}`}>
             {skill.status === "UNMET" ? "부족" : "입력 필요"}</span></dd></div>}
-          {skill.ncs_level != null && <div><dt>NCS 수준</dt><dd>{skill.ncs_level}수준</dd></div>}
+          {skill.ncs_level != null && <div><dt>NCS 수준</dt><dd><NcsLevel level={skill.ncs_level} /></dd></div>}
           <div><dt>예상 학습 시간</dt><dd>{formatHours(skill, true)}</dd></div>
           {demand && <div><dt>공고 근거</dt><dd>{demand}<small>검토된 과거 공고 기준</small></dd></div>}
         </dl>
@@ -93,13 +95,13 @@ export function SkillDetailPanel({ skill, roadmap, overlay, onClose }: PanelProp
             <span className="sd-step-number">{step.position != null ? step.position + 1 : step.order ?? "—"}</span>
             <div><strong>{step.title}</strong><p className="sd-muted">{formatPeriod(step.planned_start, step.planned_end)}
               <span className={`sd-badge sd-step-state--${step.state}`}>{stepLabels[step.state]}</span></p></div>
-            <button type="button" className="sd-step-link" onClick={() => navigate("/roadmap")}>보기</button>
+            <button type="button" className="sd-step-link" onClick={() => navigate(roadmapSkillHref(skill.requirement_key))}>보기</button>
           </div>)}
       </section>
       </div>
     </div>
     <footer className="sd-panel-footer">
-      <button type="button" disabled={!ready} onClick={() => navigate("/roadmap")}>로드맵에서 보기</button>
+      <button type="button" disabled={!ready} onClick={() => navigate(roadmapSkillHref(skill.requirement_key))}>로드맵에서 보기</button>
     </footer>
   </motion.aside>;
 }

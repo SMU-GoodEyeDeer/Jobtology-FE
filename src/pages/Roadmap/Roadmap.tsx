@@ -6,7 +6,7 @@ import { AppSidebar } from "../../components/AppSidebar";
 import { GoalDropdown } from "../../components/GoalDropdown";
 import { LoadingContent } from "../../components/LoadingContent";
 import chevronDownIcon from "../../assets/Chevron down.svg";
-import { routePrefsApi, profileApi, roadmapsApi, catalogV2Api } from "../../services/api";
+import { profileApi, roadmapsApi, catalogV2Api } from "../../services/api";
 import { useGoals } from "../../hooks/useGoals";
 import { useRoadmap } from "../../hooks/useRoadmap";
 import { PARTIAL_ROUTE_NOTICE, usePartialRoute } from "./usePartialRoute";
@@ -14,11 +14,11 @@ import { useSession } from "../../context/SessionContext";
 import { RoadmapPlan } from "./RoadmapPlan";
 import { LegacyRoadmap } from "./LegacyRoadmap";
 import { RoadmapExtras } from "./RoadmapExtras";
+import { useRoutePreferences } from "./useRoutePreferences";
 import type { StepState, Neo4jPublicationResponse } from "../../services/types";
 
 const CONDITION_CHIP_KEYS = [
   { label: "교육비 부담이 커요", field: "budget_mode" as const },
-  { label: "학업·알바와 병행해야 해요", field: "limited_hours" as const },
   { label: "최대한 빨리 취업하고 싶어요", field: "fastest_path" as const },
   { label: "포트폴리오 프로젝트를 우선하고 싶어요", field: "needs_portfolio" as const },
   { label: "기초 학습을 우선하고 싶어요", field: "career_switch" as const },
@@ -39,8 +39,7 @@ export function Roadmap() {
   const [readyPlanId, setReadyPlanId] = useState<string | null>(null);
   const [publicationsLoading, setPublicationsLoading] = useState(true);
 
-  const [activeChips, setActiveChips] = useState<Set<string>>(new Set());
-  const [savingPrefs, setSavingPrefs] = useState(false);
+  const prefs = useRoutePreferences(session?.user_id, !sessionLoading);
 
   // v2 publications (route_planning 가능한 것만)
   const [routePublications, setRoutePublications] = useState<Neo4jPublicationResponse[]>([]);
@@ -49,19 +48,6 @@ export function Roadmap() {
     catalogV2Api.listPublications({ limit: 100 }).then((list) => {
       setRoutePublications(list.filter((p) => p.capabilities.route_planning));
     }).catch(console.error).finally(() => setPublicationsLoading(false));
-  }, []);
-
-  // Load route preferences to populate chips
-  useEffect(() => {
-    routePrefsApi.get().then((prefs) => {
-      const active = new Set<string>();
-      if (prefs.budget_mode === "LOW_COST") active.add("교육비 부담이 커요");
-      if (prefs.available_hours_per_week <= 15) active.add("학업·알바와 병행해야 해요");
-      if (prefs.fastest_path) active.add("최대한 빨리 취업하고 싶어요");
-      if (prefs.needs_portfolio) active.add("포트폴리오 프로젝트를 우선하고 싶어요");
-      if (prefs.career_switch) active.add("기초 학습을 우선하고 싶어요");
-      setActiveChips(active);
-    }).catch(console.error);
   }, []);
 
   useEffect(() => {
@@ -73,34 +59,6 @@ export function Roadmap() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  async function toggleChip(chip: string) {
-    const next = new Set(activeChips);
-    if (next.has(chip)) next.delete(chip);
-    else next.add(chip);
-    setActiveChips(next);
-
-    // Save immediately to route-preferences
-    setSavingPrefs(true);
-    try {
-      const profile = await profileApi.get();
-      const currentPrefs = await routePrefsApi.get();
-      await routePrefsApi.update({
-        expected_profile_version: profile.version,
-        available_hours_per_week: next.has("학업·알바와 병행해야 해요") ? 10 : currentPrefs.available_hours_per_week,
-        availability_source: "roadmap_ui",
-        budget_mode: next.has("교육비 부담이 커요") ? "LOW_COST" : "REGULAR",
-        fastest_path: next.has("최대한 빨리 취업하고 싶어요"),
-        needs_portfolio: next.has("포트폴리오 프로젝트를 우선하고 싶어요"),
-        career_switch: next.has("기초 학습을 우선하고 싶어요"),
-        ...(currentPrefs.max_out_of_pocket_krw != null ? { max_out_of_pocket_krw: currentPrefs.max_out_of_pocket_krw } : {}),
-      });
-    } catch (err) {
-      console.error("Failed to save preferences:", err);
-    } finally {
-      setSavingPrefs(false);
-    }
-  }
 
   async function handleStepComplete(stepId: string, currentState: StepState) {
     const nextState: StepState = currentState === "COMPLETED" ? "TODO" : "COMPLETED";
@@ -173,22 +131,27 @@ export function Roadmap() {
           <section className="rm-section">
             <div className="rm-section-header">
               <p className="rm-section-title">내 로드맵 조건</p>
-              <span className="sr-only" role="status">{savingPrefs ? "저장 중..." : ""}</span>
+              <span className="sr-only" role="status">{prefs.saving ? "저장 중..." : prefs.loading ? "조건을 불러오는 중..." : ""}</span>
             </div>
             <div className="rm-chips">
-              {CONDITION_CHIP_KEYS.map(({ label }) => (
+              {CONDITION_CHIP_KEYS.map(({ label, field }) => {
+                const active = field === "budget_mode" ? prefs.preferences?.budget_mode === "LOW_COST" : !!prefs.preferences?.[field];
+                return (
                 <button
                   key={label}
-                  className={`rm-chip ${activeChips.has(label) ? "rm-chip--active" : ""}`}
-                  onClick={() => toggleChip(label)}
-                  disabled={savingPrefs}
-                  aria-pressed={activeChips.has(label)}
+                  className={`rm-chip ${active ? "rm-chip--active" : ""}`}
+                  onClick={() => void prefs.toggle(field)}
+                  disabled={prefs.saving || prefs.loading || !prefs.preferences}
+                  aria-pressed={active}
                 >
                   <span className="rm-chip-dot" />
                   {label}
                 </button>
-              ))}
+              ); })}
             </div>
+            {prefs.preferences && <p className="rm-card-sub">추천 경로 계산 기준 주 {prefs.preferences.available_hours_per_week}시간 · 개별 주차 플랜의 시간은 ‘플랜 수정’에서 따로 조정해요.</p>}
+            <p className="rm-card-sub">비용 미반영 · 기본 비용 0원으로 계산</p>
+            {prefs.error && <div className="rm-card-sub" role="alert"><p>{prefs.error}</p><button className="rm-bottom-btn" disabled={prefs.loading || prefs.saving} onClick={prefs.retry}>조건 다시 불러오기</button></div>}
           </section>
 
           {isPartialRoute && <p className="rm-card-sub" role="note">{PARTIAL_ROUTE_NOTICE}</p>}

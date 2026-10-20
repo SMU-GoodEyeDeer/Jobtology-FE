@@ -128,3 +128,11 @@
   .sd-demand-bar { width: 40px; }
   .sd-name strong { font-size: 14px; }
 }
+
+.sd-exam-sessions { margin-top: 12px; font-size: 12px; line-height: 1.7; }
+.sd-exam-sessions summary { cursor: pointer; color: #4338ca; }
+.sd-exam-session { padding: 12px 0; border-bottom: 1px solid #eef0f5; }
+.sd-exam-session p { font-size: 12px; color: #64748b; }
+.sd-official-link { display: inline-block; color: #4338ca; margin-top: 12px; font-size: 12px; }
+.sd-link-notice { padding: 12px 16px; border: 1px solid #c7d2fe; background: #eef2ff; border-radius: 10px; color: #4338ca; font-size: 13px; line-height: 1.7; }
+.sd-row--linked { box-shadow: inset 3px 0 #6366f1; background: #eef2ff; scroll-margin-top: 24px; }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { allocateWeeks, planAllocations, planInput, recommendedInput, planChanges, targetDeltaDays, currentWeek } from "./weeklyPlan";
+import { planAllocations, planInput, recommendedInput, planChanges, targetDeltaDays, currentWeek, moveStep } from "./weeklyPlan";
 import type { WeeklyPlanResponse, WeeklyPlanStep } from "./weeklyPlanTypes";
 
 const hours = [15, 20, 30, 20, 24, 20, 40, 20, 20, 30, 20];
@@ -20,30 +20,27 @@ const plan: WeeklyPlanResponse = {
 };
 
 describe("weekly plan", () => {
-  it("packs the contract example continuously including shared boundary weeks", () => {
-    // Given / When
-    const result = allocateWeeks(planInput(plan), steps);
-    // Then
-    expect(steps.map(s => {
-      const weeks = result.filter(item => item.step_id === s.step_id).map(item => item.week);
-      return [weeks[0], weeks.at(-1)];
-    })).toEqual([
-      [1, 2], [2, 4], [4, 7], [7, 9], [9, 11], [11, 13],
-      [13, 17], [17, 19], [19, 21], [21, 24], [24, 26],
+  it("uses exact server allocations for concurrent custom activities rather than serializing them", () => {
+    const customized = { ...plan, steps: [0, 1].map(index => ({ ...steps[index], hours: 6,
+      week_allocations: [{ week: 1, hours: 3 }, { week: 2, hours: 3 }],
+    })) };
+    expect(planAllocations(customized)).toEqual([
+      { step_id: "0", week: 1, hours: 3 }, { step_id: "0", week: 2, hours: 3 },
+      { step_id: "1", week: 1, hours: 3 }, { step_id: "1", week: 2, hours: 3 },
     ]);
   });
 
-  it("skips rest weeks without consuming capacity", () => {
-    // Given / When
-    const result = allocateWeeks({ ...planInput(plan), rest_weeks: [1, 3] }, steps);
-    // Then
-    expect(result.filter(a => a.step_id === "0")).toEqual([
-      { step_id: "0", week: 2, hours: 10 }, { step_id: "0", week: 4, hours: 5 },
+  it("estimates legacy effort only inside returned dates and outside rest weeks", () => {
+    const result = planAllocations({ ...plan, rest_weeks: [1, 3], steps: [
+      { ...steps[0], hours: 15, start_week: 1, end_week: 4, start_date: "2026-10-19", end_date: "2026-11-15" },
+    ] });
+    expect(result).toEqual([
+      { step_id: "0", week: 2, hours: 7.5 }, { step_id: "0", week: 4, hours: 7.5 },
     ]);
     expect(result.some(a => a.week === 1 || a.week === 3)).toBe(false);
   });
 
-  it.each(["SOLVER", "FALLBACK"] as const)("preserves returned gaps, overlap and exact date ranges for %s schedules", (source) => {
+  it.each(["SOLVER", "FALLBACK", "CUSTOM"] as const)("preserves returned gaps, overlap and exact date ranges for %s schedules", (source) => {
     const solver = { ...plan, schedule_source: source, steps: [
       { ...steps[0], hours: 12, start_week: 3, end_week: 4, start_date: "2026-11-06", end_date: "2026-11-11" },
       { ...steps[1], hours: 4, start_week: 3, end_week: 3, start_date: "2026-11-02", end_date: "2026-11-03" },
@@ -56,11 +53,11 @@ describe("weekly plan", () => {
     expect(solver.steps[0].end_date).toBe("2026-11-11");
   });
 
-  it("allocates only remaining capacity to the next step this week", () => {
-    // Given / When
-    const result = allocateWeeks(planInput(plan), steps).filter(a => a.week === 2);
-    // Then
-    expect(result).toEqual([{ step_id: "0", week: 2, hours: 5 }, { step_id: "1", week: 2, hours: 5 }]);
+  it("preserves drag priority independently of the activities' overlapping schedules", () => {
+    const moved = moveStep(planInput(plan), "1", "0");
+    expect(moved.order.slice(0, 2)).toEqual(["1", "0"]);
+    expect(steps[0].number).toBe(1);
+    expect(steps[0].start_date).toBe("2026-10-19");
   });
 
   it("counts differences and groups consecutive rest weeks for labels", () => {

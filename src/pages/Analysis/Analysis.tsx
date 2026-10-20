@@ -247,7 +247,7 @@ export function Analysis() {
             </div>
           </section>
 
-          <SkillList key={selectedGoalId ?? "no-goal"} skills={skills} goalId={selectedGoalId}
+          <SkillList key={selectedGoalId ?? "no-goal"} skills={skills} goalId={selectedGoalId} linksReady={pollState === "completed" && !publicationsLoading}
             emptyMessage={pollState === "completed"
                   ? "분석 결과가 없어요. 역량을 먼저 등록해보세요."
                   : pollState === "idle"

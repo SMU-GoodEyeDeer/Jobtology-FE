@@ -23,6 +23,7 @@ export interface WeeklyPlanStep {
   readonly moved: boolean;
   readonly prerequisite_step_ids: readonly string[];
   readonly unmet_prerequisite_step_ids: readonly string[];
+  readonly week_allocations?: readonly { readonly week: number; readonly hours: number }[];
 }
 
 export interface WeeklyPlanResponse {

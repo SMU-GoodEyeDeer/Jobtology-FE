@@ -1,0 +1,40 @@
+.postings-content { padding: 28px 32px 48px; overflow-y: auto; }
+.postings-header-caption { color: #64748b; font-size: 13px; margin-left: auto; }
+.postings-filters { display: flex; align-items: end; flex-wrap: wrap; gap: 12px; padding: 20px; background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; }
+.postings-filters label { display: grid; gap: 8px; font-size: 12px; font-weight: 600; color: #475569; flex: 1 1 120px; }
+.postings-filters label.postings-search { flex: 2 1 220px; }
+.postings-filters input { width: 100%; box-sizing: border-box; padding: 10px 12px; height: 42px; border: 1px solid #dbe1eb; border-radius: 8px; font: inherit; color: #1e293b; background: #fff; }
+.postings-page button, .postings-page a { font-family: inherit; }
+.postings-primary { display: inline-block; background: #4f46e5; color: #fff; padding: 11px 16px; border: 0; border-radius: 8px; cursor: pointer; font-size: 13px; text-decoration: none; text-align: center; }
+.postings-secondary, .postings-reset { background: #f1f5f9; color: #475569; padding: 11px 14px; border: 0; border-radius: 8px; cursor: pointer; font-size: 13px; }
+.postings-reset { background: transparent; text-decoration: underline; }
+.postings-note { color: #64748b; font-size: 12px; line-height: 1.7; margin: 14px 0 20px; }
+.postings-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; align-items: start; }
+.postings-grid--selected { grid-template-columns: minmax(260px, 1fr) minmax(310px, 1fr); }
+.postings-list, .postings-detail-panel { min-width: 0; border: 1px solid #e5e7eb; border-radius: 16px; background: #fff; padding: 20px; }
+.postings-list-heading { display: flex; align-items: center; justify-content: space-between; padding: 0 0 16px; }
+.postings-list-heading h2 { font-size: 15px; margin: 0; }
+.postings-list-heading h2 span { color: #4f46e5; margin-left: 5px; }
+.postings-list-heading small { color: #64748b; }
+.posting-card { display: flex; flex-direction: column; gap: 8px; width: 100%; text-align: left; padding: 20px 12px; border: 0; border-top: 1px solid #eef0f5; color: #64748b; background: transparent; cursor: pointer; border-radius: 8px; }
+.posting-card strong { color: #1e293b; font-size: 15px; line-height: 1.6; }
+.posting-card span, .posting-card small { font-size: 12px; line-height: 1.5; }
+.posting-card .posting-card-org { color: #4f46e5; font-weight: 600; }
+.posting-card:hover, .posting-card--selected { background: #f0f3ff; }
+.posting-card--selected { box-shadow: inset 3px 0 #6366f1; }
+.postings-state { padding: 40px 16px; text-align: center; font-size: 14px; color: #64748b; line-height: 1.7; }
+.postings-pagination { display: flex; align-items: center; justify-content: center; gap: 20px; margin: 20px 0; font-size: 12px; }
+.postings-pagination button, .postings-state button, .postings-detail-panel button { border: 1px solid #e2e8f0; border-radius: 7px; padding: 8px 12px; background: #fff; cursor: pointer; color: #475569; }
+.postings-pagination button:disabled { opacity: .4; cursor: default; }
+.postings-detail-panel { position: sticky; top: 0; }
+.postings-close { display: block; margin-left: auto; }
+.postings-eyebrow { color: #4f46e5; font-size: 12px; font-weight: 600; margin-top: 18px; }
+.posting-detail h2 { font-size: 21px; line-height: 1.55; margin: 8px 0 24px; color: #1e293b; overflow-wrap: anywhere; }
+.posting-detail dl { margin: 0; }
+.posting-detail dl div { display: grid; grid-template-columns: 85px 1fr; gap: 12px; padding: 12px 0; border-bottom: 1px solid #f1f5f9; font-size: 13px; line-height: 1.7; }
+.posting-detail dt { color: #64748b; }
+.posting-detail dd { margin: 0; color: #334155; overflow-wrap: anywhere; }
+.postings-source { font-size: 11px; color: #94a3b8; overflow-wrap: anywhere; }
+.postings-page :focus-visible { outline: 2px solid #6366f1; outline-offset: 3px; }
+@media(max-width: 1100px) { .postings-content { padding: 20px; } .postings-grid--selected { grid-template-columns: minmax(0, 1fr); } .postings-detail-panel { position: static; grid-row: 1; } .postings-header-caption { display: none; } }
+@media(max-width: 600px) { .postings-content { padding: 12px; } .postings-filters { padding: 14px; gap: 10px; } .postings-list, .postings-detail-panel { padding: 14px; } }

@@ -57,44 +57,25 @@ export function recommendedInput(plan: WeeklyPlanResponse): WeeklyPlanInput {
 
 export interface WeekAllocation { readonly step_id: string; readonly week: number; readonly hours: number }
 
-export function allocateWeeks(input: WeeklyPlanInput, steps: readonly WeeklyPlanStep[]): WeekAllocation[] {
-  const allocations: WeekAllocation[] = [];
-  const byId = new Map(steps.map(s => [s.step_id, s]));
-  const rests = new Set(input.rest_weeks);
-  let week = 1;
-  let used = 0;
-  for (const id of input.order) {
-    const step = byId.get(id);
-    if (!step) continue;
-    let remaining = input.hours[id] ?? step.recommended_hours;
-    while (remaining > 0) {
-      while (rests.has(week) || used >= input.weekly_hours) { week += 1; used = 0; }
-      const hours = Math.min(remaining, input.weekly_hours - used);
-      allocations.push({ step_id: id, week, hours });
-      remaining -= hours;
-      used += hours;
-    }
-  }
-  return allocations;
-}
-
 export function planAllocations(plan: WeeklyPlanResponse): WeekAllocation[] {
-  if (plan.schedule_source === "CUSTOM") return allocateWeeks(planInput(plan), plan.steps);
-  // Solver dates are authoritative. Only apportion effort for the weekly display;
-  // do not pack activities into a second, different schedule in the browser.
+  // Server allocations and dates are authoritative, including customized schedules.
+  // Older solver records lack exact slots: only estimate effort within their dates.
   return plan.steps.flatMap(step => {
+    if (step.week_allocations?.length) return step.week_allocations.map(allocation => ({ step_id: step.step_id, ...allocation }));
     const start = Date.parse(step.start_date);
     const end = Date.parse(step.end_date);
-    const days = Math.max(1, Math.round((end - start) / DAY) + 1);
+    const overlaps = Array.from({ length: Math.max(0, step.end_week - step.start_week + 1) }, (_, index) => {
+      const week = step.start_week + index;
+      const weekStart = Date.parse(addDays(plan.start_date, (week - 1) * 7));
+      return { week, days: plan.rest_weeks.includes(week) ? 0 : Math.max(0, Math.round((Math.min(end, weekStart + 6 * DAY) - Math.max(start, weekStart)) / DAY) + 1) };
+    }).filter(overlap => overlap.days > 0);
+    const days = overlaps.reduce((total, overlap) => total + overlap.days, 0);
     const allocations: WeekAllocation[] = [];
     let allocated = 0;
-    for (let week = step.start_week; week <= step.end_week; week += 1) {
-      const weekStart = Date.parse(addDays(plan.start_date, (week - 1) * 7));
-      const overlapDays = Math.max(0, Math.round((Math.min(end, weekStart + 6 * DAY) - Math.max(start, weekStart)) / DAY) + 1);
-      if (!overlapDays) continue;
-      const hours = week === step.end_week ? Math.round((step.hours - allocated) * 10) / 10 : Math.round(step.hours * overlapDays / days * 10) / 10;
+    for (const [index, overlap] of overlaps.entries()) {
+      const hours = index === overlaps.length - 1 ? Math.round((step.hours - allocated) * 10) / 10 : Math.min(step.hours - allocated, Math.round(step.hours * overlap.days / days * 10) / 10);
       allocated += hours;
-      allocations.push({ step_id: step.step_id, week, hours });
+      allocations.push({ step_id: step.step_id, week: overlap.week, hours });
     }
     return allocations;
   });
@@ -136,7 +117,7 @@ export function planChanges(before: WeeklyPlanResponse, after: WeeklyPlanRespons
 }
 
 export function stepReason(step: WeeklyPlanStep): string {
-  return step.moved ? `직접 바꾼 순서예요 · 추천 순서는 ${step.recommended_number}번째` : step.reason;
+  return step.moved ? `직접 바꾼 학습 우선순위예요 · 추천 우선순위는 ${step.recommended_number}번째` : step.reason;
 }
 
 export function stepTitle(step: WeeklyPlanStep): string {
