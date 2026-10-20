@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useOccupations } from "../../context/OccupationsContext";
 import { analysisApi, goalsApi, profileApi } from "../../services/api";
+import { requiresActiveTargetedGoal } from "../../services/analysisGoal";
 import { goalCalendarDate, goalDateRange, goalDeadline } from "../../services/goalDates";
 import type { GoalResponse, GoalStatus, GoalUpdateRequest } from "../../services/types";
 
@@ -86,7 +87,13 @@ export function GoalManagement({ goals, loading, error, refresh, onProfileVersio
       } else {
         onProfileVersionChange((await profileApi.get()).version);
       }
-    } catch {
+    } catch (cause) {
+      if (requiresActiveTargetedGoal(cause)) {
+        setAnalysisRetry(null);
+        setNotice("목표는 저장됐어요. 분석하려면 아래 목표 목록에서 직무가 정해진 목표를 활성화해 주세요.");
+        await refresh(goalId).catch(() => {});
+        return;
+      }
       if (status === "ACTIVE" && targeted) {
         setAnalysisRetry(goalId);
         setNotice("목표는 저장됐어요. 새 분석을 요청하지 못했으니 분석만 다시 시도해 주세요.");
@@ -163,7 +170,13 @@ export function GoalManagement({ goals, loading, error, refresh, onProfileVersio
       await requestAnalysis(analysisRetry);
       setAnalysisRequested(true);
       setAnalysisRetry(null); setNotice("새 분석을 요청했어요. 분석 화면에서 진행 상태를 확인해 주세요.");
-    } catch { setNotice("목표는 저장됐어요. 분석 요청에 실패했으니 잠시 후 다시 시도해 주세요."); }
+    } catch (cause) {
+      if (requiresActiveTargetedGoal(cause)) {
+        setAnalysisRetry(null);
+        setNotice("분석하려면 목표 목록에서 직무가 정해진 목표를 활성화해 주세요.");
+        await refresh().catch(() => {});
+      } else setNotice("목표는 저장됐어요. 분석 요청에 실패했으니 잠시 후 다시 시도해 주세요.");
+    }
     finally { inFlight.current = false; setPending(false); }
   }
 

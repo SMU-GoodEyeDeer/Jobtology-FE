@@ -164,6 +164,16 @@ describe("goal management", () => {
     expect(container.textContent).toContain("새 분석을 요청했어요");
   });
 
+  it("guides back to active goal setup when the saved goal becomes unusable before analysis", async () => {
+    await mount();
+    api.analysisApi.create.mockRejectedValueOnce({ status: 409, detail: { error: { code: "ACTIVE_TARGETED_GOAL_REQUIRED" } } });
+    await act(async () => button("목표 추가").click()); await chooseOccupation(); await submit();
+    expect(container.textContent).toContain("직무가 정해진 목표를 활성화해 주세요");
+    expect(api.goalsApi.create).toHaveBeenCalledTimes(1);
+    expect([...container.querySelectorAll("button")].some(button => button.textContent === "분석 다시 요청")).toBe(false);
+    expect(container.querySelector("form")).toBeNull();
+  });
+
   it("rejects invalid timezone and deadline before writing", async () => {
     await mount(); await act(async () => button("목표 추가").click()); await chooseOccupation();
     await setInput('input[list="mi-goal-timezones"]', "Invalid/Zone"); await submit();
