@@ -23,7 +23,7 @@ export function SpecDialog({ title, description, view, busy, back, onDismiss, ch
     const node = dialog.current!;
     const trigger = restoreFocus.current;
     const overflow = document.body.style.overflow;
-    node.showModal();
+    if (!node.open) node.showModal();
     document.body.style.overflow = "hidden";
     heading.current?.focus({ preventScroll: true });
     return () => {
@@ -38,11 +38,19 @@ export function SpecDialog({ title, description, view, busy, back, onDismiss, ch
     };
   }, []);
   useLayoutEffect(() => {
+    // A native close can return an editor to the still-mounted resume review.
+    if (dialog.current?.isConnected && !dialog.current.open) dialog.current.showModal();
     content.current?.scrollTo?.({ top: 0 });
     heading.current?.focus({ preventScroll: true });
   }, [view]);
   return <dialog ref={dialog} className="spec-dialog" aria-labelledby={`${id}-title`} aria-describedby={`${id}-description`}
-    onCancel={event => { event.preventDefault(); if (!busy) onDismiss(); }}>
+    onCancel={event => { event.preventDefault(); if (!busy) onDismiss(); }}
+    onClose={() => {
+      const node = dialog.current;
+      // Ignore teardown and an older close event delivered after reopening (e.g. StrictMode).
+      if (!node?.isConnected || node.open) return;
+      if (busy) node.showModal(); else onDismiss();
+    }}>
     <header className="spec-dialog-heading">
       <div><h2 ref={heading} tabIndex={-1} id={`${id}-title`}>{title}</h2><p id={`${id}-description`}>{description}</p></div>
       <div className="spec-dialog-tools"><ThemeToggle compact /><button type="button" className="spec-dialog-close" disabled={busy} onClick={onDismiss} aria-label={back ? "이력서 검토로 돌아가기" : "스펙 창 닫기"}>

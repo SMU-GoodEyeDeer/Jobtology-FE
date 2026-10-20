@@ -345,7 +345,7 @@
   gap: 12px;
 }
 .an-retry-btn {
-  background: var(--danger);
+  background: var(--danger-solid);
   color: var(--on-accent);
   border: none;
   border-radius: 6px;

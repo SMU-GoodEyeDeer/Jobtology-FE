@@ -362,7 +362,7 @@
 /* User bubble: solid brand gradient */
 .ob-user {
   align-self: flex-end;
-  background: linear-gradient(135deg, var(--accent-focus) 0%, var(--accent-solid) 100%);
+  background: linear-gradient(135deg, var(--accent-hover) 0%, var(--accent-solid) 100%);
   color: var(--on-accent);
   border-radius: 16px 16px 6px 16px;
   padding: 0.72rem 1.05rem;
@@ -399,7 +399,7 @@
 }
 .ob-chip:disabled { opacity: 0.45; cursor: not-allowed; }
 .ob-chip--primary {
-  background: linear-gradient(135deg, var(--accent-focus), var(--accent-solid));
+  background: linear-gradient(135deg, var(--accent-hover), var(--accent-solid));
   border-color: rgba(99, 102, 241, 0.55);
   color: var(--on-accent);
   box-shadow: 0 6px 18px rgba(79, 70, 229, 0.28);
@@ -495,7 +495,7 @@
 .ob-input:disabled { opacity: 0.9; cursor: not-allowed; }
 .ob-send {
   height: 44px;
-  background: linear-gradient(135deg, var(--accent-focus), var(--accent-solid));
+  background: linear-gradient(135deg, var(--accent-hover), var(--accent-solid));
   color: var(--on-accent);
   border: none;
   border-radius: 999px;

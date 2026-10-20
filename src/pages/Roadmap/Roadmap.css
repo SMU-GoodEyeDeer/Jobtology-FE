@@ -237,7 +237,7 @@
 
 /* ── 지금 가장 먼저 할 일 ── */
 .rm-priority-section {
-  background: var(--text);
+  background: var(--strong-bg);
   border-radius: 14px;
   padding: 24px;
   display: flex;
