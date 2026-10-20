@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { postingDeadlineLabel, postingSearchParams, postingsHref, resourcesApi, safeSourceUrl } from "./resourcesApi";
+import { formatPostingDateTime, postingDeadlineLabel, postingSearchParams, postingsHref, resourcesApi, safeSourceUrl } from "./resourcesApi";
 import type { PostingItem } from "./resourcesApi";
 import { analysisSkillHref, roadmapSkillHref } from "./skillNavigation";
 afterEach(() => vi.unstubAllGlobals());
@@ -36,6 +36,16 @@ describe("live resource navigation and transport", () => {
     expect(postingDeadlineLabel({ ...item, deadline_kind: "ROLLING", ongoing_basis: "USER_POLICY" })).toBe("상시 모집 · 사용자 정책에 따른 추정");
     expect(postingDeadlineLabel({ ...item, deadline_kind: "UNTIL_FILLED" })).toBe("채용 시 마감 · 원문 확인 필요");
     expect(postingDeadlineLabel({ ...item, ongoing: true, closing_date: "2026-10-31" })).toBe("접수 마감일 2026-10-31");
+  });
+  it("formats posting instants in Korean local time and keeps date-only labels unchanged", () => {
+    const instant = "2026-10-20T09:30:00";
+    const formatted = formatPostingDateTime(instant);
+    expect(formatted).toMatch(/2026년\s*10월\s*20일\s*오전\s*9:30/);
+    expect(postingDeadlineLabel({ deadline_at: instant } as PostingItem)).toBe(`접수 마감 ${formatted}`);
+    expect(postingDeadlineLabel({ closing_date: "2026-10-31" } as PostingItem)).toBe("접수 마감일 2026-10-31");
+  });
+  it.each(["invalid", "2026-99-99T25:00:00Z", ""])("preserves an invalid posting time: %s", value => {
+    expect(formatPostingDateTime(value)).toBe(value);
   });
   it.each(["javascript:alert(1)", "data:text/html,test", "//example.com", "/relative", "not a url"])("rejects unsafe or relative source URL %s", value => {
     expect(safeSourceUrl(value)).toBeNull();

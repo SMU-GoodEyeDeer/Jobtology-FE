@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PostingItem, PostingResponse, PostingsResponse } from "../../services/resourcesApi";
 import { resourcesApi } from "../../services/resourcesApi";
 import { occupationContext } from "../../testFixtures/occupationContext";
+import { AssociationProvenance } from "./OccupationContext";
 import { Postings } from "./Postings";
 import { PostingDetail } from "./PostingDetail";
 import { PostingEvidence } from "../Chat/PostingEvidence";
@@ -35,6 +36,30 @@ function changeInput(input: HTMLInputElement, value: string) {
   input.dispatchEvent(new Event("input", { bubbles: true }));
 }
 describe("real posting browser", () => {
+  it("labels inference provenance fields in Korean and omits missing values", async () => {
+    const association = occupationContext(posting).items[0];
+    await act(async () => root.render(createElement(AssociationProvenance, { items: [{ ...association,
+      source_pins: { run_id: "수집-실행", source_hash: "원문-해시", normalized_hash: "정규화-해시", source_facts_sha256: "사실-해시" },
+      catalog_pins: { pin: "분류-버전", catalog_hash: "분류-해시" },
+    }] })));
+    const rows = Array.from(container.querySelectorAll("dl div"));
+    expect(Object.fromEntries(rows.map(row => [row.querySelector("dt")?.textContent, row.querySelector("dd")?.textContent]))).toMatchObject({
+      "연결 식별자": association.association_id, "원문 출처": "잡코리아", "원문 수집 실행": "수집-실행", "원문 검증값": "원문-해시",
+      "정규화 자료 검증값": "정규화-해시", "원문 사실 검증값": "사실-해시", "분류 기준 버전": "분류-버전", "분류 자료 검증값": "분류-해시",
+    });
+    await act(async () => root.render(createElement(AssociationProvenance, { items: [{ ...association, source_pins: { run_id: null, source_hash: null, normalized_hash: null, source_facts_sha256: null }, catalog_pins: { pin: null, catalog_hash: null } }] })));
+    expect(container.textContent).not.toContain("원문 수집 실행");
+    expect(container.textContent).not.toContain("분류 자료 검증값");
+  });
+  it.each(["2026-10-20T09:30:00", "invalid-start"])("formats an application start instant or preserves its invalid source value: %s", async application_start_at => {
+    await act(async () => root.render(createElement(PostingDetail, { postingId: posting.posting_id, posting: { ...posting, application_start_at, application_start_date: "2026-10-01" } })));
+    const start = Array.from(container.querySelectorAll("dl div")).find(row => row.querySelector("dt")?.textContent === "접수 시작")?.querySelector("dd")?.textContent;
+    if (application_start_at === "invalid-start") expect(start).toBe(application_start_at);
+    else {
+      expect(start).toMatch(/2026년\s*10월\s*20일\s*오전\s*9:30/);
+      expect(start).not.toContain(application_start_at);
+    }
+  });
   it("loads graph-linked filters and opens the actual selected posting detail", async () => {
     await renderPage("?ncs_category=20010203");
     expect(resourcesApi.postings).toHaveBeenCalledWith(expect.objectContaining({ ncs_category: "20010203", limit: 20, offset: 0 }));

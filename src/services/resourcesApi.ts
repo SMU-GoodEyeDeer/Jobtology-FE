@@ -83,12 +83,23 @@ export interface OccupationContextResponse {
   };
   readonly items: readonly OccupationAssociation[];
 }
+export function formatPostingDateTime(value: string): string {
+  try {
+    const date = new Date(value);
+    if (!Number.isFinite(date.getTime())) return value;
+    return new Intl.DateTimeFormat("ko-KR", {
+      year: "numeric", month: "long", day: "numeric", hour: "numeric", minute: "2-digit",
+    }).format(date);
+  } catch {
+    return value;
+  }
+}
 export function postingDeadlineLabel(item: PostingItem): string {
   if (item.source_status === "CLOSED") return "모집 종료 · 원문 상태";
   if (item.ongoing_basis === "USER_POLICY" || item.deadline_basis === "USER_POLICY") return "상시 모집 · 사용자 정책에 따른 추정";
   if (item.deadline_kind === "UNTIL_FILLED") return "채용 시 마감 · 원문 확인 필요";
   if (item.deadline_kind === "ROLLING" || item.deadline_kind === "ONGOING") return "상시 모집 · 원문 확인 필요";
-  return item.deadline_at ? `접수 마감 ${item.deadline_at}` : item.closing_date ? `접수 마감일 ${item.closing_date}` : "접수 마감일 미제공";
+  return item.deadline_at ? `접수 마감 ${formatPostingDateTime(item.deadline_at)}` : item.closing_date ? `접수 마감일 ${item.closing_date}` : "접수 마감일 미제공";
 }
 export const reviewStatusLabel = (status: string) => ({ UNREVIEWED: "미검토", ASSISTANT_REVIEWED: "보조 검토", HUMAN_REVIEWED: "사람 검토" }[status] ?? status);
 export const freshnessLabel = (status: string) => ({ CURRENT: "최신", STALE: "과거 자료", UNKNOWN: "확인 안 됨" }[status] ?? status);

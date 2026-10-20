@@ -90,7 +90,14 @@ function PlanContent({ saved, skills, onSaved, onComplete }: {
       }
     } catch (cause) {
       const status = cause instanceof Error && "status" in cause ? cause.status : null;
-      if (status === 409) {
+      if (status === 409 && action === "complete") {
+        try {
+          onSaved(await roadmapsApi.getPlan(saved.roadmap_id));
+          setError("다른 곳에서 학습 진행 상태가 변경되어 최신 플랜을 불러왔어요. 현재 상태를 확인한 뒤 다시 시도해 주세요.");
+        } catch {
+          setError("학습 진행 상태가 변경됐지만 최신 플랜을 불러오지 못했어요. 현재 플랜을 유지했어요. 연결을 확인한 뒤 다시 시도해 주세요.");
+        }
+      } else if (status === 409) {
         try {
           const latest = await roadmapsApi.getPlan(saved.roadmap_id);
           onSaved(latest);
@@ -108,7 +115,7 @@ function PlanContent({ saved, skills, onSaved, onComplete }: {
         } catch {
           setError("다른 곳에서 플랜이 변경됐지만 최신 플랜을 불러오지 못했어요. 내 수정 내용은 유지했어요. 연결을 확인한 뒤 다시 시도해 주세요.");
         }
-      } else setError(status === 422 ? "플랜 값을 확인해 주세요. 완료한 단계의 학습 시간은 바꿀 수 없어요. 시간과 단계 순서를 확인한 뒤 다시 저장해 주세요." : "요청을 처리하지 못했어요. 변경 내용은 유지했어요. 연결을 확인하고 다시 시도해 주세요.");
+      } else setError(action === "complete" ? "학습 진행 상태를 변경하지 못했어요. 현재 상태를 확인한 뒤 다시 시도해 주세요." : status === 422 ? "플랜 값을 확인해 주세요. 완료한 단계의 학습 시간은 바꿀 수 없어요. 시간과 단계 순서를 확인한 뒤 다시 저장해 주세요." : "요청을 처리하지 못했어요. 변경 내용은 유지했어요. 연결을 확인하고 다시 시도해 주세요.");
     } finally { setBusy(false); }
   }
 

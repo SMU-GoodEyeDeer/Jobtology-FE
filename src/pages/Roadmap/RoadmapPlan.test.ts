@@ -5,7 +5,7 @@ import type { Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { WeeklyPlanInput, WeeklyPlanResponse } from "../../services/types";
+import type { StepState, WeeklyPlanInput, WeeklyPlanResponse } from "../../services/types";
 import { roadmapsApi } from "../../services/api";
 import { RoadmapPlan } from "./RoadmapPlan";
 
@@ -13,7 +13,7 @@ const state = vi.hoisted(() => ({ plan: null as WeeklyPlanResponse | null }));
 vi.mock("../../services/api", () => ({ roadmapsApi: { previewPlan: vi.fn(), savePlan: vi.fn(), resetPlan: vi.fn(), getPlan: vi.fn() } }));
 vi.mock("./useWeeklyPlan", () => ({ useWeeklyPlan: () => { const [plan, setPlan] = useState(state.plan); return { plan, setPlan, loading: false, skills: [] }; } }));
 vi.mock("./PlanPhases", () => ({ PlanPhases: () => null }));
-vi.mock("./PlanStepDetail", () => ({ PlanStepDetail: () => null }));
+vi.mock("./PlanStepDetail", () => ({ PlanStepDetail: ({ onComplete }: { onComplete: () => void }) => createElement("button", { onClick: onComplete }, "완료 요청") }));
 vi.mock("./PlanWeeks", () => ({ PlanWeeks: ({ draft, onChange }: { draft: WeeklyPlanInput | null; onChange: (draft: WeeklyPlanInput) => void }) => createElement("button", { onClick: () => draft && onChange({ ...draft, weekly_hours: 20 }) }, "시간 변경") }));
 const saved: WeeklyPlanResponse = {
   version: 1, roadmap_id: "roadmap", start_date: "2026-10-19", target_date: null, weekly_hours: 10, recommended_weekly_hours: 10, rest_weeks: [], is_customized: false, saved_at: null, total_hours: 10, total_weeks: 1, completion_date: "2026-10-25", recommended_completion_date: "2026-10-25", schedule_source: "SOLVER", deadline_exceeded: false, days_past_target: 0, has_dependency_violations: false, warnings: [],
@@ -32,11 +32,33 @@ beforeEach(() => {
   container = document.createElement("div"); document.body.append(container); root = createRoot(container);
 });
 afterEach(async () => { await act(async () => root.unmount()); container.remove(); vi.useRealTimers(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
-async function render() { await act(async () => root.render(createElement(MemoryRouter, null, createElement(RoadmapPlan, { roadmapId: "roadmap", goalId: "goal", children: null, onComplete: async () => {} })))); }
+async function render(onComplete: (id: string, state: StepState) => Promise<void> = async () => {}) { await act(async () => root.render(createElement(MemoryRouter, null, createElement(RoadmapPlan, { roadmapId: "roadmap", goalId: "goal", children: null, onComplete })))); }
 async function click(text: string) { await act(async () => [...container.querySelectorAll("button")].find(button => button.textContent === text)!.click()); }
 async function preview() { await act(async () => vi.advanceTimersByTimeAsync(250)); }
 
 describe("weekly plan conflict recovery", () => {
+  it.each([false, true])("reloads a completion conflict without creating an edit draft (reload failure: %s)", async reloadFails => {
+    const onComplete = vi.fn().mockRejectedValue(Object.assign(new Error("conflict"), { status: 409 }));
+    if (reloadFails) vi.mocked(roadmapsApi.getPlan).mockRejectedValueOnce(new Error("offline"));
+    await render(onComplete); await click("완료 요청");
+    expect(onComplete).toHaveBeenCalledWith("step", "TODO");
+    expect(roadmapsApi.getPlan).toHaveBeenCalledWith("roadmap");
+    expect(container.querySelector(".wp-summary")?.textContent).toContain(`${reloadFails ? 10 : 15}시간`);
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain(reloadFails ? "현재 플랜을 유지했어요" : "학습 진행 상태가 변경되어 최신 플랜");
+    expect(container.querySelector(".wp-save-bar")).toBeNull();
+    expect(container.textContent).not.toContain("수정 중 · 저장 전");
+    expect(container.textContent).not.toContain("검토한 뒤 저장을 다시 눌러");
+    expect(vi.mocked(roadmapsApi.previewPlan).mock.calls.every(([, input]) => input === null)).toBe(true);
+    expect(roadmapsApi.savePlan).not.toHaveBeenCalled();
+  });
+  it("uses a progress-specific failure message for a rejected completion", async () => {
+    await render(vi.fn().mockRejectedValue(Object.assign(new Error("invalid progress"), { status: 422 })));
+    await click("완료 요청");
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain("학습 진행 상태를 변경하지 못했어요");
+    expect(container.textContent).not.toContain("학습 시간은 바꿀 수 없어요");
+    expect(container.querySelector(".wp-save-bar")).toBeNull();
+    expect(roadmapsApi.getPlan).not.toHaveBeenCalled();
+  });
   it("reloads the latest version, preserves a draft, and waits for explicit save after review", async () => {
     await render(); await click("플랜 수정"); await preview(); await click("시간 변경"); await preview(); await click("저장");
     expect(roadmapsApi.savePlan).toHaveBeenCalledWith("roadmap", expect.objectContaining({ expected_version: 1, weekly_hours: 20 }));

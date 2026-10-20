@@ -20,6 +20,11 @@ export function AssociationProvenance({ items }: { readonly items: readonly Occu
     <summary>{item.occupation_name || item.occupation_code} · 연결 출처와 검토</summary>
     <p><AssociationStatus item={item} /></p>
     <dl><div><dt>직무 코드</dt><dd>{item.occupation_scheme} {item.occupation_code}</dd></div><div><dt>연결 단계</dt><dd>{item.stage}</dd></div><div><dt>신뢰도</dt><dd>평가되지 않음</dd></div>
-      {Object.entries({ 연결: item.association_id, 원문: postingSourceName(item.source_id), ...item.source_pins, ...item.catalog_pins }).map(([label, value]) => value && <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
+      {[
+        ["연결 식별자", item.association_id], ["원문 출처", postingSourceName(item.source_id)],
+        ["원문 수집 실행", item.source_pins.run_id], ["원문 검증값", item.source_pins.source_hash],
+        ["정규화 자료 검증값", item.source_pins.normalized_hash], ["원문 사실 검증값", item.source_pins.source_facts_sha256],
+        ["분류 기준 버전", item.catalog_pins.pin], ["분류 자료 검증값", item.catalog_pins.catalog_hash],
+      ].map(([label, value]) => value && <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
   </details>)}</div>;
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { postingDeadlineLabel, postingSourceName, resourcesApi, safeSourceUrl } from "../../services/resourcesApi";
+import { formatPostingDateTime, postingDeadlineLabel, postingSourceName, resourcesApi, safeSourceUrl } from "../../services/resourcesApi";
 import type { PostingItem, PostingResponse } from "../../services/resourcesApi";
 
 export function PostingDetail({ postingId, posting }: { readonly postingId: string; readonly posting?: PostingItem }) {
@@ -20,7 +20,7 @@ export function PostingDetail({ postingId, posting }: { readonly postingId: stri
   const sources = item.source_provenance ? [item.source_provenance] : [];
   const sourceUrl = safeSourceUrl(item.source_url);
   const fields = [
-    ["기관", item.organization_name], ["접수 시작", item.application_start_at || item.application_start_date], ["접수 마감·상태", postingDeadlineLabel(item)], ["공고 게시일", item.date_posted],
+    ["기관", item.organization_name], ["접수 시작", item.application_start_at ? formatPostingDateTime(item.application_start_at) : item.application_start_date], ["접수 마감·상태", postingDeadlineLabel(item)], ["공고 게시일", item.date_posted],
     ["원문 상태", item.source_status], ["마감 방식", item.deadline_kind], ["마감 판단 근거", item.deadline_basis], ["상시 모집 판단 근거", item.ongoing_basis],
     ["근무 지역", item.regions.join(" · ")], ["고용 형태", item.employment_types.join(" · ")],
     ["채용 구분", item.recruitment_type], ["학력", item.education], ["채용 인원", item.headcount != null ? `${item.headcount}명` : null],
