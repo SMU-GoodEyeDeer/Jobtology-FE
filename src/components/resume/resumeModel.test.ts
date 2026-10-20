@@ -6,6 +6,14 @@ const block: ResumeBlock = { block_id: "a".repeat(24), text: "😀 Python Python
 const suggestion: ResumeSuggestion = { suggestion_id: "rule-1", block_id: block.block_id, title: "Python", category: "skill", quote: "Python", start: 9, end: 15, method: "KEYWORD", competencies: [], score: null, score_max: null };
 const scan: ResumeScan = { document_sha256: "c".repeat(64), parser_revision: "jobtology-resume-v1-7541e87", blocks: [block], suggestions: [suggestion], warnings: [], skipped_pages: [] };
 describe("resume source evidence", () => {
+  it("rejects empty quotations before every anchoring and draft path", () => {
+    const empty = { ...suggestion, quote: "", start: 0, end: 0 };
+    expect(anchorAiSuggestion(empty, block.text, block)).toBeNull();
+    expect(anchorAiSuggestion(empty, "edited passage", block)).toBeNull();
+    expect(anchorAiSuggestion(empty, "", { ...block, text: "" })).toBeNull();
+    expect(() => importedDraft(scan, block, empty)).toThrow("원문 근거");
+    expect(() => importedDraft(scan, { ...block, text: "" })).toThrow("원문 근거");
+  });
   it("uses Unicode code points and the specified repeated occurrence", () => {
     expect(pointSlice(block.text, 9, 15)).toBe("Python");
     const draft = importedDraft(scan, block, suggestion);

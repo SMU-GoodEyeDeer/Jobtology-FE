@@ -33,6 +33,13 @@ async function render(query: string, items = skills, linksReady = true) {
   await act(async () => root.render(createElement(MemoryRouter, { initialEntries: [`/analysis?${query}`] }, createElement(SkillList, { skills: items, goalId: "goal", emptyMessage: "empty", linksReady }))));
 }
 describe("analysis competency deep links", () => {
+  it.each([undefined, 0, .5])("does not turn missing partial-credit data into zero: %s", async credit => {
+    await render("", [{ ...skills[0]!, status: "PARTIAL", credit }]);
+    const text = container.querySelector(".sd-subline")!.textContent;
+    expect(text).toContain("부분 반영");
+    if (credit == null) expect(text).not.toContain("%");
+    else expect(text).toContain(`모델 ${Math.round(credit * 100)}%`);
+  });
   it("selects only the requested NCS skill when legacy skills share a name and lack requirement keys", async () => {
     const legacy = skills.map(({ requirement_key: _key, ...skill }) => skill);
     await render("ncs=2001020302", legacy);

@@ -13,7 +13,7 @@ export function importedDraft(scan: ResumeScan, block: ResumeBlock, suggestion?:
   const quote = suggestion?.quote ?? block.text;
   const start = suggestion?.start ?? 0;
   const end = suggestion?.end ?? Array.from(block.text).length;
-  if (pointSlice(block.text, start, end) !== quote) throw new Error("원문 근거를 확인하지 못했어요. 해당 문단을 직접 선택해 주세요.");
+  if (!quote || pointSlice(block.text, start, end) !== quote) throw new Error("원문 근거를 확인하지 못했어요. 해당 문단을 직접 선택해 주세요.");
   return { ...specDraft(), category: suggestion?.category ?? "skill", title: suggestion?.title ?? "",
     proficiency: "", selected: suggestion?.competencies ?? [], evidence: quote, source: "DOCUMENT_IMPORT",
     score: suggestion?.score == null ? "" : String(suggestion.score), score_max: suggestion?.score_max == null ? "" : String(suggestion.score_max),
@@ -24,6 +24,7 @@ export function importedDraft(scan: ResumeScan, block: ResumeBlock, suggestion?:
 // Model offsets refer to the edited/redacted passage. Re-anchor to the original only
 // when exact and unambiguous; never silently use the first repeated occurrence.
 export function anchorAiSuggestion(suggestion: ResumeSuggestion, sent: string, block: ResumeBlock): ResumeSuggestion | null {
+  if (!suggestion.quote) return null;
   if (pointSlice(sent, suggestion.start, suggestion.end) !== suggestion.quote) return null;
   if (sent === block.text) return { ...suggestion, block_id: block.block_id };
   const original = Array.from(block.text), quote = Array.from(suggestion.quote);

@@ -27,8 +27,14 @@ const ENROLLMENT_OPTIONS = [
 export function MyInfo() {
   const navigate = useNavigate();
   const location = useLocation();
-  const specCandidate = (location.state as { specCandidate?: ChatCapabilityCandidate } | null)?.specCandidate;
+  const [specCandidate] = useState(() => (location.state as { specCandidate?: ChatCapabilityCandidate } | null)?.specCandidate);
   const { session, loading: sessionLoading } = useSession();
+
+  useEffect(() => {
+    if (specCandidate && location.state) {
+      navigate({ pathname: location.pathname, hash: location.hash }, { replace: true, state: null });
+    }
+  }, [specCandidate, location.state, location.pathname, location.hash, navigate]);
 
   useEffect(() => {
     if (!sessionLoading && !session) navigate("/");

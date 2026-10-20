@@ -247,7 +247,7 @@ export function Analysis() {
                 </div>
               </div>
             </div>
-            {analysisResult?.result?.weighted_score_method && <p className="an-fulfillment-sub">본인 입력과 근거를 바탕으로 학습량을 계산한 모델 지표예요. 검증된 실력이나 취업 확률이 아니에요.</p>}
+            {(analysisResult?.result?.weighted_required_pct != null || analysisResult?.result?.weighted_preferred_pct != null) && <p className="an-fulfillment-sub">본인 입력과 근거를 바탕으로 학습량을 계산한 모델 지표예요. 검증된 실력이나 취업 확률이 아니에요.</p>}
           </section>
 
           <SkillList key={selectedGoalId ?? "no-goal"} skills={skills} goalId={selectedGoalId} linksReady={pollState === "completed" && !publicationsLoading}

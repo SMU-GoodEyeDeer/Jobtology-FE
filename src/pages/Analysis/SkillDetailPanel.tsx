@@ -87,7 +87,7 @@ export function SkillDetailPanel({ skill, roadmap, overlay, onClose }: PanelProp
           <div><dt>{skill.status === "PARTIAL" ? "남은 예상 학습 시간" : "예상 학습 시간"}</dt><dd>{formatHours(skill, true)}</dd></div>
           {demand && <div><dt>공고 근거</dt><dd>{demand}<small>검토된 과거 공고 기준</small></dd></div>}
         </dl>
-        {skill.status === "PARTIAL" && <p className="sd-modeled-credit">입력한 근거에 따른 모델 반영 비율 {Math.round((skill.credit ?? 0) * 100)}%{skill.base_estimated_hours != null ? ` · 기본 ${skill.base_estimated_hours}시간에서 남은 시간을 추정했어요.` : ""} 검증된 숙련도나 취업 확률이 아니에요.</p>}
+        {skill.status === "PARTIAL" && <p className="sd-modeled-credit">{skill.credit != null ? `입력한 근거에 따른 모델 반영 비율 ${Math.round(skill.credit * 100)}%` : "입력한 근거에 따라 부분 반영된 역량이에요."}{skill.base_estimated_hours != null ? ` · 기본 ${skill.base_estimated_hours}시간에서 남은 시간을 추정했어요.` : ""} 검증된 숙련도나 취업 확률이 아니에요.</p>}
       </section>
       <SkillQualifications skill={skill} />
       <section className="sd-section">

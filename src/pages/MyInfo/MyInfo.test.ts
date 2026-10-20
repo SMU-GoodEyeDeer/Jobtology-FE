@@ -3,7 +3,7 @@ import { act, createElement } from "react";
 import type { ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import type { Root } from "react-dom/client";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes, createMemoryRouter, RouterProvider } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CapabilityDetailResponse, CapabilityMutationRequest, GoalResponse, ProfileDetailResponse, ProfileUpdateRequest } from "../../services/types";
 import { MyInfo } from "./MyInfo";
@@ -94,6 +94,22 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => root.unmount()); container.remove(); });
 
 describe("MyInfo persistence", () => {
+  it("consumes a chat candidate once and clears it from browser history", async () => {
+    const candidate = { entity_id: "ncs:unit:2001020211", label: "로그인 API 프로젝트", evidence_quote: "FastAPI로 로그인 기능과 테스트를 직접 구현한 경험이에요.", category: "project" };
+    const router = createMemoryRouter([
+      { path: "/myinfo", element: createElement(MyInfo) },
+      { path: "/analysis", element: createElement("p", null, "Analysis page") },
+    ], { initialEntries: [{ pathname: "/myinfo", search: "?old=1", hash: "#specs", state: { specCandidate: candidate } }] });
+    await act(async () => root.render(createElement(RouterProvider, { router })));
+    expect(router.state.location).toMatchObject({ pathname: "/myinfo", hash: "#specs", search: "", state: null });
+    expect(container.querySelector<HTMLInputElement>(".spec-editor input[required]")?.value).toBe(candidate.label);
+    expect(api.capabilitiesApi.create).not.toHaveBeenCalled();
+    await act(async () => button("취소").click());
+    await act(async () => router.navigate("/analysis"));
+    await act(async () => router.navigate(-1));
+    expect(router.state.location.state).toBeNull();
+    expect(container.querySelector(".spec-editor")).toBeNull();
+  });
   it("shows a newly created spec immediately using the real minimal response and can then save the profile", async () => {
     await mount(); await addSpec(" Python ");
     expect(container.querySelector(".spec-list")?.textContent).toContain("Python");
