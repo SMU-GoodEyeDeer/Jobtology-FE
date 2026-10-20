@@ -13,6 +13,7 @@ import progressIcon from "../assets/today.svg";
 import userIcon from "../assets/User.svg";
 import { useSession } from "../context/SessionContext";
 import { usePanelResize } from "../hooks/usePanelResize";
+import { ThemeSelect } from "./ThemeSelect";
 
 const NAV_ITEMS = [
   { icon: homeIcon, label: "홈", path: "/home" },
@@ -96,6 +97,7 @@ export function AppSidebar({ children, showLogout = true }: { children?: ReactNo
 
       <div className="sidebar-bottom">
         {children}
+        <ThemeSelect compact={collapsed} />
         {showLogout && (
           <button
             className="sidebar-logout-btn"

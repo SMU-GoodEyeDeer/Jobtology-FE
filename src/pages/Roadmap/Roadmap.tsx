@@ -163,8 +163,8 @@ export function Roadmap() {
             </RoadmapPlan>
           ) : (
             <section className="rm-card" style={{ padding: 32, textAlign: "center" }}>
-              <p style={{ color: "#6b7280", marginBottom: 16 }}>아직 로드맵이 없어요.</p>
-              <p style={{ color: "#9ca3af", fontSize: 14 }}>역량 분석 후 AI가 로드맵을 생성해드려요.</p>
+              <p style={{ color: "var(--muted)", marginBottom: 16 }}>아직 로드맵이 없어요.</p>
+              <p style={{ color: "var(--tertiary)", fontSize: 14 }}>역량 분석 후 AI가 로드맵을 생성해드려요.</p>
             </section>
           )}
 

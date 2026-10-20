@@ -1,5 +1,6 @@
 import { useEffect, useId, useLayoutEffect, useRef } from "react";
 import type { ReactNode } from "react";
+import { ThemeSelect } from "../ThemeSelect";
 
 interface Props {
   readonly title: string;
@@ -44,9 +45,9 @@ export function SpecDialog({ title, description, view, busy, back, onDismiss, ch
     onCancel={event => { event.preventDefault(); if (!busy) onDismiss(); }}>
     <header className="spec-dialog-heading">
       <div><h2 ref={heading} tabIndex={-1} id={`${id}-title`}>{title}</h2><p id={`${id}-description`}>{description}</p></div>
-      <button type="button" className="spec-dialog-close" disabled={busy} onClick={onDismiss} aria-label={back ? "이력서 검토로 돌아가기" : "스펙 창 닫기"}>
+      <div className="spec-dialog-tools"><ThemeSelect compact /><button type="button" className="spec-dialog-close" disabled={busy} onClick={onDismiss} aria-label={back ? "이력서 검토로 돌아가기" : "스펙 창 닫기"}>
         {back ? <><span aria-hidden="true">←</span><span className="spec-dialog-back-label">검토로 돌아가기</span></> : <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20"><path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>}
-      </button>
+      </button></div>
     </header>
     <div ref={content} className="spec-dialog-content" data-view={view}>{children}</div>
   </dialog>;

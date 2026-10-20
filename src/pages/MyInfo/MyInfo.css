@@ -2,39 +2,39 @@
 .mi-account-card {
   margin-top: 24px;
   padding: 24px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border);
   border-radius: 14px;
-  background: #fff;
+  background: var(--surface);
 }
 
 .mi-account-description,
 .mi-delete-confirm p {
-  color: #4b5563;
+  color: var(--text-secondary);
   font-size: 14px;
   line-height: 1.6;
 }
 
 .mi-delete-btn {
   padding: 9px 14px;
-  border: 1px solid #fecaca;
+  border: 1px solid var(--danger-border);
   border-radius: 8px;
-  background: #fff;
-  color: #b91c1c;
+  background: var(--surface);
+  color: var(--danger-text);
   font: inherit;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
 }
 
-.mi-delete-btn--confirm { background: #b91c1c; color: #fff; border-color: #b91c1c; }
+.mi-delete-btn--confirm { background: var(--danger-solid); color: var(--on-accent); border-color: var(--danger-text); }
 .mi-delete-btn:disabled { cursor: default; opacity: .5; }
-.mi-delete-btn:focus-visible, .mi-delete-acknowledgement input:focus-visible { outline: 2px solid #b91c1c; outline-offset: 3px; }
+.mi-delete-btn:focus-visible, .mi-delete-acknowledgement input:focus-visible { outline: 2px solid var(--danger-text); outline-offset: 3px; }
 .mi-delete-confirm { padding-top: 8px; }
-.mi-delete-confirm h4 { margin: 0; color: #991b1b; font-size: 15px; }
-.mi-delete-acknowledgement { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; line-height: 1.6; color: #374151; }
+.mi-delete-confirm h4 { margin: 0; color: var(--danger-text); font-size: 15px; }
+.mi-delete-acknowledgement { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; line-height: 1.6; color: var(--text-secondary); }
 .mi-delete-acknowledgement input { flex-shrink: 0; margin-top: 4px; }
 .mi-account-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
-.mi-delete-confirm .mi-delete-error { color: #b91c1c; }
+.mi-delete-confirm .mi-delete-error { color: var(--danger-text); }
 
 .mi-two-col {
   display: grid;
@@ -43,24 +43,24 @@
   align-items: start;
 }
 .mi-graduation-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.mi-persistence-error { color: #b91c1c; font-size: 13px; line-height: 1.6; }
+.mi-persistence-error { color: var(--danger-text); font-size: 13px; line-height: 1.6; }
 .mi-persistence-error p { margin: 0 0 8px; }
-.mi-persistence-success { color: #166534; font-size: 13px; margin: 0; }
-.mi-persistence-help { color: #6b7280; font-size: 12px; line-height: 1.7; margin: 0; }
-.mi-mutation-notice { padding: 16px 20px; border: 1px solid #bbf7d0; border-radius: 12px; background: #f0fdf4; }
-.mi-mutation-notice > p:first-child { margin: 0 0 6px; color: #166534; font-size: 14px; }
+.mi-persistence-success { color: var(--success-text); font-size: 13px; margin: 0; }
+.mi-persistence-help { color: var(--muted); font-size: 12px; line-height: 1.7; margin: 0; }
+.mi-mutation-notice { padding: 16px 20px; border: 1px solid var(--success-border); border-radius: 12px; background: var(--success-bg); }
+.mi-mutation-notice > p:first-child { margin: 0 0 6px; color: var(--success-text); font-size: 14px; }
 .mi-persistence-actions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 12px; font-size: 13px; }
-.mi-persistence-actions a { color: #4338ca; }
+.mi-persistence-actions a { color: var(--accent-strong); }
 .mi-profile-card button:disabled, .mi-spec-card button:disabled { opacity: .5; cursor: default; }
 @media (max-width: 500px) { .mi-graduation-fields { grid-template-columns: 1fr; } }
 
 /* ── Shared card base ── */
 .mi-profile-card,
 .mi-spec-card {
-  background: #ffffff;
+  background: var(--surface);
   border-radius: 14px;
   padding: 24px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -89,24 +89,24 @@
 .mi-card-title {
   font-size: 15px;
   font-weight: 700;
-  color: #111827;
+  color: var(--text);
   margin: 0;
 }
 
 .mi-save-btn {
   padding: 6px 16px;
   border-radius: 8px;
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
+  border: 1px solid var(--border);
+  background: var(--surface);
   font-size: 13px;
   font-weight: 600;
-  color: #374151;
+  color: var(--text-secondary);
   cursor: pointer;
   transition: background 0.15s;
 }
 
 .mi-save-btn:hover {
-  background: #f3f4f6;
+  background: var(--surface-hover);
 }
 
 /* ── Fields ── */
@@ -119,29 +119,29 @@
 .mi-label {
   font-size: 13px;
   font-weight: 600;
-  color: #374151;
+  color: var(--text-secondary);
 }
 
 .mi-input {
   width: 100%;
   padding: 10px 14px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border);
   border-radius: 8px;
   font-size: 14px;
-  color: #111827;
-  background: #ffffff;
+  color: var(--text);
+  background: var(--surface);
   outline: none;
   transition: border-color 0.15s;
   box-sizing: border-box;
 }
 
 .mi-input:focus {
-  border-color: #4f46e5;
+  border-color: var(--accent-solid);
 }
 
 .mi-input--disabled {
-  background: #f9fafb;
-  color: #6b7280;
+  background: var(--surface-soft);
+  color: var(--muted);
   cursor: default;
 }
 
@@ -155,30 +155,30 @@
 .mi-chip {
   padding: 7px 14px;
   border-radius: 20px;
-  border: 1.5px solid #e5e7eb;
-  background: #ffffff;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
   font-size: 13px;
   font-weight: 500;
-  color: #374151;
+  color: var(--text-secondary);
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
 
 .mi-chip:hover {
-  border-color: #4f46e5;
-  color: #4f46e5;
+  border-color: var(--accent-solid);
+  color: var(--accent);
 }
 
 .mi-chip--active {
-  background: #1e1b4b;
-  border-color: #1e1b4b;
-  color: #ffffff;
+  background: var(--strong-bg);
+  border-color: var(--strong-bg);
+  color: var(--on-accent);
   font-weight: 600;
 }
 
 .mi-chip--active:hover {
-  background: #1e1b4b;
-  color: #ffffff;
+  background: var(--strong-bg);
+  color: var(--on-accent);
 }
 
 /* ── Radio grid ── */
@@ -200,20 +200,20 @@
   height: 18px;
   min-width: 18px;
   border-radius: 50%;
-  border: 2px solid #d1d5db;
-  background: #ffffff;
+  border: 2px solid var(--border);
+  background: var(--surface);
   transition: border-color 0.15s, background 0.15s;
 }
 
 .mi-radio-dot--active {
-  border-color: #4f46e5;
-  background: #4f46e5;
-  box-shadow: inset 0 0 0 3px #ffffff;
+  border-color: var(--accent-solid);
+  background: var(--accent-solid);
+  box-shadow: inset 0 0 0 3px var(--surface);
 }
 
 .mi-radio-label {
   font-size: 13px;
-  color: #374151;
+  color: var(--text-secondary);
 }
 
 /* ── 내 로드맵 보기 button ── */
@@ -222,8 +222,8 @@
   padding: 14px;
   border: none;
   border-radius: 10px;
-  background: #4f46e5;
-  color: #ffffff;
+  background: var(--accent-solid);
+  color: var(--on-accent);
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;
@@ -232,13 +232,13 @@
 }
 
 .mi-roadmap-btn:hover {
-  background: #4338ca;
+  background: var(--accent-hover);
 }
 
 /* ── 내 스펙 ── */
 .mi-spec-sub {
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--tertiary);
   margin: -12px 0 0;
 }
 
@@ -255,14 +255,14 @@
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  background: #f3f4f6;
-  color: #6b7280;
+  background: var(--surface-hover);
+  color: var(--muted);
   transition: background 0.15s, color 0.15s;
 }
 
 .mi-spec-tab--active {
-  background: #111827;
-  color: #ffffff;
+  background: var(--strong-bg);
+  color: var(--on-accent);
 }
 
 .mi-spec-list {
@@ -280,7 +280,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 10px 0;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--surface-hover);
 }
 
 .mi-spec-item:last-child {
@@ -289,7 +289,7 @@
 
 .mi-spec-item-label {
   font-size: 14px;
-  color: #111827;
+  color: var(--text);
   font-weight: 500;
 }
 
@@ -298,14 +298,14 @@
   border: none;
   cursor: pointer;
   font-size: 16px;
-  color: #9ca3af;
+  color: var(--tertiary);
   padding: 0 4px;
   line-height: 1;
   transition: color 0.15s;
 }
 
 .mi-spec-remove:hover {
-  color: #374151;
+  color: var(--text-secondary);
 }
 
 .mi-spec-input-row {
@@ -321,9 +321,9 @@
 .mi-add-btn {
   padding: 10px 16px;
   border-radius: 8px;
-  border: 1.5px solid #4f46e5;
+  border: 1.5px solid var(--accent-solid);
   background: transparent;
-  color: #4f46e5;
+  color: var(--accent);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -332,16 +332,16 @@
 }
 
 .mi-add-btn:hover {
-  background: #4f46e5;
-  color: #ffffff;
+  background: var(--accent-solid);
+  color: var(--on-accent);
 }
 
 /* ── 적합 직무 찾기 ── */
 .mi-job-match-card {
-  background: #ffffff;
+  background: var(--surface);
   border-radius: 14px;
   padding: 20px 24px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -356,24 +356,24 @@
 .mi-job-match-title {
   font-size: 14px;
   font-weight: 600;
-  color: #111827;
+  color: var(--text);
   margin: 0;
 }
 
 .mi-job-match-btn {
   padding: 6px 16px;
   border-radius: 8px;
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
+  border: 1px solid var(--border);
+  background: var(--surface);
   font-size: 13px;
   font-weight: 600;
-  color: #374151;
+  color: var(--text-secondary);
   cursor: pointer;
   transition: background 0.15s;
 }
 
 .mi-job-match-btn:hover {
-  background: #f3f4f6;
+  background: var(--surface-hover);
 }
 
 .mi-job-match-results {
@@ -383,10 +383,10 @@
 
 .mi-job-match-item {
   flex: 1;
-  background: #f9fafb;
+  background: var(--surface-soft);
   border-radius: 10px;
   padding: 16px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -401,13 +401,13 @@
 .mi-job-match-label {
   font-size: 14px;
   font-weight: 600;
-  color: #111827;
+  color: var(--text);
 }
 
 .mi-job-match-pct {
   font-size: 15px;
   font-weight: 700;
-  color: #4f46e5;
+  color: var(--accent);
 }
 
 .mi-match-bar {
@@ -416,29 +416,29 @@
 
 /* ── 목표 관리 ── */
 .mi-goals-card {
-  background: #ffffff;
+  background: var(--surface);
   border-radius: 14px;
   padding: 24px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   gap: 12px;
   margin-bottom: 20px;
 }
-.mi-goal-help { color: #6b7280; font-size: 12px; line-height: 1.7; margin: 0; }
-.mi-goal-empty { padding: 16px; border-radius: 8px; background: #f9fafb; color: #4b5563; font-size: 14px; line-height: 1.7; margin: 0; }
+.mi-goal-help { color: var(--muted); font-size: 12px; line-height: 1.7; margin: 0; }
+.mi-goal-empty { padding: 16px; border-radius: 8px; background: var(--surface-soft); color: var(--text-secondary); font-size: 14px; line-height: 1.7; margin: 0; }
 .mi-goal-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .mi-delete-btn.mi-goal-delete-btn { padding: 5px 12px; font-size: 12px; }
-.mi-delete-confirm.mi-goal-delete-confirm { padding: 20px; border: 1px solid #fecaca; border-radius: 10px; background: #fffafa; }
-.mi-goal-editor { display: flex; flex-direction: column; gap: 14px; padding: 20px; border: 1px solid #e0e7ff; border-radius: 10px; background: #fafaff; }
+.mi-delete-confirm.mi-goal-delete-confirm { padding: 20px; border: 1px solid var(--danger-border); border-radius: 10px; background: var(--danger-bg); }
+.mi-goal-editor { display: flex; flex-direction: column; gap: 14px; padding: 20px; border: 1px solid var(--accent-tint); border-radius: 10px; background: var(--surface-soft); }
 .mi-goal-editor h4 { margin: 0; font-size: 14px; }
 .mi-goal-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.mi-goal-error { color: #b91c1c; font-size: 13px; line-height: 1.7; margin: 0; }
+.mi-goal-error { color: var(--danger-text); font-size: 13px; line-height: 1.7; margin: 0; }
 .mi-goal-error p { margin: 0 0 8px; }
-.mi-goal-notice { color: #166534; font-size: 13px; line-height: 1.7; margin: 0; }
-.mi-goal-analysis-link { color: #4338ca; font-size: 13px; }
+.mi-goal-notice { color: var(--success-text); font-size: 13px; line-height: 1.7; margin: 0; }
+.mi-goal-analysis-link { color: var(--accent-strong); font-size: 13px; }
 .mi-roadmap-btn.mi-goal-submit { width: auto; padding: 10px 18px; margin: 0; font-size: 13px; }
-.mi-goals-card button:focus-visible, .mi-goal-editor select:focus-visible, .mi-goal-editor input:focus-visible { outline: 2px solid #4f46e5; outline-offset: 3px; }
+.mi-goals-card button:focus-visible, .mi-goal-editor select:focus-visible, .mi-goal-editor input:focus-visible { outline: 2px solid var(--accent-solid); outline-offset: 3px; }
 #goals { scroll-margin-top: 20px; }
 @media (max-width: 650px) { .mi-goal-fields { grid-template-columns: 1fr; } .mi-goal-item { align-items: flex-start; gap: 10px; flex-wrap: wrap; } .mi-goal-info { flex-wrap: wrap; } .mi-goals-card { padding: 18px; } }
 
@@ -447,7 +447,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 0;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--surface-hover);
 }
 
 .mi-goal-item:last-child {
@@ -464,7 +464,7 @@
 .mi-goal-name {
   font-size: 14px;
   font-weight: 500;
-  color: #111827;
+  color: var(--text);
 }
 
 .mi-goal-badge {
@@ -475,35 +475,35 @@
 }
 
 .mi-goal-badge--active {
-  background: #dbeafe;
-  color: #1d4ed8;
+  background: var(--info-bg);
+  color: var(--info);
 }
 
 .mi-goal-badge--archived {
-  background: #f3f4f6;
-  color: #6b7280;
+  background: var(--surface-hover);
+  color: var(--muted);
 }
 
 .mi-goal-badge--draft {
-  background: #fef9c3;
-  color: #92400e;
+  background: var(--warning-bg);
+  color: var(--warning-text);
 }
 
 .mi-goal-archive-btn {
   padding: 5px 12px;
   border-radius: 7px;
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
+  border: 1px solid var(--border);
+  background: var(--surface);
   font-size: 12px;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--muted);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
 
 .mi-goal-archive-btn:hover {
-  background: #f3f4f6;
-  color: #374151;
+  background: var(--surface-hover);
+  color: var(--text-secondary);
 }
 
 .mi-goal-archive-btn:disabled {

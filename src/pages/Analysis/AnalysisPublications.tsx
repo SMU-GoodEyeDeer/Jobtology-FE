@@ -36,7 +36,7 @@ export function AnalysisPublications({ onLoadingChange }: { onLoadingChange?: (l
   return <section className="an-skills-card">
     <div className="an-skills-header-row" style={{ marginBottom: 8 }}>
       <span className="an-col" style={{ fontWeight: 600 }}>NCS 연계 학습 자료</span>
-      <span style={{ fontSize: 12, color: "#9ca3af" }}>항목을 클릭하면 연계 역량을 볼 수 있어요</span>
+      <span style={{ fontSize: 12, color: "var(--tertiary)" }}>항목을 클릭하면 연계 역량을 볼 수 있어요</span>
     </div>
     {publications.map((pub) => (
       <div key={pub.publication_id}>
@@ -47,15 +47,15 @@ export function AnalysisPublications({ onLoadingChange }: { onLoadingChange?: (l
               {pub.capabilities.route_planning ? "로드맵 활용 가능" : "분석용"}
             </span>
           </div>
-          <div className="an-col" style={{ color: "#6b7280", fontSize: 12 }}>{pub.source_state}</div>
-          <div className="an-col" style={{ color: "#3b82f6", fontSize: 12 }}>{selectedPubId === pub.publication_id ? "▲ 접기" : "▼ 역량 보기"}</div>
+          <div className="an-col" style={{ color: "var(--muted)", fontSize: 12 }}>{pub.source_state}</div>
+          <div className="an-col" style={{ color: "var(--info)", fontSize: 12 }}>{selectedPubId === pub.publication_id ? "▲ 접기" : "▼ 역량 보기"}</div>
         </div>
         {selectedPubId === pub.publication_id && (
-          <div style={{ padding: "8px 16px 12px", background: "#f9fafb", borderRadius: 8, margin: "0 0 8px" }}>
-            {alignmentsLoading ? <span style={{ color: "#9ca3af", fontSize: 13 }}>불러오는 중...</span>
-              : alignments.length === 0 ? <span style={{ color: "#9ca3af", fontSize: 13 }}>연계된 NCS 역량이 없어요.</span>
+          <div style={{ padding: "8px 16px 12px", background: "var(--surface-soft)", borderRadius: 8, margin: "0 0 8px" }}>
+            {alignmentsLoading ? <span style={{ color: "var(--tertiary)", fontSize: 13 }}>불러오는 중...</span>
+              : alignments.length === 0 ? <span style={{ color: "var(--tertiary)", fontSize: 13 }}>연계된 NCS 역량이 없어요.</span>
               : <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                {alignments.map((a) => <span key={a.source_enrichment_id} style={{ background: "#dbeafe", color: "#1d4ed8", borderRadius: 12, padding: "2px 10px", fontSize: 12 }}>{a.competency.name}</span>)}
+                {alignments.map((a) => <span key={a.source_enrichment_id} style={{ background: "var(--info-bg)", color: "var(--info)", borderRadius: 12, padding: "2px 10px", fontSize: 12 }}>{a.competency.name}</span>)}
               </div>}
           </div>
         )}

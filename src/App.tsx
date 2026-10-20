@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { SessionProvider } from "./context/SessionContext";
+import { ThemeProvider } from "./context/ThemeContext";
 import { OccupationsProvider } from "./context/OccupationsContext";
 import { Onboarding } from "./pages/Onboarding/Onboarding";
 import { OnboardingChat } from "./pages/OnboardingChat/OnboardingChat";
@@ -13,6 +14,7 @@ import { Postings } from "./pages/Postings/Postings";
 import { Progress } from "./pages/Progress/Progress";
 import { MyInfo } from "./pages/MyInfo/MyInfo";
 import { RequireSession } from "./components/RequireSession";
+import "./styles/theme.css";
 import "./App.css";
 
 const INTRO_PATHS = ["/", "/onboarding"];
@@ -57,12 +59,12 @@ function AnimatedRoutes() {
 
 export function App() {
   return (
-    <BrowserRouter>
+    <ThemeProvider><BrowserRouter>
       <SessionProvider>
         <OccupationsProvider>
           <AnimatedRoutes />
         </OccupationsProvider>
       </SessionProvider>
-    </BrowserRouter>
+    </BrowserRouter></ThemeProvider>
   );
 }

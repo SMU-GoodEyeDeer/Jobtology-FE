@@ -4,16 +4,16 @@
    and placeholders keep ≥ WCAG AA (4.5:1) on the light surfaces. */
 
 .ob-page {
-  --ob-ink: #1e1b4b;
-  --ob-ink-muted: #475569;
-  --ob-label: #475569;
-  --ob-label-current: #4338ca;
-  --ob-chip-ink: #4338ca;
-  --ob-brand-1: #4f46e5;
-  --ob-brand-2: #6366f1;
-  --ob-glass: rgba(255, 255, 255, 0.62);
-  --ob-glass-strong: rgba(255, 255, 255, 0.75);
-  --ob-glass-border: rgba(255, 255, 255, 0.7);
+  --ob-ink: var(--text);
+  --ob-ink-muted: var(--text-secondary);
+  --ob-label: var(--text-secondary);
+  --ob-label-current: var(--accent-strong);
+  --ob-chip-ink: var(--accent-strong);
+  --ob-brand-1: var(--accent-solid);
+  --ob-brand-2: var(--accent-focus);
+  --ob-glass: color-mix(in srgb, var(--surface) 62%, transparent);
+  --ob-glass-strong: color-mix(in srgb, var(--surface) 75%, transparent);
+  --ob-glass-border: color-mix(in srgb, var(--surface) 70%, transparent);
   --ob-hairline: rgba(99, 102, 241, 0.1);
   --ob-shadow: 0 10px 30px rgba(79, 70, 229, 0.1), 0 2px 8px rgba(30, 27, 75, 0.05);
 
@@ -24,7 +24,7 @@
   align-items: center;
   position: relative;
   color: var(--ob-ink);
-  background: linear-gradient(180deg, #f7f8ff 0%, #edf0ff 100%);
+  background: linear-gradient(180deg, var(--intro-top) 0%, var(--intro-bottom) 100%);
   overflow: hidden;
 }
 
@@ -86,7 +86,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(180deg, #f7f8ff 0%, #edf0ff 100%);
+  background: linear-gradient(180deg, var(--intro-top) 0%, var(--intro-bottom) 100%);
 }
 .ob-intro-stack {
   display: flex;
@@ -133,7 +133,7 @@
   font-family: "Playfair Display", Georgia, "Times New Roman", serif;
   font-weight: 700;
   letter-spacing: 0.01em;
-  background: linear-gradient(120deg, #312e81 0%, #4f46e5 55%, #7c3aed 100%);
+  background: linear-gradient(120deg, var(--strong-bg) 0%, var(--accent-solid) 55%, #7c3aed 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -150,7 +150,7 @@
   align-items: center;
   justify-content: center;
   gap: 1.6rem;
-  background: linear-gradient(180deg, #f7f8ff 0%, #edf0ff 100%);
+  background: linear-gradient(180deg, var(--intro-top) 0%, var(--intro-bottom) 100%);
 }
 .ob-outro-loading {
   margin: 0;
@@ -161,7 +161,7 @@
 .ob-outro-text {
   font-size: 0.95rem;
   font-weight: 600;
-  color: #475569;
+  color: var(--text-secondary);
 }
 .ob-outro-dots {
   display: inline-flex;
@@ -171,7 +171,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #6366f1;
+  background: var(--accent-focus);
   animation: ob-blink 1.2s infinite;
 }
 .ob-outro-dots span:nth-child(2) { animation-delay: 0.2s; }
@@ -188,7 +188,7 @@
 .ob-header {
   flex: none;
   width: 100%;
-  background: rgba(255, 255, 255, 0.55);
+  background: color-mix(in srgb, var(--surface) 55%, transparent);
   backdrop-filter: blur(20px) saturate(140%);
   -webkit-backdrop-filter: blur(20px) saturate(140%);
   border-bottom: 1px solid rgba(99, 102, 241, 0.12);
@@ -244,7 +244,7 @@
   background: rgba(99, 102, 241, 0.18);
 }
 .ob-step--done:not(:last-child)::after {
-  background: linear-gradient(90deg, #818cf8, var(--ob-brand-1));
+  background: linear-gradient(90deg, var(--accent-focus), var(--ob-brand-1));
 }
 .ob-step-dot {
   width: 9px;
@@ -254,7 +254,7 @@
   transition: background-color 0.25s ease, box-shadow 0.25s ease;
 }
 .ob-step--done .ob-step-dot {
-  background: linear-gradient(135deg, #818cf8, var(--ob-brand-1));
+  background: linear-gradient(135deg, var(--accent-focus), var(--ob-brand-1));
 }
 .ob-step--current .ob-step-dot {
   background: var(--ob-brand-1);
@@ -362,8 +362,8 @@
 /* User bubble: solid brand gradient */
 .ob-user {
   align-self: flex-end;
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-  color: #fff;
+  background: linear-gradient(135deg, var(--accent-focus) 0%, var(--accent-solid) 100%);
+  color: var(--on-accent);
   border-radius: 16px 16px 6px 16px;
   padding: 0.72rem 1.05rem;
   max-width: 75%;
@@ -377,7 +377,7 @@
 .ob-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
 .ob-options { margin-top: 0.25rem; }
 .ob-chip {
-  background: rgba(255, 255, 255, 0.6);
+  background: color-mix(in srgb, var(--surface) 60%, transparent);
   border: 1px solid rgba(99, 102, 241, 0.22);
   color: var(--ob-chip-ink);
   border-radius: 999px;
@@ -392,28 +392,28 @@
   transition: border-color 0.18s ease, background-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
 }
 .ob-chip:hover:not(:disabled) {
-  border-color: #6366f1;
-  background: rgba(255, 255, 255, 0.88);
-  color: #3730a3;
+  border-color: var(--accent-focus);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  color: var(--accent-strong);
   transform: translateY(-1px);
 }
 .ob-chip:disabled { opacity: 0.45; cursor: not-allowed; }
 .ob-chip--primary {
-  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  background: linear-gradient(135deg, var(--accent-focus), var(--accent-solid));
   border-color: rgba(99, 102, 241, 0.55);
-  color: #fff;
+  color: var(--on-accent);
   box-shadow: 0 6px 18px rgba(79, 70, 229, 0.28);
 }
 .ob-chip--primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, #6d74f3, #554ee8);
-  color: #fff;
+  background: linear-gradient(135deg, var(--accent-solid), var(--accent-solid));
+  color: var(--on-accent);
 }
 .ob-chip--item { border-radius: 12px; text-align: left; font-weight: 500; line-height: 1.4; }
 .ob-chip--item.selected,
 .ob-chip--item.selected:hover:not(:disabled) {
   background: rgba(99, 102, 241, 0.16);
-  border-color: #6366f1;
-  color: #3730a3;
+  border-color: var(--accent-focus);
+  color: var(--accent-strong);
 }
 .ob-chip--item.selected::before { content: "✓ "; font-weight: 700; }
 
@@ -435,7 +435,7 @@
 
 /* ── Candidate cards: glass ──────────────────────────────────────────────── */
 .ob-candidate {
-  background: rgba(255, 255, 255, 0.68);
+  background: color-mix(in srgb, var(--surface) 68%, transparent);
   border: 1px solid rgba(99, 102, 241, 0.25);
   border-radius: 14px;
   padding: 0.85rem 1rem;
@@ -446,8 +446,8 @@
 }
 .ob-candidate p { margin: 0 0 0.4rem; font-size: 0.9rem; color: var(--ob-ink); }
 .ob-quote { color: var(--ob-ink-muted) !important; font-size: 0.85rem !important; }
-.ob-saved { color: #047857 !important; font-weight: 600; margin: 0 !important; }
-.ob-error { color: #b91c1c; font-size: 0.85rem; }
+.ob-saved { color: var(--success-text) !important; font-weight: 600; margin: 0 !important; }
+.ob-error { color: var(--danger-text); font-size: 0.85rem; }
 
 /* ── Typing indicator ────────────────────────────────────────────────────── */
 .ob-typing { display: flex; align-self: flex-start; gap: 5px; padding: 0.95rem 1.05rem; }
@@ -455,7 +455,7 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #6366f1;
+  background: var(--accent-focus);
   animation: ob-blink 1s infinite;
 }
 .ob-typing span:nth-child(2) { animation-delay: 0.2s; }
@@ -490,13 +490,13 @@
   font-size: 0.95rem;
   font-family: inherit;
 }
-.ob-input::placeholder { color: #4b5563; opacity: 1; }
+.ob-input::placeholder { color: var(--text-secondary); opacity: 1; }
 .ob-input:focus { outline: none; }
 .ob-input:disabled { opacity: 0.9; cursor: not-allowed; }
 .ob-send {
   height: 44px;
-  background: linear-gradient(135deg, #6366f1, #4f46e5);
-  color: #fff;
+  background: linear-gradient(135deg, var(--accent-focus), var(--accent-solid));
+  color: var(--on-accent);
   border: none;
   border-radius: 999px;
   padding: 0 1.25rem;
@@ -507,7 +507,7 @@
   transition: filter 0.18s ease;
 }
 .ob-send:hover:not(:disabled) { filter: brightness(1.08); }
-.ob-send:disabled { background: rgba(99, 102, 241, 0.12); color: #6366f1; cursor: not-allowed; box-shadow: none; }
+.ob-send:disabled { background: rgba(99, 102, 241, 0.12); color: var(--accent-focus); cursor: not-allowed; box-shadow: none; }
 
 /* ── Mobile ──────────────────────────────────────────────────────────────── */
 @media (max-width: 600px) {
@@ -537,6 +537,6 @@
   .ob-step-dot,
   .ob-ai { transition: none; }
 }
-.ob-specs { width: 100%; padding: 24px; box-sizing: border-box; border: 1px solid #e2e8f0; border-radius: 16px; background: #fff; }
+.ob-specs { width: 100%; padding: 24px; box-sizing: border-box; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
 .ob-specs-finish { margin-top: 24px; }
 @media (max-width: 600px) { .ob-specs { padding: 14px; } }

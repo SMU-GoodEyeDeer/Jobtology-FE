@@ -203,7 +203,7 @@ export function Home() {
                 )}
               </div>
             ) : (
-              <p style={{ color: "#9ca3af", fontSize: "14px" }}>로드맵을 생성하면 진행 상황이 보여요</p>
+              <p style={{ color: "var(--tertiary)", fontSize: "14px" }}>로드맵을 생성하면 진행 상황이 보여요</p>
             )}
             <button className="continue-btn" onClick={() => navigate("/roadmap")}>
               로드맵 보기

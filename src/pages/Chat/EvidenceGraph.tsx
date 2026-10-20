@@ -18,8 +18,8 @@ import { nodePopupPosition } from "./nodePopupPosition";
 type Visual = EvidenceNodeKind | "have" | "me";
 
 const COLORS: Record<Visual, string> = {
-  me: "#111827",
-  role: "#1e1b4b",
+  me: "var(--strong-bg)",
+  role: "var(--strong-bg)",
   ncs_occupation: "#4f46e5",
   onet_occupation: "#0284c7",
   posting_evidence: "#d97706",
@@ -300,7 +300,7 @@ export function EvidenceGraph({ graph, status, ownedSkills, onOpenRoadmap }: Pro
                   x1={link.source.x} y1={link.source.y} x2={link.target.x} y2={link.target.y}
                   {...(link.dashed
                     ? { stroke: "#16a34a", strokeWidth: 1.2, strokeDasharray: "4 4", opacity: 0.6 }
-                    : { stroke: "#d1d5db", strokeWidth: 1.5 })} />
+                    : { stroke: "var(--graph-edge)", strokeWidth: 1.5 })} />
               ))}
               {model.graph.nodes.map((node) => {
                 const p = sim.nodes.get(node.id);
@@ -317,7 +317,7 @@ export function EvidenceGraph({ graph, status, ownedSkills, onOpenRoadmap }: Pro
                     <title>{node.label}</title>
                     <circle cx={p.x} cy={p.y} r={p.r} fill={COLORS[visual]} />
                     <text x={p.x} y={inside ? p.y : p.y + p.r + 15} textAnchor="middle" dominantBaseline="middle"
-                      fill={inside ? "#ffffff" : "#374151"} fontSize={inside ? 17 : 14}
+                      fill={inside ? "var(--on-accent)" : "var(--text-secondary)"} fontSize={inside ? 17 : 14}
                       fontWeight={600} fontFamily="inherit" style={{ pointerEvents: "none" }}>
                       {shorten(node.label, inside ? 9 : 13)}
                     </text>
