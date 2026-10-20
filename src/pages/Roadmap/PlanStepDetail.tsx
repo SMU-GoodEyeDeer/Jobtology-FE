@@ -2,6 +2,8 @@ import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion, useIsPresent, useReducedMotion } from "motion/react";
 import { SkillDefinition, SkillQualifications } from "../Analysis/SkillEvidence";
+import { NcsLevel } from "../../components/NcsLevel";
+import { analysisSkillHref } from "../../services/skillNavigation";
 import type { Skill, WeeklyPlanResponse, WeeklyPlanStep } from "../../services/types";
 import { basisLabels, phaseLabels, shortDate, stateLabels, stepReason, stepTitle, prerequisiteWarning } from "../../services/weeklyPlan";
 
@@ -40,7 +42,7 @@ export function PlanStepDetail({ plan, step, skill, busy, onComplete, onClose }:
       initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }}
       transition={{ duration: reduceMotion ? 0 : .14, ease: "easeOut" }}>
     <header className="wp-detail-header">
-      <p className="wp-eyebrow">STEP {step.number} · {phaseLabels[step.phase]} 단계</p>
+      <p className="wp-eyebrow">학습 우선순위 {step.number} · {phaseLabels[step.phase]} 단계</p>
       <h2 id="plan-step-title">{title}</h2>
       {title !== step.name && <p className="wp-skill-context">관련 역량 · {step.name}</p>}
       <span className={`wp-pill wp-pill--${step.state}`}>{stateLabels[step.state]}</span>
@@ -52,6 +54,7 @@ export function PlanStepDetail({ plan, step, skill, busy, onComplete, onClose }:
         <div><dt>NCS 수준</dt><dd>{step.ncs_level === null ? "—" : `${step.ncs_level}수준`}</dd><small>{step.field_name ?? "분야 정보 없음"}</small></div>
         <div><dt>공고 요구</dt><dd>{step.demand_pct === null ? "—" : `${step.demand_pct}%`}</dd><small>채용 공고 기준</small></div>
       </dl>
+      <NcsLevel level={step.ncs_level} compact />
       <div className="wp-schedule"><strong>일정</strong><span>{step.start_week}–{step.end_week}주차 · {shortDate(step.start_date)}–{shortDate(step.end_date)}<small>주 {plan.weekly_hours}시간 기준</small></span></div>
       <section className="wp-reason"><h3>왜 이 순서?</h3><p>{stepReason(step)}</p></section>
       {warning && <p className="wp-warning">{warning}</p>}
@@ -73,7 +76,7 @@ export function PlanStepDetail({ plan, step, skill, busy, onComplete, onClose }:
     </div>
     <footer className="wp-detail-footer">
       <button className="wp-button wp-button--primary" disabled={busy} onClick={onComplete}>{done ? "완료 취소" : "완료로 표시"}</button>
-      <button className="wp-button" onClick={() => navigate("/analysis")}>역량 분석에서 보기</button>
+      <button className="wp-button" onClick={() => navigate(analysisSkillHref(step.requirement_key, skill?.ncs_base_code))}>역량 분석에서 보기</button>
     </footer>
     </motion.div>
   </AnimatePresence>;

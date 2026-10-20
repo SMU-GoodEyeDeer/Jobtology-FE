@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { examOutlook, examOutlookText, formatDemand, formatHours, linkedRoadmapSteps, pickNextExamSession, formatSessionLine, qualificationCaption, qualificationLabel, yearStart } from "./skillDetail";
+import { examOutlook, examOutlookText, formatDemand, formatHours, linkedRoadmapSteps, pickNextExamSession, formatSessionLine, qualificationCaption, qualificationLabel, skillIdentity, yearStart } from "./skillDetail";
 import type { ExamSession, RoadmapStep, Skill } from "./types";
 
 const skill: Skill = { name: "UI 구현", type: "필수" };
@@ -10,6 +10,11 @@ const session: ExamSession = {
 };
 
 describe("skill detail formatting", () => {
+  it("identifies skills by requirement, then NCS code, then legacy name", () => {
+    expect(skillIdentity({ ...skill, requirement_key: "ui", ncs_base_code: "2001020301" })).toBe("ui");
+    expect(skillIdentity({ ...skill, ncs_base_code: "2001020301" })).toBe("2001020301");
+    expect(skillIdentity(skill)).toBe(skill.name);
+  });
   it.each([
     [{}, "—"],
     [{ demand_pct: 0, demand_postings: 0 }, "0% · 0건"],
@@ -76,6 +81,11 @@ describe("exam sessions", () => {
     // Then
     expect(actual).toBe(session);
   });
+  it("finds future practical dates even when written dates exist and are past", () => {
+    const given = { ...session, practical: { ...session.written!, exam_start: "2026-12-01" } };
+    expect(pickNextExamSession([given], "2026-11-02")).toBe(given);
+    expect(formatSessionLine(given)).toContain("실기 시험 12.01");
+  });
   it("includes today's session", () => {
     // Given / When
     const actual = pickNextExamSession([session], "2026-11-01");
@@ -94,13 +104,13 @@ describe("exam sessions", () => {
     // When
     const actual = formatSessionLine(practical);
     // Then
-    expect(actual).toBe("2026년 3회 · 실기 접수 10.20–10.23 · 시험 11.01");
+    expect(actual).toBe("2026년 3회 · 실기 접수 10.20–10.23 · 실기 시험 11.01");
   });
   it("formats written dates", () => {
     // Given / When
     const actual = formatSessionLine(session);
     // Then
-    expect(actual).toBe("2026년 3회 · 필기 접수 10.20–10.23 · 시험 11.01");
+    expect(actual).toBe("2026년 3회 · 필기 접수 10.20–10.23 · 필기 시험 11.01");
   });
   it("omits missing dates and metadata", () => {
     // Given / When
@@ -168,7 +178,7 @@ describe("exam outlook", () => {
     const actual = examOutlook([session], "2026-11-02");
     // Then
     expect(actual).toEqual({ kind: "ended", year: 2026 });
-    expect(examOutlookText(actual)).toBe("2026년 시험이 모두 끝났어요 · 2027년 일정은 아직 공개 전이에요");
+    expect(examOutlookText(actual)).toBe("확인된 2026년 일정에는 남은 접수·시험일이 없어요");
   });
   it("reports no schedule when nothing was published this year", () => {
     // Given / When

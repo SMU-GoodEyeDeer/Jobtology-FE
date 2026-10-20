@@ -1,0 +1,14 @@
+.ncs-level { color: #334155; font-size: 13px; font-weight: 400; text-align: left; }
+.ncs-level summary { cursor: pointer; color: #4338ca; font-weight: 600; width: fit-content; }
+.ncs-level summary:focus-visible { outline: 2px solid #6366f1; outline-offset: 4px; border-radius: 3px; }
+.ncs-level-help { padding: 14px; margin-top: 10px; background: #f8faff; border: 1px solid #dfe4fc; border-radius: 12px; line-height: 1.65; font-weight: 400; }
+.ncs-level-help p { margin: 0 0 12px; font-size: 12px; }
+.ncs-level-help ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; }
+.ncs-level-help li { padding: 8px; border-radius: 7px; }
+.ncs-level-help li strong { display: block; font-size: 12px; color: #4338ca; }
+.ncs-level-help li span { font-size: 12px; }
+.ncs-level-help li small { display: block; font-size: 11px; color: #64748b; }
+.ncs-level-help .ncs-level-current { background: #e9edff; box-shadow: inset 3px 0 #6366f1; }
+.ncs-level-help .ncs-level-caution { margin-top: 12px; color: #64748b; }
+.ncs-level-help a { color: #4338ca; font-size: 12px; text-decoration: underline; }
+.ncs-level--compact summary { font-size: 12px; }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import type { ReactNode } from "react";
 import { roadmapsApi } from "../../services/api";
@@ -9,6 +10,7 @@ import { usePlanPreview } from "./usePlanPreview";
 import { PlanPhases } from "./PlanPhases";
 import { PlanWeeks } from "./PlanWeeks";
 import { PlanStepDetail } from "./PlanStepDetail";
+import { roadmapTarget } from "./roadmapTarget";
 import "../Analysis/SkillDetail.css";
 import "./WeeklyPlan.css";
 
@@ -33,9 +35,15 @@ function PlanContent({ saved, skills, onSaved, onComplete }: {
   readonly onSaved: (plan: WeeklyPlanResponse) => void;
   readonly onComplete: Props["onComplete"];
 }) {
+  const [search] = useSearchParams();
+  const requirement = search.get("requirement");
+  const ncs = search.get("ncs");
+  const stepId = search.get("step");
+  const requested = !!(requirement || ncs || stepId);
+  const linkedStep = roadmapTarget(saved, skills, requirement, ncs, stepId);
   const [tab, setTab] = useState<"steps" | "weeks">("steps");
   const [draft, setDraft] = useState<WeeklyPlanInput | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(saved.steps.find(s => s.state !== "COMPLETED")?.step_id ?? saved.steps[0]?.step_id ?? null);
+  const [selectedId, setSelectedId] = useState<string | null>(linkedStep?.step_id ?? saved.steps.find(s => s.state !== "COMPLETED")?.step_id ?? saved.steps[0]?.step_id ?? null);
   const [drawer, setDrawer] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -51,6 +59,10 @@ function PlanContent({ saved, skills, onSaved, onComplete }: {
   const selected = plan.steps.find(s => s.step_id === selectedId);
   const target = targetLabel(plan);
   const late = (targetDeltaDays(plan.completion_date, plan.target_date) ?? 0) > 0;
+
+  useEffect(() => {
+    if (linkedStep) { setSelectedId(linkedStep.step_id); setTab("steps"); setDrawer(false); }
+  }, [linkedStep?.step_id, requirement, ncs, stepId]);
 
   useEffect(() => {
     if (!saved.is_customized) { setOriginal(saved); return; }
@@ -106,9 +118,10 @@ function PlanContent({ saved, skills, onSaved, onComplete }: {
       </div>
     </header>
     {error && <p className="wp-error" role="alert">{error}</p>}
+    {requested && !linkedStep && <p className="wp-error" role="status">요청한 역량에 해당하는 학습 단계가 현재 로드맵에 없어요. 이미 충족한 역량이거나 다른 목표의 역량일 수 있어요.</p>}
     {preview.error && <div className="wp-error" role="alert"><p>{preview.error}</p><button className="wp-text-button" disabled={busy} onClick={preview.retry}>일정 다시 확인</button></div>}
     {preview.pending && <p className="wp-preview-status" role="status">변경한 일정을 확인하고 있어요. 완료일과 경고는 확인 후 갱신돼요.</p>}
-    {(plan.warnings?.length ?? 0) > 0 && <div className="wp-plan-warnings" role="status" aria-label="일정 경고">{plan.warnings.map((warning, index) => <p key={`${warning.code}-${index}`}>{warning.message}{warning.code === "TARGET_DATE_EXCEEDED" ? " 이 일정으로 저장할 수 있어요." : ""}</p>)}</div>}
+    {!preview.pending && (plan.warnings?.length ?? 0) > 0 && <div className="wp-plan-warnings" role="status" aria-label="일정 경고">{plan.warnings.map((warning, index) => <p key={`${warning.code}-${index}`}>{warning.message}</p>)}</div>}
     {customized.labels.length > 0 && <div className="wp-diffs"><b>수정 내용</b>{customized.labels.map(label => <span className="wp-chip" key={label}>{label}</span>)}</div>}
     <AnimatePresence initial={false} mode="wait">
     <motion.div key={`${tab}-${draft ? "edit" : "view"}`} role="tabpanel" id="plan-view" aria-labelledby={`plan-tab-${tab}`} className={tab === "steps" ? "wp-split" : ""}

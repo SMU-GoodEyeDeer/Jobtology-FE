@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { WeeklyPlanResponse, WeeklyPlanStep } from "../../services/types";
 import { basisLabels, phaseLabels, prerequisiteWarning, stateLabels, stepTitle } from "../../services/weeklyPlan";
+import { NcsLevel } from "../../components/NcsLevel";
 
 interface Props {
   readonly plan: WeeklyPlanResponse;
@@ -10,7 +11,13 @@ interface Props {
 
 export function PlanPhases({ plan, selectedId, onSelect }: Props) {
   const current = plan.steps.find(s => s.state !== "COMPLETED")?.phase ?? plan.steps[0]?.phase;
-  const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set(current ? [current] : []));
+  const selectedPhase = plan.steps.find(step => step.step_id === selectedId)?.phase;
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set([
+    ...(current ? [current] : []), ...(selectedPhase ? [selectedPhase] : []),
+  ]));
+  useEffect(() => {
+    if (selectedPhase) setExpanded(previous => new Set([...previous, selectedPhase]));
+  }, [selectedPhase]);
   const phases = (["BASIC", "CORE", "ADVANCED"] as const).flatMap(phase => {
     const steps = plan.steps.filter(s => s.phase === phase);
     if (!steps.length) return [];
@@ -24,7 +31,7 @@ export function PlanPhases({ plan, selectedId, onSelect }: Props) {
     setExpanded(previous => { const next = new Set(previous); if (next.has(phase)) next.delete(phase); else next.add(phase); return next; });
   }
   return <section className="wp-phases wp-card" aria-label="단계 묶음">
-    <header className="wp-phases-heading"><h2>단계 묶음</h2><p>NCS 수준으로 묶었어요 · STEP 번호는 학습 순서예요</p>
+    <header className="wp-phases-heading"><h2>단계 묶음</h2><p>NCS 수준으로 묶었어요 · 묶음 안의 번호와 학습 우선순위는 달라요</p><NcsLevel compact />
       <div className="wp-phase-progress">{phases.map(p => <div key={p.phase} style={{ flex: p.hours }}>
         <div className="wp-progress-track"><span style={{ width: `${p.done / p.steps.length * 100}%` }} /></div>
         <small><b>{phaseLabels[p.phase]}</b> · {p.span}</small>
@@ -41,19 +48,21 @@ export function PlanPhases({ plan, selectedId, onSelect }: Props) {
       </button>
       <div className="wp-phase-fold" id={`phase-${p.phase}`} data-expanded={expanded.has(p.phase)}
         aria-hidden={!expanded.has(p.phase)} inert={!expanded.has(p.phase)}>
-        <div className="wp-phase-fold-inner"><div className="wp-phase-steps">{p.steps.map(step => <PhaseRow key={step.step_id} step={step} steps={plan.steps} selected={step.step_id === selectedId} onSelect={() => onSelect(step.step_id)} />)}</div></div>
+        <div className="wp-phase-fold-inner"><div className="wp-phase-steps">{p.steps.map((step, index) => <PhaseRow key={step.step_id} step={step} groupNumber={index + 1} steps={plan.steps} selected={step.step_id === selectedId} visible={expanded.has(p.phase)} onSelect={() => onSelect(step.step_id)} />)}</div></div>
       </div>
     </section>)}</div>
   </section>;
 }
 
-function PhaseRow({ step, steps, selected, onSelect }: { readonly step: WeeklyPlanStep; readonly steps: readonly WeeklyPlanStep[]; readonly selected: boolean; readonly onSelect: () => void }) {
+function PhaseRow({ step, groupNumber, steps, selected, visible, onSelect }: { readonly step: WeeklyPlanStep; readonly groupNumber: number; readonly steps: readonly WeeklyPlanStep[]; readonly selected: boolean; readonly visible: boolean; readonly onSelect: () => void }) {
   const warning = prerequisiteWarning(step, steps);
-  return <div className="wp-phase-row">
+  const row = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (selected && visible) row.current?.scrollIntoView?.({ block: "nearest", behavior: "instant" }); }, [selected, visible]);
+  return <div ref={row} className="wp-phase-row">
     <span className={`wp-node wp-node--${step.state}`} aria-hidden="true">{step.state === "COMPLETED" ? "✓" : ""}</span>
     <button className="wp-step" aria-pressed={selected} onClick={onSelect}>
-      <span className="wp-step-number">STEP {step.number}</span>
-      <span className="wp-step-copy"><strong>{stepTitle(step)}</strong>{stepTitle(step) !== step.name && <small>관련 역량 · {step.name}</small>}<small>{step.start_week}–{step.end_week}주차 · {step.hours}시간 {basisLabels[step.hours_basis]}</small>
+      <span className="wp-step-number">{phaseLabels[step.phase]} {groupNumber}</span>
+      <span className="wp-step-copy"><strong>{stepTitle(step)}</strong>{stepTitle(step) !== step.name && <small>관련 역량 · {step.name}</small>}<small>학습 우선순위 {step.number} · {step.start_week}–{step.end_week}주차 · {step.hours}시간 {basisLabels[step.hours_basis]}</small>
         {step.moved && <span className="wp-chip wp-chip--indigo">직접 바꾼 순서</span>}
         {warning && <span className="wp-warning">{warning}</span>}
       </span>

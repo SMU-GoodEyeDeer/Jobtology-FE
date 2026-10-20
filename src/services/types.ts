@@ -9,7 +9,11 @@ export interface SessionResponse {
 // ─── Profile ─────────────────────────────────────────────────────────────────
 export interface ProfileResponse {
   user_id: string;
+  profile_version: number;
   version: number;
+}
+
+export interface ProfileDetailResponse extends ProfileResponse {
   major_raw: string | null;
   major_concept_id: string | null;
   year: number | null;
@@ -17,15 +21,25 @@ export interface ProfileResponse {
   expected_graduation_on: string | null;
 }
 
-export interface ProfileDetailResponse extends ProfileResponse {}
-
 export interface ProfileUpdateRequest {
   expected_profile_version: number;
   major_raw: string;
-  major_concept_id?: string;
-  year?: number;
-  enrollment_status?: string;
-  expected_graduation_on?: string;
+  major_concept_id?: string | null;
+  year?: number | null;
+  enrollment_status?: string | null;
+  expected_graduation_on?: string | null;
+}
+
+export interface CapabilityDetailResponse {
+  capability_id: string;
+  raw_text: string;
+  category: string;
+  lifecycle: string;
+}
+
+export interface CapabilityMutationResponse {
+  capability_id: string;
+  profile_version: number;
 }
 
 // ─── Occupations ─────────────────────────────────────────────────────────────
@@ -72,7 +86,7 @@ export interface GoalUpdateRequest {
 export type BudgetMode = "REGULAR" | "LOW_COST";
 
 export interface RoutePreferencesResponse {
-  version: number;
+  profile_version: number;
   available_hours_per_week: number;
   availability_source: string;
   budget_mode: BudgetMode;
@@ -200,6 +214,7 @@ export interface ExamSession {
 }
 
 export interface ExamSessionsResponse {
+  readonly sources?: readonly { readonly source_id: string; readonly data_as_of: string | null }[];
   readonly items: readonly ExamSession[];
   readonly total: number;
 }
@@ -352,6 +367,10 @@ export type EvidenceNodeKind =
   | "technology";
 
 export interface EvidenceNode {
+  readonly ncs_category?: string | null;
+  readonly ncs_base_code?: string | null;
+  readonly requirement_key?: string | null;
+  readonly qualification_code?: string | null;
   readonly id: string;
   readonly kind: EvidenceNodeKind;
   readonly label: string;

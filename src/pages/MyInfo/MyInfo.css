@@ -41,6 +41,17 @@
   gap: 20px;
   align-items: flex-start;
 }
+.mi-graduation-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.mi-persistence-error { color: #b91c1c; font-size: 13px; line-height: 1.6; }
+.mi-persistence-error p { margin: 0 0 8px; }
+.mi-persistence-success { color: #166534; font-size: 13px; margin: 0; }
+.mi-persistence-help { color: #6b7280; font-size: 12px; line-height: 1.7; margin: 0; }
+.mi-mutation-notice { padding: 16px 20px; border: 1px solid #bbf7d0; border-radius: 12px; background: #f0fdf4; }
+.mi-mutation-notice > p:first-child { margin: 0 0 6px; color: #166534; font-size: 14px; }
+.mi-persistence-actions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 12px; font-size: 13px; }
+.mi-persistence-actions a { color: #4338ca; }
+.mi-profile-card button:disabled, .mi-spec-card button:disabled { opacity: .5; cursor: default; }
+@media (max-width: 500px) { .mi-graduation-fields { grid-template-columns: 1fr; } }
 
 /* ── Shared card base ── */
 .mi-profile-card,

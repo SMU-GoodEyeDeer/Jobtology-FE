@@ -8,6 +8,7 @@ import homeIcon from "../assets/Home .svg";
 import chatIcon from "../assets/Message circle.svg";
 import roadmapIcon from "../assets/Trending up.svg";
 import analysisIcon from "../assets/Bar chart.svg";
+import postingsIcon from "../assets/Briefcase.svg";
 import progressIcon from "../assets/today.svg";
 import userIcon from "../assets/User.svg";
 import { useSession } from "../context/SessionContext";
@@ -18,6 +19,7 @@ const NAV_ITEMS = [
   { icon: chatIcon, label: "AI 커리어 챗봇", path: "/chat" },
   { icon: roadmapIcon, label: "내 로드맵", path: "/roadmap" },
   { icon: analysisIcon, label: "역량 분석", path: "/analysis" },
+  { icon: postingsIcon, label: "채용공고", path: "/postings" },
   { icon: progressIcon, label: "진행 상황", path: "/progress" },
   { icon: userIcon, label: "내 정보", path: "/myinfo" },
 ];

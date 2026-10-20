@@ -3,6 +3,8 @@ import type {
   ProfileDetailResponse,
   ProfileUpdateRequest,
   ProfileResponse,
+  CapabilityDetailResponse,
+  CapabilityMutationResponse,
   OccupationResponse,
   GoalListResponse,
   GoalDetailResponse,
@@ -50,7 +52,7 @@ export function getCsrfToken() {
 }
 
 // ─── Core fetch wrapper ───────────────────────────────────────────────────────
-async function request<T>(
+export async function request<T>(
   method: string,
   path: string,
   body?: unknown,
@@ -219,8 +221,8 @@ export const roleEvidenceGraphApi = {
 };
 
 export const capabilitiesApi = {
-  list: () => get<{ items: unknown[] }>("/v1/me/capabilities"),
-  get: (capabilityId: string) => get<unknown>(`/v1/me/capabilities/${capabilityId}`),
+  list: () => get<{ items: CapabilityDetailResponse[] }>("/v1/me/capabilities"),
+  get: (capabilityId: string) => get<CapabilityDetailResponse>(`/v1/me/capabilities/${capabilityId}`),
   create: (body: {
     expected_profile_version: number;
     category: string;
@@ -228,11 +230,11 @@ export const capabilitiesApi = {
     entity_id?: string;
     proficiency?: string;
     details?: Record<string, unknown>;
-  }) => post<unknown>("/v1/me/capabilities", body),
+  }) => post<CapabilityMutationResponse>("/v1/me/capabilities", body),
   update: (capabilityId: string, body: unknown) =>
     patch<unknown>(`/v1/me/capabilities/${capabilityId}`, body),
   delete: (capabilityId: string, body: { expected_profile_version: number }) =>
-    del<unknown>(`/v1/me/capabilities/${capabilityId}`, body),
+    del<CapabilityMutationResponse>(`/v1/me/capabilities/${capabilityId}`, body),
   checklist: (occupationId: string) =>
     get<CapabilityChecklistResponse>(`/v1/occupations/${encodeURIComponent(occupationId)}/capability-checklist`),
   replaceOnboarding: (body: OnboardingCapabilitiesRequest, idempotencyKey?: string) =>

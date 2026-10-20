@@ -167,8 +167,9 @@
 .wp-week-name .wp-chip { font-size: 10px; margin-top: 3px; }
 .wp-gantt-label > .wp-chip { font-size: 10px; flex: none; }
 .wp-why { position: relative; flex: none; }
-.wp-why > button { background: var(--sd-primary-tint); color: var(--sd-primary); font-size: 11px; border: 0; padding: 4px 7px; border-radius: 999px; font-weight: 700; }
-.wp-popover { position: absolute; top: 28px; left: -80px; width: 280px; background: var(--sd-surface); border: 1px solid var(--sd-border); border-radius: 12px; box-shadow: 0 8px 24px #11182724; padding: 14px; font-size: 13px; line-height: 1.6; }
+.wp-why > button { background: var(--sd-primary-tint); color: var(--sd-primary); font-size: 12px; border: 0; width: 26px; height: 26px; display: grid; place-items: center; border-radius: 50%; font-weight: 700; }
+.wp-why > button:focus-visible { outline: 2px solid var(--sd-primary); outline-offset: 2px; }
+.wp-popover { position: absolute; top: 28px; left: -80px; width: 280px; max-height: 380px; overflow: auto; background: var(--sd-surface); border: 1px solid var(--sd-border); border-radius: 12px; box-shadow: 0 8px 24px #11182724; padding: 14px; font-size: 13px; line-height: 1.6; }
 .wp-popover strong { color: var(--sd-primary); font-size: 12px; }
 .wp-popover p { margin: 6px 0; }
 .wp-legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; font-size: 11px; color: var(--sd-muted); }
