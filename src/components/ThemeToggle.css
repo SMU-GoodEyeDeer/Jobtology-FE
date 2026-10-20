@@ -1,0 +1,24 @@
+.theme-control { position: relative; display: inline-flex; align-items: center; gap: 8px; min-height: 38px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text-secondary); font: inherit; font-size: 12px; cursor: pointer; transition: background .18s ease, color .18s ease, border-color .18s ease; }
+.theme-control svg { flex: none; }
+.theme-control:hover { background: var(--surface-hover); }
+.theme-control[aria-pressed="true"] { color: var(--accent); border-color: var(--accent-border); }
+.theme-control:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.theme-control-track { display: inline-flex; align-items: center; width: 30px; height: 18px; padding: 3px; margin-left: auto; flex: none; border-radius: 20px; background: var(--border); transition: background .18s ease; }
+.theme-control-track span { width: 12px; height: 12px; border-radius: 50%; background: var(--text-secondary); transition: transform .18s ease, background .18s ease; }
+.theme-control[aria-pressed="true"] .theme-control-track { background: var(--accent-solid); }
+.theme-control[aria-pressed="true"] .theme-control-track span { transform: translateX(12px); background: var(--on-accent); }
+.theme-control--compact { justify-content: center; width: 38px; height: 38px; padding: 9px; flex: none; cursor: pointer; }
+.theme-control--compact .theme-control-label, .theme-control--compact .theme-control-track { display: none; }
+.sidebar .theme-control { width: 100%; }
+.sidebar--collapsed .sidebar-bottom > .theme-control { display: inline-flex; width: 100%; }
+.sidebar--collapsed .theme-control-label, .sidebar--collapsed .theme-control-track { display: none; }
+.spec-dialog-tools, .ob-header-actions { display: flex; align-items: center; gap: 10px; flex: none; }
+.ob-header-actions { grid-column: 3; grid-row: 1; justify-self: end; }
+.onboarding-theme { position: absolute; top: 24px; right: 24px; z-index: 1; }
+@media (max-width: 640px) { .spec-dialog-tools, .ob-header-actions { gap: 6px; } .onboarding-theme { top: 16px; right: 16px; } }
+@media (max-width: 760px) {
+  .ob-header .ob-header-inner { grid-template-columns: minmax(0, 1fr) auto; row-gap: 12px; }
+  .ob-header-actions { grid-column: 2; }
+  .ob-header .ob-progress { grid-column: 1 / -1; grid-row: 2; max-width: none; width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { .theme-control, .theme-control-track, .theme-control-track span { transition: none; } }

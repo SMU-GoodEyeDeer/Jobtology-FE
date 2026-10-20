@@ -8,7 +8,7 @@ import { useSession } from "../../context/SessionContext";
 import { GOOGLE_LOGIN_URL, goalsApi } from "../../services/api";
 import { BrandMark } from "../OnboardingChat/parts";
 import { markIntroStart } from "../OnboardingChat/timings";
-import { ThemeSelect } from "../../components/ThemeSelect";
+import { ThemeToggle } from "../../components/ThemeToggle";
 
 export function Onboarding() {
   const navigate = useNavigate();
@@ -37,7 +37,7 @@ export function Onboarding() {
 
   return (
     <div className="onboarding">
-      <div className="onboarding-theme"><ThemeSelect compact /></div>
+      <div className="onboarding-theme"><ThemeToggle compact /></div>
       <div className="hero">
         <span className="badge">● 채용공고 5,000건 · AI그래프 기반</span>
         <h1>
