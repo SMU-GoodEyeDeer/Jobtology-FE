@@ -1,11 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { anchorAiSuggestion, importedDraft, pointSlice, redactContacts } from "./resumeModel";
+import { anchorAiSuggestion, importedDraft, pointSlice, redactContacts, resumeError } from "./resumeModel";
 import { specPayload } from "../specs/specModel";
 import type { ResumeBlock, ResumeScan, ResumeSuggestion } from "../../services/types";
 const block: ResumeBlock = { block_id: "a".repeat(24), text: "😀 Python Python", text_hash: "b".repeat(64), page: null };
 const suggestion: ResumeSuggestion = { suggestion_id: "rule-1", block_id: block.block_id, title: "Python", category: "skill", quote: "Python", start: 9, end: 15, method: "KEYWORD", competencies: [], score: null, score_max: null };
 const scan: ResumeScan = { document_sha256: "c".repeat(64), parser_revision: "jobtology-resume-v1-7541e87", blocks: [block], suggestions: [suggestion], warnings: [], skipped_pages: [] };
 describe("resume source evidence", () => {
+  it("shows parser errors with the same request reference as backend logs", () => {
+    const request_id = "12345678-abcd-4321-abcd-123456789abc";
+    expect(resumeError({ status: 422, detail: { error: { code: "UNREADABLE_DOCUMENT", request_id } } }))
+      .toBe(`문서의 텍스트를 읽지 못했어요. 다시 시도하거나 DOCX 등 다른 형식으로 저장해 주세요. (문의 코드: ${request_id})`);
+    expect(resumeError({ status: 422, detail: { error: { code: "PARSE_TIMEOUT", request_id } } }))
+      .toContain("시간이 초과됐어요");
+    expect(resumeError({ status: 500, detail: { error: { request_id: "untrusted text" } } })).not.toContain("untrusted text");
+  });
   it("rejects empty quotations before every anchoring and draft path", () => {
     const empty = { ...suggestion, quote: "", start: 0, end: 0 };
     expect(anchorAiSuggestion(empty, block.text, block)).toBeNull();

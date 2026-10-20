@@ -32,6 +32,7 @@ export function SpecManager({ occupationId, candidate, disabled, mutationLock, o
   const [editor, setEditor] = useState<{ item: CapabilityDetailResponse | null; candidate?: ChatCapabilityCandidate | null; baseline?: number; initialDraft?: SpecDraft; onSaved?: () => void } | null>(() => candidate ? { item: null, candidate } : null);
   const [resumeOpen, setResumeOpen] = useState(false);
   const editorNode = useRef<HTMLDivElement>(null);
+  const editorOpen = editor !== null;
   const [editorError, setEditorError] = useState<string | null>(null);
   const [removing, setRemoving] = useState<CapabilityDetailResponse | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
@@ -44,11 +45,11 @@ export function SpecManager({ occupationId, candidate, disabled, mutationLock, o
   useEffect(() => { countCallback.current?.(items.length); }, [items]);
   useEffect(() => { editingCallback.current?.(editor !== null || resumeOpen); }, [editor !== null, resumeOpen]);
   useEffect(() => {
-    if (editor?.initialDraft) {
+    if (editorOpen) {
       editorNode.current?.scrollIntoView?.({ block: "start", behavior: "instant" });
       editorNode.current?.focus({ preventScroll: true });
     }
-  }, [editor?.initialDraft]);
+  }, [editorOpen, editor?.initialDraft]);
 
   async function load() {
     const generation = ++loadGeneration.current;

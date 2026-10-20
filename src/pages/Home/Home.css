@@ -632,4 +632,12 @@
   .main-content { padding-inline: 20px; }
   .hero-card { padding: 24px; gap: 16px; }
 }
+@media (max-width: 480px) {
+  .main-header { padding-inline: 12px; gap: 8px; }
+  .main-title { flex-shrink: 0; white-space: nowrap; }
+  .goal-wrapper { min-width: 0; }
+  .goal-button { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  .goal-dropdown { width: min(260px, calc(100vw - 96px)); }
+  .main-content { padding-inline: 12px; }
+}
 .hero-card a.hero-btn { text-decoration: none; display: inline-flex; align-items: center; }

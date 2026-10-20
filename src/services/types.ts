@@ -242,6 +242,7 @@ export interface RecomputeResponse {
   recompute_request_id: string;
   state: "PENDING" | "RUNNING" | "COMPLETED" | "FAILED";
   analysis_id: string | null;
+  error_code?: string | null;
 }
 
 export interface AnalysisResponse {

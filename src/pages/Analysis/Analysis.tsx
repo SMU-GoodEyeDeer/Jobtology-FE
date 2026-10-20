@@ -77,6 +77,11 @@ export function Analysis() {
           if (run !== analysisRun.current) return;
           setAnalysisResult(result);
           setPollState("completed");
+        } else if (res.state === "FAILED" && res.error_code === "STALE_PROFILE" && analyzableGoalId) {
+          // Rapid edits supersede older queued inputs. Follow the current job
+          // without submitting another analysis or polling the same retired one.
+          const recovered = await showStoredAnalysis(analyzableGoalId, run, recomputeId);
+          if (!recovered && run === analysisRun.current) setPollState("failed");
         } else if (res.state === "FAILED" || attempts >= POLL_MAX_ATTEMPTS) {
           setPollState("failed");
         } else {
@@ -89,7 +94,7 @@ export function Analysis() {
     poll();
   }
 
-  async function showStoredAnalysis(goalId: string, run: number): Promise<boolean> {
+  async function showStoredAnalysis(goalId: string, run: number, supersededRequest?: string): Promise<boolean> {
     const dashboard = await dashboardApi.get(goalId);
     if (run !== analysisRun.current) return true;
     if (dashboard.state === "READY" && dashboard.analysis_id) {
@@ -99,7 +104,7 @@ export function Analysis() {
       setPollState("completed");
       return true;
     }
-    if (dashboard.state === "RECOMPUTING" && dashboard.recompute_request_id) {
+    if (dashboard.state === "RECOMPUTING" && dashboard.recompute_request_id && dashboard.recompute_request_id !== supersededRequest) {
       pollForResult(dashboard.recompute_request_id, run);
       return true;
     }
