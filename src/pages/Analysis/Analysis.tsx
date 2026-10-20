@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import "../Home/Home.css";
 import "./Analysis.css";
 import { AppSidebar } from "../../components/AppSidebar";
@@ -7,13 +7,14 @@ import { GoalDropdown } from "../../components/GoalDropdown";
 import { LoadingContent } from "../../components/LoadingContent";
 import chevronDownIcon from "../../assets/Chevron down.svg";
 import { analysisApi, profileApi, dashboardApi } from "../../services/api";
+import { isAnalyzableGoal, requiresActiveTargetedGoal } from "../../services/analysisGoal";
 import { useGoals } from "../../hooks/useGoals";
 import { useSession } from "../../context/SessionContext";
 import type { AnalysisResponse } from "../../services/types";
 import { SkillList } from "./SkillList";
 import { AnalysisPublications } from "./AnalysisPublications";
 
-type PollState = "idle" | "pending" | "running" | "completed" | "failed";
+type PollState = "idle" | "pending" | "running" | "completed" | "failed" | "goal_required";
 
 const POLL_INTERVAL_MS = 3000;
 const POLL_MAX_ATTEMPTS = 100;
@@ -28,7 +29,9 @@ export function Analysis() {
   const [goalOpen, setGoalOpen] = useState(false);
   const goalRef = useRef<HTMLDivElement>(null);
 
-  const { goals, selectedGoalId, setSelectedGoalId, selectedGoalName, getGoalName, loading: goalsLoading } = useGoals();
+  const { goals, selectedGoal, selectedGoalId, setSelectedGoalId, selectedGoalName, getGoalName, loading: goalsLoading, error: goalsError, refresh: refreshGoals } = useGoals();
+  const analyzableGoalId = isAnalyzableGoal(selectedGoal) ? selectedGoalId : null;
+  const activeTargetedGoal = goals.find(isAnalyzableGoal);
   const [publicationsLoading, setPublicationsLoading] = useState(true);
 
   const [pollState, setPollState] = useState<PollState>("idle");
@@ -38,12 +41,14 @@ export function Analysis() {
 
   // Trigger analysis for selected goal
   const triggerAnalysis = useCallback(async (run = analysisRun.current) => {
-    if (!selectedGoalId) return;
+    if (goalsLoading || goalsError) return;
+    if (!analyzableGoalId) { setPollState("goal_required"); return; }
     setPollState("pending");
     try {
       const profile = await profileApi.get();
+      if (run !== analysisRun.current) return;
       const res = await analysisApi.create({
-        goal_id: selectedGoalId,
+        goal_id: analyzableGoalId,
         expected_profile_version: profile.version,
         basis_type: "EDITORIAL",
       });
@@ -52,10 +57,11 @@ export function Analysis() {
       const status = (err as Error & { status?: number }).status;
       // 409 = version/idempotency conflict; a stored or running analysis may still exist
       if (run !== analysisRun.current) return;
-      const shown = status === 409 && await showStoredAnalysis(selectedGoalId, run).catch(() => false);
+      if (requiresActiveTargetedGoal(err)) { setAnalysisResult(null); setPollState("goal_required"); return; }
+      const shown = status === 409 && await showStoredAnalysis(analyzableGoalId, run).catch(() => false);
       if (!shown && run === analysisRun.current) setPollState("failed");
     }
-  }, [selectedGoalId]);
+  }, [analyzableGoalId, goalsLoading, goalsError]);
 
   function pollForResult(recomputeId: string, run: number) {
     setPollState("running");
@@ -103,16 +109,17 @@ export function Analysis() {
   // Show the stored analysis first; only compute when none exists yet. Profile,
   // capability, and preference changes already trigger a recompute on the server.
   const loadAnalysis = useCallback(async () => {
-    if (!selectedGoalId) return;
+    if (goalsLoading || goalsError) { setPollState("idle"); return; }
+    if (!analyzableGoalId) { setPollState("goal_required"); return; }
     const run = analysisRun.current;
     setPollState("pending");
     try {
-      if (await showStoredAnalysis(selectedGoalId, run)) return;
+      if (await showStoredAnalysis(analyzableGoalId, run)) return;
     } catch (err) {
       console.warn("Stored analysis lookup failed:", err);
     }
     if (run === analysisRun.current) await triggerAnalysis(run);
-  }, [selectedGoalId, triggerAnalysis]);
+  }, [analyzableGoalId, goalsLoading, goalsError, triggerAnalysis]);
 
   useEffect(() => {
     analysisRun.current += 1;
@@ -135,6 +142,7 @@ export function Analysis() {
   const skills = analysisResult?.result?.skills ?? [];
   const required_pct = analysisResult?.result?.required_pct ?? null;
   const preferred_pct = analysisResult?.result?.preferred_pct ?? null;
+  const showGoalSetup = !goalsLoading && !goalsError && (!analyzableGoalId || pollState === "goal_required");
 
   return (
     <div className="home-layout analysis-page">
@@ -166,7 +174,7 @@ export function Analysis() {
           <button
             className="an-reanalyze-btn"
             onClick={() => void triggerAnalysis()}
-            disabled={!selectedGoalId || pollState === "pending" || pollState === "running"}
+            disabled={!analyzableGoalId || !!goalsError || goalsLoading || pollState === "goal_required" || pollState === "pending" || pollState === "running"}
           >
             다시 분석하기
           </button>
@@ -191,8 +199,18 @@ export function Analysis() {
         </header>
 
         <main className="main-content">
-          <LoadingContent loading={goalsLoading || publicationsLoading || (selectedGoalId !== null && ["idle", "pending", "running"].includes(pollState))}
+          {goalsError && <section className="an-error-banner" role="alert">{goalsError}<button className="an-retry-btn" onClick={() => void refreshGoals().catch(() => {})}>목표 목록 다시 불러오기</button></section>}
+          {showGoalSetup && <section className="an-goal-setup" aria-labelledby="an-goal-setup-title">
+            <h3 id="an-goal-setup-title">분석할 목표 직무를 설정해 주세요</h3>
+            <p>역량 분석에는 직무가 정해진 활성 목표가 필요해요. 목표를 추가하거나 탐색 중인 목표의 직무를 정한 뒤 활성화해 주세요.</p>
+            <div className="an-goal-setup-actions"><Link className="an-goto-roadmap-btn" to="/myinfo#goals">목표 설정하기 →</Link>
+              {activeTargetedGoal && activeTargetedGoal.goal_id !== selectedGoalId && <button className="an-retry-btn" onClick={() => setSelectedGoalId(activeTargetedGoal.goal_id)}>활성 목표 선택</button>}
+              <button className="an-retry-btn" onClick={() => void refreshGoals().catch(() => {})}>목표 목록 새로고침</button>
+            </div>
+          </section>}
+          <LoadingContent loading={goalsLoading || (!showGoalSetup && !goalsError && (publicationsLoading || (analyzableGoalId !== null && ["idle", "pending", "running"].includes(pollState))))}
             label="역량 분석 정보를 불러오는 중이에요">
+          {!showGoalSetup && !goalsError && <>
           {/* 분석 상태 배너 */}
           {pollState === "pending" || pollState === "running" ? (
             <div className="an-loading-banner">
@@ -244,6 +262,7 @@ export function Analysis() {
               로드맵으로
             </button>
           </div>
+          </>}
           </LoadingContent>
         </main>
       </div>

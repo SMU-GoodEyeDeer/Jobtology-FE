@@ -124,6 +124,8 @@ export const goalsApi = {
     post<GoalResponse>("/v1/me/goals", body, idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined),
   update: (goalId: string, body: GoalUpdateRequest) =>
     patch<GoalResponse>(`/v1/me/goals/${goalId}`, body),
+  delete: (goalId: string, body: { expected_profile_version: number }) =>
+    del<{ goal_id: string; profile_version: number }>(`/v1/me/goals/${goalId}`, body),
 };
 
 // ─── Route Preferences ───────────────────────────────────────────────────────

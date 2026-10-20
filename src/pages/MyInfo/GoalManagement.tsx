@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useOccupations } from "../../context/OccupationsContext";
 import { analysisApi, goalsApi, profileApi } from "../../services/api";
+import { requiresActiveTargetedGoal } from "../../services/analysisGoal";
 import { goalCalendarDate, goalDateRange, goalDeadline } from "../../services/goalDates";
 import type { GoalResponse, GoalStatus, GoalUpdateRequest } from "../../services/types";
 
@@ -45,6 +46,8 @@ export function GoalManagement({ goals, loading, error, refresh, onProfileVersio
   const [notice, setNotice] = useState<string | null>(null);
   const [analysisRetry, setAnalysisRetry] = useState<string | null>(null);
   const [analysisRequested, setAnalysisRequested] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<GoalResponse | null>(null);
+  const [deleteFailure, setDeleteFailure] = useState<string | null>(null);
   const inFlight = useRef(false);
   const createAttempt = useRef<{ signature: string; request: GoalUpdateRequest; key: string } | null>(null);
   const active = goals.find(goal => goal.status === "ACTIVE");
@@ -55,6 +58,7 @@ export function GoalManagement({ goals, loading, error, refresh, onProfileVersio
   }, [hash]);
 
   function openEditor(goal: GoalResponse | null) {
+    setDeleteTarget(null);
     createAttempt.current = null;
     setWriteFailure(null);
     setNotice(null);
@@ -64,6 +68,44 @@ export function GoalManagement({ goals, loading, error, refresh, onProfileVersio
       occupation: goal ? goal.goal_mode === "DISCOVERY" ? DISCOVERY : goal.occupation_id || "" : "",
       date: goal ? shownDate(goal) : goalCalendarDate(new Date(Date.now() + 90 * 86_400_000), timezone),
     });
+  }
+
+  function confirmDeletion(goal: GoalResponse) {
+    setDeleteTarget(goal); setDeleteFailure(null);
+    setEditor(null); createAttempt.current = null;
+    setWriteFailure(null); setNotice(null); setAnalysisRetry(null); setAnalysisRequested(false);
+  }
+
+  useEffect(() => {
+    const current = goals.find(goal => goal.goal_id === deleteTarget?.goal_id);
+    if (current && (current.occupation_id !== deleteTarget?.occupation_id || current.status !== deleteTarget.status || current.target_by !== deleteTarget.target_by || current.timezone !== deleteTarget.timezone)) {
+      setDeleteTarget(current);
+    }
+  }, [goals, deleteTarget]);
+
+  async function deleteGoal() {
+    if (!deleteTarget || inFlight.current) return;
+    inFlight.current = true; setPending(true); setDeleteFailure(null);
+    try {
+      const profile = await profileApi.get();
+      const result = await goalsApi.delete(deleteTarget.goal_id, { expected_profile_version: profile.version });
+      onProfileVersionChange(result.profile_version);
+      setDeleteTarget(null); setEditor(null);
+      setAnalysisRetry(null); setAnalysisRequested(false);
+      setNotice(`‘${getName(deleteTarget.occupation_id)}’ 목표와 관련 기록을 삭제했어요. 다른 목표는 자동으로 활성화하지 않아요.`);
+      await refresh().catch(() => {});
+    } catch (cause) {
+      const status = (cause as { status?: number })?.status;
+      if (status === 404) {
+        setDeleteTarget(null);
+        setNotice("이 목표는 이미 삭제됐거나 더 이상 찾을 수 없어요. 목표 목록을 다시 확인해 주세요.");
+        await refresh().catch(() => {});
+        try { onProfileVersionChange((await profileApi.get()).version); } catch { /* List/profile can be retried independently. */ }
+      } else if (status === 409) {
+        setDeleteFailure("정보가 변경됐어요. 목표 목록과 삭제할 내용을 확인한 뒤 다시 삭제해 주세요.");
+        await refresh().catch(() => {});
+      } else setDeleteFailure("목표를 삭제하지 못했어요. 연결을 확인한 뒤 다시 시도해 주세요.");
+    } finally { inFlight.current = false; setPending(false); }
   }
 
   async function requestAnalysis(goalId: string) {
@@ -86,7 +128,13 @@ export function GoalManagement({ goals, loading, error, refresh, onProfileVersio
       } else {
         onProfileVersionChange((await profileApi.get()).version);
       }
-    } catch {
+    } catch (cause) {
+      if (requiresActiveTargetedGoal(cause)) {
+        setAnalysisRetry(null);
+        setNotice("목표는 저장됐어요. 분석하려면 아래 목표 목록에서 직무가 정해진 목표를 활성화해 주세요.");
+        await refresh(goalId).catch(() => {});
+        return;
+      }
       if (status === "ACTIVE" && targeted) {
         setAnalysisRetry(goalId);
         setNotice("목표는 저장됐어요. 새 분석을 요청하지 못했으니 분석만 다시 시도해 주세요.");
@@ -139,6 +187,7 @@ export function GoalManagement({ goals, loading, error, refresh, onProfileVersio
 
   async function changeStatus(goal: GoalResponse, status: GoalStatus) {
     if (inFlight.current) return;
+    setDeleteTarget(null);
     inFlight.current = true; setPending(true); setWriteFailure(null); setNotice(null); setAnalysisRetry(null);
     try {
       const profile = await profileApi.get();
@@ -163,7 +212,13 @@ export function GoalManagement({ goals, loading, error, refresh, onProfileVersio
       await requestAnalysis(analysisRetry);
       setAnalysisRequested(true);
       setAnalysisRetry(null); setNotice("새 분석을 요청했어요. 분석 화면에서 진행 상태를 확인해 주세요.");
-    } catch { setNotice("목표는 저장됐어요. 분석 요청에 실패했으니 잠시 후 다시 시도해 주세요."); }
+    } catch (cause) {
+      if (requiresActiveTargetedGoal(cause)) {
+        setAnalysisRetry(null);
+        setNotice("분석하려면 목표 목록에서 직무가 정해진 목표를 활성화해 주세요.");
+        await refresh().catch(() => {});
+      } else setNotice("목표는 저장됐어요. 분석 요청에 실패했으니 잠시 후 다시 시도해 주세요.");
+    }
     finally { inFlight.current = false; setPending(false); }
   }
 
@@ -179,9 +234,18 @@ export function GoalManagement({ goals, loading, error, refresh, onProfileVersio
       <div className="mi-goal-info"><div><span className="mi-goal-name">{getName(goal.occupation_id)}</span><p className="mi-goal-help">목표일 {shownDate(goal)} · {goal.timezone}</p></div><span className={`mi-goal-badge mi-goal-badge--${goal.status.toLowerCase()}`}>{statusLabels[goal.status]}</span></div>
       <div className="mi-goal-actions"><button className="mi-goal-archive-btn" disabled={blocked || !!error} onClick={() => openEditor(goal)} aria-label={`${getName(goal.occupation_id)} 목표 수정`}>수정</button>
         {goal.status === "ACTIVE" ? <button className="mi-goal-archive-btn" disabled={blocked || !!error} onClick={() => void changeStatus(goal, "ARCHIVED")}>보관</button> : Date.parse(goal.target_by) <= Date.now() || Date.parse(goal.target_by) - Date.now() > 366 * 86_400_000 ? <button className="mi-goal-archive-btn" disabled={blocked || !!error} onClick={() => openEditor(goal)}>목표일 수정 후 활성화</button> : <button className="mi-goal-archive-btn" disabled={blocked || !!error || !!active} title={active ? "현재 활성 목표를 먼저 보관해 주세요" : undefined} onClick={() => void changeStatus(goal, "ACTIVE")}>활성화</button>}
+        <button className="mi-delete-btn mi-goal-delete-btn" disabled={blocked || !!error} onClick={() => confirmDeletion(goal)} aria-label={`${getName(goal.occupation_id)} 목표 삭제`}>삭제</button>
       </div>
     </div>)}
     {active && goals.some(goal => goal.status !== "ACTIVE") && <p className="mi-goal-help">다른 목표를 활성화하려면 현재 활성 목표를 먼저 보관해 주세요. 기존 로드맵과 학습 기록은 보관돼요.</p>}
+    {deleteTarget && <div className="mi-delete-confirm mi-goal-delete-confirm" role="group" aria-labelledby="mi-goal-delete-title" aria-busy={pending}>
+      <h4 id="mi-goal-delete-title">‘{getName(deleteTarget.occupation_id)}’ 목표를 영구 삭제할까요?</h4>
+      <p>목표일 {shownDate(deleteTarget)} · {deleteTarget.timezone} · {statusLabels[deleteTarget.status]}</p>
+      <p>이 목표에 연결된 로드맵, 분석 결과와 학습 진행 기록이 모두 삭제되며 복구할 수 없어요.</p>
+      <p>계정, 프로필과 등록한 역량은 유지돼요. 다른 목표가 자동으로 활성화되지는 않아요.</p>
+      {deleteFailure && <p className="mi-delete-error" role="alert">{deleteFailure}</p>}
+      <div className="mi-account-actions"><button className="mi-save-btn" disabled={blocked} onClick={() => { setDeleteTarget(null); setDeleteFailure(null); }}>취소</button><button className="mi-delete-btn mi-delete-btn--confirm" disabled={blocked || !!error} onClick={() => void deleteGoal()}>{pending ? "삭제 중..." : "목표 영구 삭제"}</button></div>
+    </div>}
     {editor && <form className="mi-goal-editor" onSubmit={event => void saveEditor(event)}>
       <h4>{editor.goal ? "목표 수정" : "새 목표"}</h4>
       {!editor.goal && active && <p className="mi-goal-help">현재 활성 목표를 유지하고 새 목표는 임시저장해요.</p>}
