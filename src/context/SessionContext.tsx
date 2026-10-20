@@ -28,10 +28,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const requestVersion = useRef(0);
-  const deletionRequest = useRef<Promise<void> | null>(null);
+  const sessionMutation = useRef<{ kind: "logout" | "delete"; promise: Promise<void> } | null>(null);
 
   const refresh = useCallback(async () => {
-    if (deletionRequest.current) return;
+    if (sessionMutation.current) return;
     const version = ++requestVersion.current;
     setLoading(true);
     setError(null);
@@ -46,9 +46,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       const status = (err as Error & { status?: number }).status;
       if (status !== 401) {
         setError("로그인 상태를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.");
+      } else {
+        setCsrfToken(null);
+        setSession(null);
       }
-      setCsrfToken(null);
-      setSession(null);
     } finally {
       if (version === requestVersion.current) {
         setLoading(false);
@@ -57,26 +58,33 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const logout = useCallback(async () => {
+  const logout = useCallback(() => {
+    if (sessionMutation.current) return sessionMutation.current.kind === "logout"
+      ? sessionMutation.current.promise : Promise.reject(new Error("Account deletion is in progress"));
     ++requestVersion.current;
-    setLoading(true);
+    setLoading(false);
     setError(null);
-    try {
-      await authApi.logout();
-    } catch (err) {
-      if ((err as Error & { status?: number }).status !== 401) {
-        setError("로그아웃을 완료하지 못했어요. 연결을 확인한 뒤 다시 시도해 주세요.");
-      }
-    } finally {
+    const pending = authApi.logout().catch(err => {
+      // An expired session is already signed out; other failures retain retry credentials.
+      if ((err as Error & { status?: number }).status === 401) return;
+      setError("로그아웃을 완료하지 못했어요. 연결을 확인한 뒤 다시 시도해 주세요.");
+      throw err;
+    }).then(() => {
+      ++requestVersion.current;
       setCsrfToken(null);
       setSession(null);
+    }).finally(() => {
+      sessionMutation.current = null;
       setLoading(false);
       setReady(true);
-    }
+    });
+    sessionMutation.current = { kind: "logout", promise: pending };
+    return pending;
   }, []);
 
   const deleteAccount = useCallback(() => {
-    if (deletionRequest.current) return deletionRequest.current;
+    if (sessionMutation.current) return sessionMutation.current.kind === "delete"
+      ? sessionMutation.current.promise : Promise.reject(new Error("Logout is in progress"));
     ++requestVersion.current;
     setError(null);
     setLoading(false);
@@ -87,8 +95,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setSession(null);
       setLoading(false);
       setReady(true);
-    }).finally(() => { deletionRequest.current = null; });
-    deletionRequest.current = pending;
+    }).finally(() => { sessionMutation.current = null; });
+    sessionMutation.current = { kind: "delete", promise: pending };
     return pending;
   }, []);
 

@@ -21,6 +21,8 @@ import type {
   AnalysisResponse,
   RoadmapListResponse,
   RoadmapDetailResponse,
+  RoadmapSkillsResponse,
+  RoadmapRevision, RoadmapRevisionInput, RoadmapRevisionApplied,
   RoadmapResponse,
   Neo4jOccupationResponse,
   Neo4jPublicationResponse,
@@ -85,6 +87,8 @@ export async function request<T>(
     const err = new Error(`API ${method} ${path} failed: ${res.status}`);
     (err as Error & { status: number; detail: unknown }).status = res.status;
     (err as Error & { status: number; detail: unknown }).detail = detail;
+    const retryAfter = Number(res.headers.get("Retry-After"));
+    if (retryAfter > 0 && Number.isFinite(retryAfter)) (err as Error & { retryAfterSeconds: number }).retryAfterSeconds = retryAfter;
     throw err;
   }
 
@@ -170,6 +174,9 @@ export const proposalsApi = {
 
 // ─── Roadmaps ────────────────────────────────────────────────────────────────
 export const roadmapsApi = {
+  compareRevision: (roadmapId: string, proposalId: string) => get<RoadmapRevision>(`/v1/roadmaps/${roadmapId}/revision?${new URLSearchParams({ proposal_id: proposalId })}`),
+  applyRevision: (roadmapId: string, body: RoadmapRevisionInput) => post<RoadmapRevisionApplied>(`/v1/roadmaps/${roadmapId}/revision`, body),
+  skills: (roadmapId: string) => get<RoadmapSkillsResponse>(`/v1/roadmaps/${roadmapId}/skills`),
   getPlan: (roadmapId: string) => get<WeeklyPlanResponse>(`/v1/roadmaps/${roadmapId}/plan`),
   previewPlan: (roadmapId: string, body: WeeklyPlanInput | null) => post<WeeklyPlanResponse>(`/v1/roadmaps/${roadmapId}/plan/preview`, body),
   savePlan: (roadmapId: string, body: WeeklyPlanInput) => put<WeeklyPlanResponse>(`/v1/roadmaps/${roadmapId}/plan`, body),

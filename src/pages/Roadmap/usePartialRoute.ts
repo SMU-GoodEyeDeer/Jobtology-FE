@@ -10,7 +10,8 @@ export function isPartialRoute(feasibility: string | null | undefined): boolean 
 
 // Saved roadmaps do not carry feasibility, so read it from their source proposal.
 export function usePartialRoute(proposalId: string | null) {
-  const [result, setResult] = useState<{ id: string; partial: boolean } | null>(null);
+  const [result, setResult] = useState<{ id: string; partial: boolean; error?: string } | null>(null);
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     if (!proposalId) return;
     let stopped = false;
@@ -20,11 +21,11 @@ export function usePartialRoute(proposalId: string | null) {
         if (!stopped) setResult({ id: proposalId, partial: isPartialRoute(proposal.feasibility) });
       })
       .catch(() => {
-        if (!stopped) setResult({ id: proposalId, partial: false });
+        if (!stopped) setResult(previous => ({ id: proposalId, partial: previous?.id === proposalId && previous.partial, error: "경로의 목표 기간 충족 여부를 확인하지 못했어요. 일부 역량만 포함된 경로일 수 있어요." }));
       });
     return () => {
       stopped = true;
     };
-  }, [proposalId]);
-  return { partial: result?.id === proposalId && result.partial, loading: !!proposalId && result?.id !== proposalId };
+  }, [proposalId, attempt]);
+  return { partial: result?.id === proposalId && result.partial, loading: !!proposalId && result?.id !== proposalId, error: result?.id === proposalId ? result.error ?? null : null, retry: () => setAttempt(value => value + 1) };
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion, useReducedMotion } from "motion/react";
@@ -41,6 +41,20 @@ export function AppSidebar({ children, showLogout = true }: { children?: ReactNo
   const [initialActiveIndex] = useState(() => lastActiveIndex ?? activeIndex);
   useEffect(() => { lastActiveIndex = activeIndex; }, [activeIndex]);
   const { logout } = useSession();
+  const [logoutPending, setLogoutPending] = useState(false);
+  const [logoutError, setLogoutError] = useState<string | null>(null);
+  const logoutInFlight = useRef(false);
+  async function handleLogout() {
+    if (logoutInFlight.current) return;
+    logoutInFlight.current = true;
+    setLogoutPending(true); setLogoutError(null);
+    try {
+      await logout();
+      navigate("/", { replace: true });
+    } catch {
+      setLogoutError("로그아웃을 완료하지 못했어요. 연결을 확인한 뒤 다시 시도해 주세요.");
+    } finally { logoutInFlight.current = false; setLogoutPending(false); }
+  }
   const [collapsed, setCollapsed] = useState(() => preferredCollapsed(window.matchMedia(NARROW_QUERY).matches));
   const { size, resizing, separatorProps } = usePanelResize({ storageKey: "jobtology.sidebar.width", initial: 260, min: 240, max: 360 });
 
@@ -111,15 +125,17 @@ export function AppSidebar({ children, showLogout = true }: { children?: ReactNo
             className="sidebar-logout-btn"
             title={collapsed ? "로그아웃" : undefined}
             aria-label="로그아웃"
-            onClick={async () => { await logout(); navigate("/"); }}
+            disabled={logoutPending}
+            onClick={() => void handleLogout()}
           >
             <svg className="sidebar-logout-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
               <path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l-5-5 5-5M5 12h11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            <span className="sidebar-logout-label">로그아웃</span>
+            <span className="sidebar-logout-label">{logoutPending ? "로그아웃 중…" : "로그아웃"}</span>
           </button>
         )}
       </div>
+      {logoutError && <div className="sidebar-logout-error" role="alert"><p>{logoutError}</p><button disabled={logoutPending} onClick={() => void handleLogout()}>로그아웃 다시 시도</button></div>}
       {!collapsed && <div className="sidebar-resize" {...separatorProps} aria-label="사이드바 너비 조절" title="끌어서 너비 조절 · 두 번 클릭하여 초기화" />}
     </aside>
   );

@@ -5,10 +5,10 @@ import type { Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter, useNavigate } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { WeeklyPlanResponse, WeeklyPlanStep } from "../../services/types";
+import type { Skill, WeeklyPlanResponse, WeeklyPlanStep } from "../../services/types";
 import { PlanPhases } from "./PlanPhases";
 import { RoadmapPlan } from "./RoadmapPlan";
-import { roadmapTarget } from "./roadmapTarget";
+import { roadmapStepSkill, roadmapTarget } from "./roadmapTarget";
 
 const state = vi.hoisted(() => ({ plan: null as WeeklyPlanResponse | null }));
 vi.mock("./useWeeklyPlan", () => ({ useWeeklyPlan: () => ({ plan: state.plan, loading: false, skills: [], setPlan: () => {} }) }));
@@ -41,6 +41,13 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => root.unmount()); container.remove(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe("roadmap step deep links and visible phase scrolling", () => {
+  it("selects a carried completed step's own metadata before a same-key newer release", () => {
+    const current: Skill = { name: "새 역량 설명", type: "필수", requirement_key: step.requirement_key!, step_ids: ["new-step"], source_analysis_id: "new-analysis" };
+    const historic: Skill = { name: "완료 당시 역량 설명", type: "필수", requirement_key: step.requirement_key!, step_ids: [step.step_id], source_analysis_id: "old-analysis", qualifications: [{ code: "original", name: "완료 당시 자격" }] };
+    expect(roadmapStepSkill(step, [current, historic])).toBe(historic);
+    expect(roadmapStepSkill(step, [{ ...current, step_ids: undefined }])).toMatchObject({ source_analysis_id: "new-analysis" });
+  });
+
   it("selects the exact activity and responds to a new step link for the same competency", async () => {
     await act(async () => root.render(createElement(MemoryRouter, { initialEntries: ["/roadmap?requirement=BACKEND%3A2001020301&step=core-one"] },
       createElement(RoadmapPlan, { roadmapId: "roadmap", goalId: "goal", children: null, onComplete: async () => {} }), createElement(ChangeStep))));

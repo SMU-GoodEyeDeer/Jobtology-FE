@@ -65,6 +65,19 @@ describe("roadmap preference loading and saves", () => {
     }));
     expect(state.preferences?.fastest_path).toBe(true);
   });
+  it("preserves the fresh calendar when toggling other conditions and uses fresh versions for explicit availability edits", async () => {
+    await render();
+    const weekly_availability = [{ weekday: 2, start_hour: 18, end_hour: 21 }];
+    const unavailable_dates = ["2026-12-25"];
+    const fresh = { ...defaults, profile_version: 11, weekly_availability, unavailable_dates };
+    get.mockResolvedValueOnce(fresh); update.mockResolvedValueOnce({ ...fresh, needs_portfolio: true });
+    await act(async () => state.toggle("needs_portfolio"));
+    expect(update).toHaveBeenLastCalledWith(expect.objectContaining({ expected_profile_version: 11, weekly_availability, unavailable_dates, needs_portfolio: true }));
+    get.mockResolvedValueOnce({ ...fresh, profile_version: 12, career_switch: true });
+    update.mockResolvedValueOnce({ ...fresh, profile_version: 13, career_switch: true, weekly_availability: [] });
+    await act(async () => state.saveAvailability({ weekly_availability: [], unavailable_dates }));
+    expect(update).toHaveBeenLastCalledWith(expect.objectContaining({ expected_profile_version: 12, career_switch: true, weekly_availability: [], unavailable_dates }));
+  });
   it("serializes rapid toggles while a save is pending", async () => {
     await render();
     let finish!: (value: RoutePreferencesResponse) => void;

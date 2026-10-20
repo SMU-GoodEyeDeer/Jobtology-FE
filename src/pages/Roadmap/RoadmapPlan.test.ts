@@ -9,9 +9,9 @@ import type { StepState, WeeklyPlanInput, WeeklyPlanResponse } from "../../servi
 import { roadmapsApi } from "../../services/api";
 import { RoadmapPlan } from "./RoadmapPlan";
 
-const state = vi.hoisted(() => ({ plan: null as WeeklyPlanResponse | null }));
+const state = vi.hoisted(() => ({ plan: null as WeeklyPlanResponse | null, error: null as string | null, retry: vi.fn() }));
 vi.mock("../../services/api", () => ({ roadmapsApi: { previewPlan: vi.fn(), savePlan: vi.fn(), resetPlan: vi.fn(), getPlan: vi.fn() } }));
-vi.mock("./useWeeklyPlan", () => ({ useWeeklyPlan: () => { const [plan, setPlan] = useState(state.plan); return { plan, setPlan, loading: false, skills: [] }; } }));
+vi.mock("./useWeeklyPlan", () => ({ useWeeklyPlan: () => { const [plan, setPlan] = useState(state.plan); return { plan, setPlan, loading: false, skills: [], error: state.error, retry: state.retry }; } }));
 vi.mock("./PlanPhases", () => ({ PlanPhases: () => null }));
 vi.mock("./PlanStepDetail", () => ({ PlanStepDetail: ({ onComplete }: { onComplete: () => void }) => createElement("button", { onClick: onComplete }, "완료 요청") }));
 vi.mock("./PlanWeeks", () => ({ PlanWeeks: ({ draft, onChange }: { draft: WeeklyPlanInput | null; onChange: (draft: WeeklyPlanInput) => void }) => createElement("button", { onClick: () => draft && onChange({ ...draft, weekly_hours: 20 }) }, "시간 변경") }));
@@ -23,7 +23,7 @@ const latest = { ...saved, version: 2, is_customized: true, weekly_hours: 15 };
 let root: Root; let container: HTMLDivElement;
 beforeEach(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-  vi.useFakeTimers(); state.plan = saved;
+  vi.useFakeTimers(); state.plan = saved; state.error = null; state.retry.mockReset();
   vi.stubGlobal("matchMedia", () => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn(), addListener: vi.fn(), removeListener: vi.fn() }));
   vi.mocked(roadmapsApi.getPlan).mockReset().mockResolvedValue(latest);
   vi.mocked(roadmapsApi.previewPlan).mockReset().mockImplementation(async (_id, input) => ({ ...latest, weekly_hours: input?.weekly_hours ?? 10 }));
@@ -59,6 +59,15 @@ describe("weekly plan conflict recovery", () => {
     expect(container.querySelector(".wp-save-bar")).toBeNull();
     expect(roadmapsApi.getPlan).not.toHaveBeenCalled();
   });
+  it("shows a retryable weekly-plan error instead of the legacy fallback", async () => {
+    state.plan = null; state.error = "주차 플랜을 불러오지 못했어요.";
+    await act(async () => root.render(createElement(MemoryRouter, null, createElement(RoadmapPlan, { roadmapId: "roadmap", goalId: "goal", children: "legacy fallback", onComplete: async () => {} }))));
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain("주차 플랜을 불러오지 못했어요");
+    expect(container.textContent).not.toContain("legacy fallback");
+    await click("주차 플랜 다시 불러오기");
+    expect(state.retry).toHaveBeenCalledTimes(1);
+  });
+
   it("reloads the latest version, preserves a draft, and waits for explicit save after review", async () => {
     await render(); await click("플랜 수정"); await preview(); await click("시간 변경"); await preview(); await click("저장");
     expect(roadmapsApi.savePlan).toHaveBeenCalledWith("roadmap", expect.objectContaining({ expected_version: 1, weekly_hours: 20 }));

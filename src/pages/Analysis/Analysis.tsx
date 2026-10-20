@@ -36,6 +36,8 @@ export function Analysis() {
   const [publicationsLoading, setPublicationsLoading] = useState(true);
 
   const [pollState, setPollState] = useState<PollState>("idle");
+  const [queuedUntil, setQueuedUntil] = useState<string | null>(null);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResponse | null>(null);
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const analysisRun = useRef(0);
@@ -47,6 +49,8 @@ export function Analysis() {
     if (goalsLoading || goalsError) return;
     if (!analyzableGoalId) { setPollState("goal_required"); return; }
     retryRefresh.current = refresh;
+    setAnalysisError(null);
+    setQueuedUntil(null);
     setPollState("pending");
     try {
       const profile = await profileApi.get();
@@ -66,6 +70,12 @@ export function Analysis() {
       const status = (err as Error & { status?: number }).status;
       // 409 = version/idempotency conflict; a stored or running analysis may still exist
       if (run !== analysisRun.current) return;
+      if (status === 429) {
+        const seconds = (err as Error & { retryAfterSeconds?: number }).retryAfterSeconds;
+        setAnalysisError(`새 분석 요청이 잠시 많아졌어요. ${seconds ? `약 ${Math.ceil(seconds / 60)}분 후` : "잠시 후"} 다시 시도해 주세요. 저장된 분석은 계속 확인할 수 있어요.`);
+        setPollState("failed");
+        return;
+      }
       if (requiresActiveTargetedGoal(err)) { setAnalysisResult(null); setPollState("goal_required"); return; }
       const shown = status === 409 && await showStoredAnalysis(analyzableGoalId, run).catch(() => false);
       if (!shown && run === analysisRun.current) setPollState("failed");
@@ -73,6 +83,7 @@ export function Analysis() {
   }, [analyzableGoalId, goalsLoading, goalsError]);
 
   function pollForResult(recomputeId: string, run: number) {
+    setQueuedUntil(null);
     setPollState("running");
     let attempts = 0;
     const poll = async () => {
@@ -81,23 +92,37 @@ export function Analysis() {
       try {
         const res = await analysisApi.poll(recomputeId);
         if (run !== analysisRun.current) return;
+        if (res.state !== "PENDING") setQueuedUntil(null);
         if (res.state === "COMPLETED" && res.analysis_id) {
           const result = await analysisApi.get(res.analysis_id);
           if (run !== analysisRun.current) return;
           setAnalysisResult(result);
+          setQueuedUntil(null);
           setPollState("completed");
         } else if (res.state === "FAILED" && res.error_code === "STALE_PROFILE" && analyzableGoalId) {
           // Rapid edits supersede older queued inputs. Follow the current job
           // without submitting another analysis or polling the same retired one.
           const recovered = await showStoredAnalysis(analyzableGoalId, run, recomputeId);
           if (!recovered && run === analysisRun.current) setPollState("failed");
-        } else if (res.state === "FAILED" || attempts >= POLL_MAX_ATTEMPTS) {
-          setPollState("failed");
         } else {
-          pollTimerRef.current = setTimeout(poll, POLL_INTERVAL_MS);
+          const nextAttempt = res.next_attempt_at ? Date.parse(res.next_attempt_at) : NaN;
+          if (res.state === "PENDING" && Number.isFinite(nextAttempt) && nextAttempt > Date.now()) {
+            // Quota deferrals can last longer than the ordinary worker polling budget.
+            attempts = 0;
+            setQueuedUntil(res.next_attempt_at!);
+            setPollState("pending");
+            pollTimerRef.current = setTimeout(poll, Math.max(30_000, Math.min(60_000, nextAttempt - Date.now())));
+          } else {
+            setQueuedUntil(null);
+            if (res.state === "FAILED" || attempts >= POLL_MAX_ATTEMPTS) setPollState("failed");
+            else {
+              setPollState("running");
+              pollTimerRef.current = setTimeout(poll, POLL_INTERVAL_MS);
+            }
+          }
         }
       } catch {
-        if (run === analysisRun.current) setPollState("failed");
+        if (run === analysisRun.current) { setQueuedUntil(null); setPollState("failed"); }
       }
     };
     poll();
@@ -110,6 +135,7 @@ export function Analysis() {
       const result = await analysisApi.get(dashboard.analysis_id);
       if (run !== analysisRun.current) return true;
       setAnalysisResult(result);
+      setQueuedUntil(null);
       setPollState("completed");
       return true;
     }
@@ -139,6 +165,8 @@ export function Analysis() {
     analysisRun.current += 1;
     if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
     setAnalysisResult(null);
+    setAnalysisError(null);
+    setQueuedUntil(null);
     loadAnalysis();
     return () => { analysisRun.current += 1; if (pollTimerRef.current) clearTimeout(pollTimerRef.current); };
   }, [loadAnalysis]);
@@ -156,6 +184,7 @@ export function Analysis() {
   const skills = analysisResult?.result?.skills ?? [];
   const required_pct = analysisResult?.result?.required_pct ?? null;
   const preferred_pct = analysisResult?.result?.preferred_pct ?? null;
+  const queueHint = queuedUntil ? `분석 요청이 대기 중이에요. ${new Intl.DateTimeFormat("ko-KR", { timeZone: selectedGoal?.timezone || "Asia/Seoul", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(queuedUntil))} (${selectedGoal?.timezone || "Asia/Seoul"}) 이후 실행을 다시 시도해요. 실제 시작은 대기 상황에 따라 늦어질 수 있어요.` : null;
   const showGoalSetup = !goalsLoading && !goalsError && (!analyzableGoalId || pollState === "goal_required");
 
   return (
@@ -222,17 +251,18 @@ export function Analysis() {
               <button className="an-retry-btn" onClick={() => void refreshGoals().catch(() => {})}>목표 목록 새로고침</button>
             </div>
           </section>}
-          <LoadingContent loading={goalsLoading || (!showGoalSetup && !goalsError && (publicationsLoading || (analyzableGoalId !== null && ["idle", "pending", "running"].includes(pollState))))}
+          {queueHint && <div className="an-loading-banner" role="status">{queueHint}</div>}
+          <LoadingContent loading={goalsLoading || (!showGoalSetup && !goalsError && (publicationsLoading || (analysisResult === null && analyzableGoalId !== null && ["idle", "pending", "running"].includes(pollState))))}
             label="역량 분석 정보를 불러오는 중이에요">
           {!showGoalSetup && !goalsError && <>
           {/* 분석 상태 배너 */}
-          {pollState === "pending" || pollState === "running" ? (
+          {(pollState === "pending" || pollState === "running") && !queueHint ? (
             <div className="an-loading-banner">
               역량 분석 중이에요... 잠시만 기다려주세요.
             </div>
           ) : pollState === "failed" ? (
             <div className="an-error-banner">
-              분석 중 오류가 발생했어요.
+              {analysisError ?? "분석 중 오류가 발생했어요."}
               <button className="an-retry-btn" onClick={() => void triggerAnalysis(analysisRun.current, retryRefresh.current)}>다시 시도</button>
             </div>
           ) : null}

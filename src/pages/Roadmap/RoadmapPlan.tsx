@@ -10,7 +10,7 @@ import { usePlanPreview } from "./usePlanPreview";
 import { PlanPhases } from "./PlanPhases";
 import { PlanWeeks } from "./PlanWeeks";
 import { PlanStepDetail } from "./PlanStepDetail";
-import { roadmapTarget } from "./roadmapTarget";
+import { roadmapStepSkill, roadmapTarget } from "./roadmapTarget";
 import "../Analysis/SkillDetail.css";
 import "./WeeklyPlan.css";
 
@@ -22,12 +22,13 @@ interface Props {
   readonly onReady?: (id: string) => void;
 }
 
-export function RoadmapPlan({ roadmapId, goalId, onComplete, children, onReady }: Props) {
-  const { plan, setPlan, loading, skills } = useWeeklyPlan(roadmapId, goalId);
+export function RoadmapPlan({ roadmapId, onComplete, children, onReady }: Props) {
+  const { plan, setPlan, loading, skills, skillsError, retrySkills, error, retry } = useWeeklyPlan(roadmapId);
   useEffect(() => { if (!loading) onReady?.(roadmapId); }, [loading, roadmapId, onReady]);
   if (loading) return <div className="rm-card" role="status">플랜을 불러오는 중...</div>;
+  if (error) return <div className="rm-card" role="alert"><p>{error}</p><button className="rm-bottom-btn" onClick={retry}>주차 플랜 다시 불러오기</button></div>;
   if (!plan) return children;
-  return <PlanContent key={roadmapId} saved={plan} skills={skills} onSaved={setPlan} onComplete={onComplete} />;
+  return <>{skillsError && <div className="rm-card" role="alert"><p>{skillsError}</p><button className="rm-bottom-btn" onClick={retrySkills}>역량 정보 다시 불러오기</button></div>}<PlanContent key={roadmapId} saved={plan} skills={skills} onSaved={setPlan} onComplete={onComplete} /></>;
 }
 
 function PlanContent({ saved, skills, onSaved, onComplete }: {
@@ -57,6 +58,7 @@ function PlanContent({ saved, skills, onSaved, onComplete }: {
   const differences = planChanges(draft ? saved : recommended, plan);
   const customized = planChanges(recommended, plan);
   const selected = plan.steps.find(s => s.step_id === selectedId);
+  const selectedSkill = selected ? roadmapStepSkill(selected, skills) : undefined;
   const target = targetLabel(plan);
   const late = (targetDeltaDays(plan.completion_date, plan.target_date) ?? 0) > 0;
 
@@ -151,11 +153,11 @@ function PlanContent({ saved, skills, onSaved, onComplete }: {
     <AnimatePresence initial={false} mode="wait">
     <motion.div key={`${tab}-${draft ? "edit" : "view"}`} role="tabpanel" id="plan-view" aria-labelledby={`plan-tab-${tab}`} className={tab === "steps" ? "wp-split" : ""}
       initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={fade}>
-      {tab === "steps" ? <><PlanPhases plan={plan} selectedId={selectedId} onSelect={select} />{selected && <PlanStepDetail key="pane" plan={plan} step={selected} skill={skills.find(s => s.requirement_key != null && s.requirement_key === selected.requirement_key)} busy={busy || draft !== null} onComplete={() => void mutate("complete")} />}</> : <PlanWeeks plan={plan} draft={draft} changedIds={customized.changedIds} busy={busy} onChange={changeDraft} onSelect={select} />}
+      {tab === "steps" ? <><PlanPhases plan={plan} selectedId={selectedId} onSelect={select} />{selected && <PlanStepDetail key="pane" plan={plan} step={selected} skill={selectedSkill} busy={busy || draft !== null} onComplete={() => void mutate("complete")} />}</> : <PlanWeeks plan={plan} draft={draft} changedIds={customized.changedIds} busy={busy} onChange={changeDraft} onSelect={select} />}
     </motion.div>
     </AnimatePresence>
     <AnimatePresence>
-    {drawer && selected && <PlanStepDetail key="drawer" plan={plan} step={selected} skill={skills.find(s => s.requirement_key != null && s.requirement_key === selected.requirement_key)} busy={busy || draft !== null} onComplete={() => void mutate("complete")} onClose={() => setDrawer(false)} />}
+    {drawer && selected && <PlanStepDetail key="drawer" plan={plan} step={selected} skill={selectedSkill} busy={busy || draft !== null} onComplete={() => void mutate("complete")} onClose={() => setDrawer(false)} />}
     </AnimatePresence>
     <AnimatePresence>
     {draft && <motion.footer className="wp-save-bar wp-card" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }} transition={fade}><span className="wp-chip wp-chip--indigo">변경 {differences.count}건</span><span>완료 예정 {fullDate(saved.completion_date)} → <b>{fullDate(plan.completion_date)}</b></span>{target && <span className={`wp-chip ${late ? "wp-chip--amber" : "wp-chip--green"}`}>{target}</span>}

@@ -9,6 +9,7 @@ export function ContextSummary({ data }: { readonly data: OccupationContextRespo
   const summary = data.summary;
   return <div className="occupation-context-summary">
     <p>메타데이터로 추론한 직무 연결이에요. 역량 요구나 보유 역량의 근거로 반영하지 않아요.</p>
+    {!!data.role_context?.onet_occupations.length && <p>직무 탐색 범위를 넓히기 위해 {data.role_context.onet_occupations.map(item => item.name || item.code).join(" · ")}도 함께 조회해요. 다른 목표 직무와 공고가 겹칠 수 있어요.</p>}
     <p>공고 {summary.postings.toLocaleString()}건 · 연결 {summary.associations.toLocaleString()}건 · 최신 연결 {summary.current_associations.toLocaleString()}건{summary.stale_associations > 0 && ` · 과거 연결 ${summary.stale_associations}건`}{summary.unknown_associations > 0 && ` · 최신 여부 미확인 ${summary.unknown_associations}건`}</p>
     {!!summary.by_source.length && <p>{summary.by_source.map(source => `${postingSourceName(source.source_id)} 공고 ${source.postings}건 / 연결 ${source.associations}건`).join(" · ")}</p>}
     {!!summary.by_occupation.length && <details><summary>연결 직무 {summary.by_occupation.length}개</summary><ul>{summary.by_occupation.map(occupation => <li key={`${occupation.occupation_scheme}:${occupation.occupation_code}`}>{occupation.occupation_name || occupation.occupation_code} · {occupation.occupation_code} · 공고 {occupation.postings}건 / 연결 {occupation.associations}건</li>)}</ul></details>}
