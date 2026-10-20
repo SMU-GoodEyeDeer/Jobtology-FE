@@ -81,16 +81,34 @@ function PlanContent({ saved, skills, onSaved, onComplete }: {
         await onComplete(selected.step_id, selected.state);
         onSaved(await roadmapsApi.getPlan(saved.roadmap_id));
       } else if (action === "save" && preview.normalizedInput && !preview.pending && !preview.error) {
-        if (resetToRecommendation) onSaved(await roadmapsApi.resetPlan(saved.roadmap_id));
+        if (resetToRecommendation) onSaved(await roadmapsApi.resetPlan(saved.roadmap_id, saved.version));
         else if (!preview.unchanged) onSaved(await roadmapsApi.savePlan(saved.roadmap_id, preview.normalizedInput));
         setDraft(null);
       } else if (action === "reset") {
-        onSaved(await roadmapsApi.resetPlan(saved.roadmap_id));
+        onSaved(await roadmapsApi.resetPlan(saved.roadmap_id, saved.version));
         setDraft(null);
       }
     } catch (cause) {
       const status = cause instanceof Error && "status" in cause ? cause.status : null;
-      setError(status === 409 ? "다른 곳에서 플랜이 변경됐어요. 변경 내용은 유지했어요. 다시 시도해 주세요." : status === 422 ? "플랜 값을 확인해 주세요. 시간과 단계 순서를 확인한 뒤 다시 저장해 주세요." : "요청을 처리하지 못했어요. 변경 내용은 유지했어요. 연결을 확인하고 다시 시도해 주세요.");
+      if (status === 409) {
+        try {
+          const latest = await roadmapsApi.getPlan(saved.roadmap_id);
+          onSaved(latest);
+          setDraft(previous => {
+            const input = previous ?? (action === "reset" ? recommendedInput(latest) : planInput(saved));
+            const hours = { ...input.hours };
+            for (const step of latest.steps.filter(step => step.state === "COMPLETED")) {
+              if (step.hours === step.recommended_hours) delete hours[step.step_id];
+              else hours[step.step_id] = step.hours;
+            }
+            return { ...input, hours, expected_version: latest.version };
+          });
+          if (action === "reset") setResetToRecommendation(true);
+          setError("다른 곳에서 변경된 최신 플랜을 불러왔어요. 내 수정 내용은 유지했어요. 최신 플랜과 변경 내용을 검토한 뒤 저장을 다시 눌러 주세요.");
+        } catch {
+          setError("다른 곳에서 플랜이 변경됐지만 최신 플랜을 불러오지 못했어요. 내 수정 내용은 유지했어요. 연결을 확인한 뒤 다시 시도해 주세요.");
+        }
+      } else setError(status === 422 ? "플랜 값을 확인해 주세요. 완료한 단계의 학습 시간은 바꿀 수 없어요. 시간과 단계 순서를 확인한 뒤 다시 저장해 주세요." : "요청을 처리하지 못했어요. 변경 내용은 유지했어요. 연결을 확인하고 다시 시도해 주세요.");
     } finally { setBusy(false); }
   }
 
@@ -134,7 +152,7 @@ function PlanContent({ saved, skills, onSaved, onComplete }: {
     </AnimatePresence>
     <AnimatePresence>
     {draft && <motion.footer className="wp-save-bar wp-card" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }} transition={fade}><span className="wp-chip wp-chip--indigo">변경 {differences.count}건</span><span>완료 예정 {fullDate(saved.completion_date)} → <b>{fullDate(plan.completion_date)}</b></span>{target && <span className={`wp-chip ${late ? "wp-chip--amber" : "wp-chip--green"}`}>{target}</span>}
-      <button className="wp-text-button" disabled={busy} onClick={() => { setResetToRecommendation(true); setDraft(recommendedInput(recommended)); }}>추천 플랜으로 되돌리기</button>
+      <button className="wp-text-button" disabled={busy} onClick={() => { setResetToRecommendation(true); setDraft({ ...recommendedInput(recommended), expected_version: saved.version }); }}>추천 플랜으로 되돌리기</button>
       <button className="wp-button" disabled={busy} onClick={() => { setDraft(null); setError(null); }}>취소</button>
       <button className="wp-button wp-button--primary" disabled={busy || preview.pending || !!preview.error} onClick={() => void mutate("save")}>{busy ? "저장 중..." : preview.pending ? "일정 확인 중..." : "저장"}</button>
     </motion.footer>}

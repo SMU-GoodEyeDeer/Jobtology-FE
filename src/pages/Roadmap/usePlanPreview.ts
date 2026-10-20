@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { roadmapsApi } from "../../services/api";
-import { normalizePlanInput, planInput } from "../../services/weeklyPlan";
+import { normalizePlanInput, planInput, samePlanInput } from "../../services/weeklyPlan";
 import type { WeeklyPlanInput, WeeklyPlanResponse } from "../../services/types";
 
 export function usePlanPreview(saved: WeeklyPlanResponse, draft: WeeklyPlanInput | null, resetToRecommendation: boolean) {
   const [attempt, setAttempt] = useState(0);
   const normalizedInput = useMemo(() => draft ? normalizePlanInput(draft, saved.steps) : null, [draft, saved.steps]);
-  const unchanged = !resetToRecommendation && JSON.stringify(normalizedInput) === JSON.stringify(normalizePlanInput(planInput(saved), saved.steps));
+  const unchanged = !resetToRecommendation && samePlanInput(normalizedInput, normalizePlanInput(planInput(saved), saved.steps));
   const key = JSON.stringify([saved, normalizedInput, resetToRecommendation, attempt]);
   const [result, setResult] = useState<{ key: string; plan: WeeklyPlanResponse | null; error: string | null } | null>(null);
 

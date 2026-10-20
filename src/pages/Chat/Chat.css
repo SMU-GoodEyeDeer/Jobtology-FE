@@ -877,3 +877,9 @@
 .node-popup .sd-qualification { margin: 0; padding: 10px; }
 .node-popup .sd-qualification strong, .node-popup .sd-qualification p { font-size: 12px; }
 .node-popup .sd-qualification small { font-size: 10px; }
+
+.graph-evidence-metadata { margin: 12px 0; color: var(--muted); font-size: 11px; line-height: 1.65; overflow-wrap: anywhere; }
+.graph-evidence-metadata summary { cursor: pointer; color: var(--text-secondary); }
+.graph-evidence-metadata p { margin: 6px 0; }
+.graph-evidence-source { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 8px; }
+.node-postings .occupation-association-status { font-size: 10px; line-height: 1.6; }

@@ -14,6 +14,14 @@ export interface PostingItem {
   readonly date_posted: string | null;
   readonly closing_date: string | null;
   readonly ongoing: boolean | null;
+  readonly source_status?: string | null;
+  readonly deadline_kind?: string | null;
+  readonly deadline_basis?: string | null;
+  readonly ongoing_basis?: string | null;
+  readonly application_start_date?: string | null;
+  readonly application_start_at?: string | null;
+  readonly deadline_at?: string | null;
+  readonly source_provenance?: LiveSource | null;
   readonly regions: readonly string[];
   readonly employment_types: readonly string[];
   readonly recruitment_type: string | null;
@@ -22,7 +30,7 @@ export interface PostingItem {
   readonly headcount: number | null;
   readonly source_url: string | null;
 }
-export interface PostingFilters { readonly q?: string; readonly ncs_category?: string; readonly region?: string; readonly open_on?: string; readonly offset?: number; readonly limit?: number }
+export interface PostingFilters { readonly occupation?: string; readonly q?: string; readonly ncs_category?: string; readonly region?: string; readonly open_on?: string; readonly offset?: number; readonly limit?: number }
 export interface PostingsResponse {
   readonly sources: readonly LiveSource[];
   readonly items: readonly PostingItem[];
@@ -31,6 +39,59 @@ export interface PostingsResponse {
   readonly offset: number;
 }
 export interface PostingResponse { readonly sources: readonly LiveSource[]; readonly item: PostingItem }
+export interface AssociationCounts {
+  readonly associations: number;
+  readonly postings: number;
+  readonly current_associations: number;
+  readonly source_current_associations: number;
+  readonly catalog_current_associations: number;
+}
+export interface OccupationAssociation {
+  readonly posting_key: string;
+  readonly posting_identity: string;
+  readonly source_id: string;
+  readonly occupation_scheme: "NCS" | "ONET";
+  readonly occupation_code: string;
+  readonly occupation_name: string | null;
+  readonly association_id: string;
+  readonly basis: "METADATA_INFERRED";
+  readonly assertion_kind: "MODEL_INFERRED";
+  readonly review_status: "UNREVIEWED" | "ASSISTANT_REVIEWED" | "HUMAN_REVIEWED";
+  readonly stage: string;
+  readonly confidence: null;
+  readonly confidence_state: "UNASSESSED";
+  readonly source_freshness: "CURRENT" | "STALE" | "UNKNOWN";
+  readonly catalog_freshness: "CURRENT" | "STALE" | "UNKNOWN";
+  readonly source_pins: { readonly run_id: string | null; readonly source_hash: string | null; readonly normalized_hash: string | null; readonly source_facts_sha256: string | null };
+  readonly catalog_pins: { readonly pin: string | null; readonly catalog_hash: string | null };
+  readonly posting: PostingItem | null;
+}
+export interface OccupationContextResponse {
+  readonly contract_version: "jobtology-inferred-occupation-context-v1";
+  readonly basis: "METADATA_INFERRED";
+  readonly assertion_kind: "MODEL_INFERRED";
+  readonly competency_evidence: false;
+  readonly filters: { readonly occupation_codes: readonly string[] | null };
+  readonly limit: number;
+  readonly offset: number;
+  readonly total: number;
+  readonly summary: AssociationCounts & {
+    readonly stale_associations: number;
+    readonly unknown_associations: number;
+    readonly by_source: readonly (AssociationCounts & { readonly source_id: string })[];
+    readonly by_occupation: readonly (AssociationCounts & { readonly occupation_scheme: "NCS" | "ONET"; readonly occupation_code: string; readonly occupation_name: string | null })[];
+  };
+  readonly items: readonly OccupationAssociation[];
+}
+export function postingDeadlineLabel(item: PostingItem): string {
+  if (item.source_status === "CLOSED") return "모집 종료 · 원문 상태";
+  if (item.ongoing_basis === "USER_POLICY" || item.deadline_basis === "USER_POLICY") return "상시 모집 · 사용자 정책에 따른 추정";
+  if (item.deadline_kind === "UNTIL_FILLED") return "채용 시 마감 · 원문 확인 필요";
+  if (item.deadline_kind === "ROLLING" || item.deadline_kind === "ONGOING") return "상시 모집 · 원문 확인 필요";
+  return item.deadline_at ? `접수 마감 ${item.deadline_at}` : item.closing_date ? `접수 마감일 ${item.closing_date}` : "접수 마감일 미제공";
+}
+export const reviewStatusLabel = (status: string) => ({ UNREVIEWED: "미검토", ASSISTANT_REVIEWED: "보조 검토", HUMAN_REVIEWED: "사람 검토" }[status] ?? status);
+export const freshnessLabel = (status: string) => ({ CURRENT: "최신", STALE: "과거 자료", UNKNOWN: "확인 안 됨" }[status] ?? status);
 export function postingSourceName(sourceId: string): string {
   switch (sourceId) {
     case "jobkorea": return "잡코리아";
@@ -55,6 +116,8 @@ export function safeSourceUrl(value: string | null | undefined): string | null {
   try { const url = new URL(value); return ["https:", "http:"].includes(url.protocol) ? url.href : null; } catch { return null; }
 }
 export const resourcesApi = {
+  occupationContext: (occupationCodes: string, limit = 20, offset = 0) => request<OccupationContextResponse>("GET", `/v2/live/occupation-context?${new URLSearchParams({ occupation_codes: occupationCodes, limit: String(limit), offset: String(offset) })}`),
+  rolePostingContext: (occupationId: string, limit = 3, offset = 0) => request<OccupationContextResponse>("GET", `/v2/roles/${encodeURIComponent(occupationId)}/posting-context?${new URLSearchParams({ limit: String(limit), offset: String(offset) })}`),
   postings: (filters: PostingFilters = {}) => request<PostingsResponse>("GET", `/v2/live/postings?${postingSearchParams(filters)}`),
   posting: (postingId: string) => request<PostingResponse>("GET", `/v2/live/postings/${encodeURIComponent(postingId)}`),
 };

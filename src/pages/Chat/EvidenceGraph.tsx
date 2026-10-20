@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerE
 import { useNavigate } from "react-router-dom";
 import { analysisSkillHref, roadmapSkillHref } from "../../services/skillNavigation";
 import { postingsHref } from "../../services/resourcesApi";
+import { GraphEvidenceMetadata } from "./GraphEvidenceMetadata";
 import { PostingEvidence } from "./PostingEvidence";
 import { QualificationCard } from "../Analysis/SkillEvidence";
 import type { EvidenceNodeKind, RoleEvidenceGraph } from "../../services/types";
@@ -33,7 +34,7 @@ const COLORS: Record<Visual, string> = {
 const KIND_LABEL: Record<EvidenceNodeKind, string> = {
   role: "목표 직무",
   ncs_occupation: "NCS 직무",
-  posting_evidence: "채용공고 근거",
+  posting_evidence: "직무 추론 공고",
   ncs_competency: "NCS 능력단위",
   onet_occupation: "O*NET 직업",
   onet_skill: "O*NET 핵심 역량",
@@ -45,7 +46,7 @@ const LEGEND: readonly { readonly visual: Visual; readonly label: string }[] = [
   { visual: "role", label: "목표 직무" },
   { visual: "ncs_occupation", label: "NCS 직무" },
   { visual: "onet_occupation", label: "O*NET 직업" },
-  { visual: "posting_evidence", label: "공고 근거" },
+  { visual: "posting_evidence", label: "직무 추론 공고" },
   { visual: "qualification", label: "Q-Net 자격" },
   { visual: "onet_skill", label: "핵심 역량" },
   { visual: "technology", label: "필요 역량" },
@@ -342,12 +343,13 @@ export function EvidenceGraph({ graph, status, ownedSkills, onOpenRoadmap }: Pro
           {selected.detail && (
             <p className="node-popup-desc" style={{ whiteSpace: "pre-line" }}>{selected.detail}</p>
           )}
-          {selected.kind === "posting_evidence" ? <PostingEvidence key={selected.id} category={selected.ncs_category} />
+          <GraphEvidenceMetadata node={selected} edges={graph?.edges.filter(edge => edge.source === selected.id || edge.target === selected.id) ?? []} />
+          {selected.kind === "posting_evidence" ? <PostingEvidence key={selected.id} occupation={selected.ncs_category} />
             : selected.kind === "qualification" ? (selected.qualification_code
               ? <QualificationCard qualification={{ code: selected.qualification_code, name: selected.label }} />
               : <p className="node-popup-desc">시험 일정과 연결할 자격 코드가 제공되지 않았어요.</p>)
             : <>
-              {selected.kind === "ncs_occupation" && selected.ncs_category && <button className="node-popup-btn" onClick={() => navigate(postingsHref({ ncs_category: selected.ncs_category! }))}>연결된 채용공고 보기</button>}
+              {selected.kind === "ncs_occupation" && selected.ncs_category && <button className="node-popup-btn" onClick={() => navigate(postingsHref({ occupation: selected.ncs_category! }))}>연결된 채용공고 보기</button>}
               <button className="node-popup-btn" onClick={() => selected.requirement_key || selected.ncs_base_code
                 ? navigate(roadmapSkillHref(selected.requirement_key, selected.ncs_base_code)) : onOpenRoadmap()}>로드맵에서 보기</button>
               <button className="node-popup-link" onClick={() => navigate(analysisSkillHref(selected.requirement_key, selected.ncs_base_code))}>역량분석에서 보기 →</button>

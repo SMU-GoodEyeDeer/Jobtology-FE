@@ -11,7 +11,7 @@ const { previewPlan } = vi.hoisted(() => ({ previewPlan: vi.fn<(id: string, inpu
 vi.mock("../../services/api", () => ({ roadmapsApi: { previewPlan } }));
 
 const saved: WeeklyPlanResponse = {
-  roadmap_id: "roadmap", start_date: "2026-10-19", target_date: "2026-11-01", weekly_hours: 10,
+  version: 0, roadmap_id: "roadmap", start_date: "2026-10-19", target_date: "2026-11-01", weekly_hours: 10,
   recommended_weekly_hours: 10, rest_weeks: [], is_customized: false, saved_at: null,
   total_hours: 10, total_weeks: 2, completion_date: "2026-10-29", recommended_completion_date: "2026-10-29",
   schedule_source: "SOLVER", deadline_exceeded: false, days_past_target: 0, has_dependency_violations: false, warnings: [],
@@ -50,6 +50,14 @@ describe("authoritative weekly preview", () => {
     expect(state.plan.steps[0].start_date).toBe("2026-10-27");
     expect(state.plan.completion_date).toBe("2026-10-29");
     expect(state.pending).toBe(false);
+  });
+
+  it("ignores concurrency versions when comparing unchanged plan settings", async () => {
+    await render({ ...planInput(saved), expected_version: saved.version + 1 });
+    await act(async () => vi.advanceTimersByTimeAsync(250));
+    expect(state.unchanged).toBe(true);
+    expect(state.normalizedInput?.expected_version).toBe(1);
+    expect(previewPlan).not.toHaveBeenCalled();
   });
 
   it("treats an explicit recommended-hour value as unchanged", async () => {

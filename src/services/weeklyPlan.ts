@@ -32,7 +32,7 @@ export const fullDate = (date: string) => date.replaceAll("-", ".");
 
 export function planInput(plan: WeeklyPlanResponse): WeeklyPlanInput {
   return {
-    weekly_hours: plan.weekly_hours, rest_weeks: [...plan.rest_weeks],
+    expected_version: plan.version, weekly_hours: plan.weekly_hours, rest_weeks: [...plan.rest_weeks],
     order: plan.steps.map(s => s.step_id),
     hours: Object.fromEntries(plan.steps.filter(s => s.hours !== s.recommended_hours).map(s => [s.step_id, s.hours])),
   };
@@ -41,6 +41,7 @@ export function planInput(plan: WeeklyPlanResponse): WeeklyPlanInput {
 export function normalizePlanInput(input: WeeklyPlanInput, steps: readonly WeeklyPlanStep[]): WeeklyPlanInput {
   const recommendedHours = new Map(steps.map(step => [step.step_id, step.recommended_hours]));
   return {
+    expected_version: input.expected_version,
     weekly_hours: input.weekly_hours,
     rest_weeks: [...input.rest_weeks].sort((a, b) => a - b),
     order: [...input.order],
@@ -50,8 +51,15 @@ export function normalizePlanInput(input: WeeklyPlanInput, steps: readonly Weekl
   };
 }
 
+export function samePlanInput(a: WeeklyPlanInput | null, b: WeeklyPlanInput): boolean {
+  if (!a) return false;
+  const { expected_version: _a, ...left } = a;
+  const { expected_version: _b, ...right } = b;
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
 export function recommendedInput(plan: WeeklyPlanResponse): WeeklyPlanInput {
-  return { weekly_hours: plan.recommended_weekly_hours, rest_weeks: [], hours: {},
+  return { expected_version: plan.version, weekly_hours: plan.recommended_weekly_hours, rest_weeks: [], hours: {},
     order: [...plan.steps].sort((a, b) => a.recommended_number - b.recommended_number).map(s => s.step_id) };
 }
 

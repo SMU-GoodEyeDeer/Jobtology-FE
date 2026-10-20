@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { postingSearchParams, postingsHref, resourcesApi, safeSourceUrl } from "./resourcesApi";
+import { postingDeadlineLabel, postingSearchParams, postingsHref, resourcesApi, safeSourceUrl } from "./resourcesApi";
+import type { PostingItem } from "./resourcesApi";
 import { analysisSkillHref, roadmapSkillHref } from "./skillNavigation";
 afterEach(() => vi.unstubAllGlobals());
 
@@ -19,6 +20,22 @@ describe("live resource navigation and transport", () => {
     vi.stubGlobal("fetch", fetchMock);
     expect(await resourcesApi.posting("urn:posting:a/b")).toEqual(result);
     expect(fetchMock).toHaveBeenCalledWith("/api/v2/live/postings/urn%3Aposting%3Aa%2Fb", expect.objectContaining({ method: "GET", credentials: "include" }));
+  });
+  it("loads occupation and role context through separate authenticated endpoints with association paging", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation(async () => new Response("{}", { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    await resourcesApi.occupationContext("20010203,15-1252.00", 20, 40);
+    expect(fetchMock).toHaveBeenLastCalledWith("/api/v2/live/occupation-context?occupation_codes=20010203%2C15-1252.00&limit=20&offset=40", expect.objectContaining({ credentials: "include" }));
+    await resourcesApi.rolePostingContext("BACKEND_DEVELOPER", 3);
+    expect(fetchMock).toHaveBeenLastCalledWith("/api/v2/roles/BACKEND_DEVELOPER/posting-context?limit=3&offset=0", expect.objectContaining({ credentials: "include" }));
+    expect(new URL(postingsHref({ occupation: "20010203,15-1252.00", offset: 40 }), "https://app.example").searchParams.get("occupation")).toBe("20010203,15-1252.00");
+  });
+  it("keeps closed, policy rolling, and dated deadlines distinct", () => {
+    const item = {} as PostingItem;
+    expect(postingDeadlineLabel({ ...item, source_status: "CLOSED", deadline_kind: "ROLLING", ongoing_basis: "USER_POLICY" })).toBe("모집 종료 · 원문 상태");
+    expect(postingDeadlineLabel({ ...item, deadline_kind: "ROLLING", ongoing_basis: "USER_POLICY" })).toBe("상시 모집 · 사용자 정책에 따른 추정");
+    expect(postingDeadlineLabel({ ...item, deadline_kind: "UNTIL_FILLED" })).toBe("채용 시 마감 · 원문 확인 필요");
+    expect(postingDeadlineLabel({ ...item, ongoing: true, closing_date: "2026-10-31" })).toBe("접수 마감일 2026-10-31");
   });
   it.each(["javascript:alert(1)", "data:text/html,test", "//example.com", "/relative", "not a url"])("rejects unsafe or relative source URL %s", value => {
     expect(safeSourceUrl(value)).toBeNull();

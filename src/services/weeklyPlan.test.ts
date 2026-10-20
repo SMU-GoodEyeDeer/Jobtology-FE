@@ -13,7 +13,7 @@ const steps: WeeklyPlanStep[] = hours.map((h, index) => ({
   unmet_prerequisite_step_ids: [],
 }));
 const plan: WeeklyPlanResponse = {
-  roadmap_id: "roadmap", start_date: "2026-10-19", target_date: "2027-04-15",
+  version: 0, roadmap_id: "roadmap", start_date: "2026-10-19", target_date: "2027-04-15",
   weekly_hours: 10, recommended_weekly_hours: 10, rest_weeks: [], is_customized: false,
   saved_at: null, total_hours: 259, total_weeks: 26, completion_date: "2027-04-18",
   recommended_completion_date: "2027-04-18", schedule_source: "CUSTOM", deadline_exceeded: true, days_past_target: 3, has_dependency_violations: false, warnings: [], steps,

@@ -23,7 +23,7 @@ const step: WeeklyPlanStep = {
   prerequisite_step_ids: [], unmet_prerequisite_step_ids: [], completion_criteria: [],
 };
 const plan: WeeklyPlanResponse = {
-  roadmap_id: "roadmap", start_date: "2026-10-19", target_date: "2026-11-30", weekly_hours: 10, recommended_weekly_hours: 10, rest_weeks: [],
+  version: 0, roadmap_id: "roadmap", start_date: "2026-10-19", target_date: "2026-11-30", weekly_hours: 10, recommended_weekly_hours: 10, rest_weeks: [],
   is_customized: false, saved_at: null, total_hours: 30, total_weeks: 3, completion_date: "2026-11-02", recommended_completion_date: "2026-11-02",
   schedule_source: "SOLVER", deadline_exceeded: false, days_past_target: 0, has_dependency_violations: false, warnings: [],
   steps: [step, { ...step, step_id: "core-one", title: "핵심 학습", phase: "CORE", ncs_level: 4, number: 2 }, { ...step, step_id: "core-two", title: "핵심 실습", phase: "CORE", ncs_level: 4, number: 3 }],
