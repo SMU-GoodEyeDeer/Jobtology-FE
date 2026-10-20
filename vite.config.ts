@@ -38,6 +38,7 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
+    setupFiles: ['./src/testSetup.ts'],
     include: ['src/**/*.test.ts', 'vite.config.test.ts'],
   },
 })

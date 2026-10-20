@@ -37,9 +37,10 @@
 .mi-delete-confirm .mi-delete-error { color: #b91c1c; }
 
 .mi-two-col {
-  display: flex;
-  gap: 20px;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: minmax(260px, .8fr) minmax(0, 1.6fr);
+  gap: 24px;
+  align-items: start;
 }
 .mi-graduation-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .mi-persistence-error { color: #b91c1c; font-size: 13px; line-height: 1.6; }
@@ -75,9 +76,7 @@
   min-width: 0;
 }
 
-@media (max-width: 900px) { .mi-two-col { flex-direction: column; } .mi-two-col > * { width: 100%; } }
-.mi-two-col:has(.resume-scanner, .spec-editor) { flex-direction: column; }
-.mi-two-col:has(.resume-scanner, .spec-editor) > * { width: 100%; }
+@media (max-width: 1100px) { .mi-two-col { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 600px) { .mi-profile-card, .mi-spec-card { padding: 16px; } }
 
 /* ── Card header ── */

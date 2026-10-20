@@ -41,3 +41,17 @@
   .resume-source-scroll, .resume-suggestions { max-height: 430px; }
 }
 @media (max-width: 800px) { .resume-scanner { padding: 12px; } }
+.resume-privacy { margin: 10px 0 20px; background: #fff; }
+.spec-dialog .resume-scanner { margin: 0; padding: 0; border: 0; background: none; }
+.spec-dialog .resume-heading h3 { font-size: 15px; }
+.spec-dialog .resume-heading p { margin-bottom: 0; }
+.spec-dialog .resume-upload { padding: 24px; border-color: #a5b4fc; background: #f8faff; border-radius: 14px; }
+.spec-dialog .resume-source, .spec-dialog .resume-suggestions { padding: 20px; border-radius: 14px; }
+.spec-dialog .resume-candidate { padding: 16px; }
+.spec-dialog .resume-workspace { gap: 22px; }
+.spec-dialog .resume-source-scroll, .spec-dialog .resume-suggestions { max-height: 480px; }
+@container resume (min-width: 641px) { .spec-dialog .resume-tabs { display: none; } }
+@media (max-width: 640px) {
+  .spec-dialog .resume-upload, .spec-dialog .resume-source, .spec-dialog .resume-suggestions { padding: 16px; }
+  .spec-dialog .resume-card-actions button { white-space: normal; }
+}
