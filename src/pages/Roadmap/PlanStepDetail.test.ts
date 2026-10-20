@@ -51,6 +51,26 @@ describe("roadmap activity deliverables", () => {
     expect(html).not.toContain("/3 완료");
   });
 
+  it("removes repeated NCS help from the step while keeping level 7–8 eligibility context visible", () => {
+    expect(detail({ ...project, ncs_level: 6 })).not.toContain("ncs-level-trigger");
+    for (const [level, context] of [[7, "석사 수준의 전문 업무"], [8, "박사 수준의 연구·전문 업무"]] as const) {
+      const html = detail({ ...project, ncs_level: level, phase: "ADVANCED" });
+      expect(html).toContain(context);
+      expect(html).toContain("실제 채용공고의 학위·응시 자격을 확인");
+      expect(html).not.toContain("ncs-level-trigger");
+    }
+  });
+
+  it("keeps an advanced-level note visible even when its phase is collapsed", () => {
+    const advanced = { ...project, step_id: "advanced", number: 2, phase: "ADVANCED" as const, ncs_level: 7 };
+    const mixed = { ...plan, steps: [project, advanced] };
+    const html = renderToStaticMarkup(createElement(PlanPhases, { plan: mixed, selectedId: project.step_id, onSelect: () => {} }));
+    const advancedSection = html.slice(html.indexOf('aria-controls="phase-ADVANCED"'));
+    expect(advancedSection).toContain("석사 수준의 전문 업무");
+    expect(advancedSection.indexOf("석사 수준의 전문 업무")).toBeLessThan(advancedSection.indexOf('id="phase-ADVANCED"'));
+    expect(advancedSection).toContain('id="phase-ADVANCED" data-expanded="false"');
+  });
+
   it("identifies the project and related skill in the phase list and weekly tasks", () => {
     const phases = renderToStaticMarkup(createElement(PlanPhases, { plan, selectedId: project.step_id, onSelect: () => {} }));
     expect(phases).toContain(`<strong>${project.title}</strong>`);

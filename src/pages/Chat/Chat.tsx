@@ -359,7 +359,7 @@ export function Chat() {
               <div ref={messagesEndRef} />
             </div>
 
-            <div className="chat-suggestions">
+            <div className="chat-suggestions" role="region" aria-label="추천 질문" tabIndex={0}>
               {suggestions.map((s) => (
                 <button
                   key={s}

@@ -316,13 +316,18 @@
   overflow-x: auto;
   overflow-y: hidden;
   overscroll-behavior-x: contain;
-  scrollbar-width: none;
+  scrollbar-width: thin;
+  scrollbar-color: #a5b4fc #f4f5fb;
   gap: 7px;
   padding: 12px 20px;
   border-top: 1px solid #f3f4f6;
 }
 
-.chat-suggestions::-webkit-scrollbar { display: none; }
+.chat-suggestions::-webkit-scrollbar { height: 6px; }
+.chat-suggestions::-webkit-scrollbar-track { background: #f4f5fb; border-radius: 6px; }
+.chat-suggestions::-webkit-scrollbar-thumb { background: #a5b4fc; border-radius: 6px; }
+.chat-suggestions::-webkit-scrollbar-thumb:hover { background: #818cf8; }
+.chat-suggestions:focus-visible { outline: 2px solid #6366f1; outline-offset: -3px; }
 
 .suggestion-chip {
   flex: 0 0 auto;
