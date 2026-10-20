@@ -1,0 +1,18 @@
+.occupation-context-banner { margin: 18px 0; padding: 20px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); color: var(--text-secondary); font-size: 13px; line-height: 1.65; }
+.occupation-context-banner h2, .occupation-context-banner h3 { margin: 0 0 10px; font-size: 15px; color: var(--text); }
+.occupation-context-banner h3 span { display: inline-block; margin-left: 8px; font-size: 11px; font-weight: 500; color: var(--muted); }
+.occupation-context-banner p { margin: 6px 0; }
+.occupation-context-summary { color: var(--muted); font-size: 12px; line-height: 1.7; }
+.occupation-context-summary details { margin: 8px 0; }
+.occupation-context-summary summary, .occupation-association-provenance summary { cursor: pointer; color: var(--text-secondary); }
+.occupation-context-summary ul { margin: 8px 0; padding-left: 20px; }
+.occupation-association-status { display: block; color: var(--muted); font-size: 11px; line-height: 1.65; }
+.occupation-association-provenance { margin-top: 20px; border-top: 1px solid var(--border); padding-top: 16px; font-size: 12px; line-height: 1.7; }
+.occupation-association-provenance details { padding: 8px 0; }
+.occupation-association-provenance dl div { display: grid; grid-template-columns: minmax(85px, auto) minmax(0, 1fr); gap: 12px; padding: 6px 0; }
+.occupation-association-provenance dt { color: var(--muted); }
+.occupation-association-provenance dd { margin: 0; overflow-wrap: anywhere; }
+.an-context-samples { display: grid; gap: 12px; list-style: none; padding: 12px 0; margin: 0; }
+.an-context-samples a, .an-context-link { color: var(--accent-strong); text-decoration: none; }
+.an-context-samples a:hover, .an-context-link:hover { text-decoration: underline; }
+.an-posting-context button { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; color: var(--text-secondary); padding: 4px 9px; cursor: pointer; }

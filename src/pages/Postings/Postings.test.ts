@@ -6,22 +6,26 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PostingItem, PostingResponse, PostingsResponse } from "../../services/resourcesApi";
 import { resourcesApi } from "../../services/resourcesApi";
+import { occupationContext } from "../../testFixtures/occupationContext";
+import { AssociationProvenance } from "./OccupationContext";
 import { Postings } from "./Postings";
 import { PostingDetail } from "./PostingDetail";
 import { PostingEvidence } from "../Chat/PostingEvidence";
 vi.mock("../../components/AppSidebar", () => ({ AppSidebar: () => null }));
-vi.mock("../../services/resourcesApi", async importOriginal => ({ ...await importOriginal<typeof import("../../services/resourcesApi")>(), resourcesApi: { postings: vi.fn(), posting: vi.fn() } }));
+vi.mock("../../services/resourcesApi", async importOriginal => ({ ...await importOriginal<typeof import("../../services/resourcesApi")>(), resourcesApi: { postings: vi.fn(), posting: vi.fn(), occupationContext: vi.fn() } }));
 const posting: PostingItem = {
+  source_provenance: { source_id: "job_alio", run_id: "exact-run", data_as_of: "2026-10-20T00:00:00Z" },
   posting_id: "urn:posting:a/b", title: "실제 수집 개발자 채용", organization_code: "org", organization_name: "수집 기관", date_posted: "2026-10-01", closing_date: "2026-10-31", ongoing: true,
   regions: ["서울"], employment_types: ["정규직"], recruitment_type: "신입", education: null, ncs_categories: [{ code: "20010203", name: "개발" }], headcount: 0, source_url: "https://example.org/posting",
 };
-const list: PostingsResponse = { items: [posting], sources: [{ source_id: "alio", run_id: "run", data_as_of: "2026-10-20T00:00:00Z" }], total: 25, limit: 20, offset: 0 };
+const list: PostingsResponse = { items: [posting], sources: [{ source_id: "job_alio", run_id: "run", data_as_of: "2026-10-20T00:00:00Z" }], total: 25, limit: 20, offset: 0 };
 const detail: PostingResponse = { item: posting, sources: list.sources };
 let root: Root; let container: HTMLDivElement;
 beforeEach(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   vi.mocked(resourcesApi.postings).mockReset().mockResolvedValue(list);
   vi.mocked(resourcesApi.posting).mockReset().mockResolvedValue(detail);
+  vi.mocked(resourcesApi.occupationContext).mockReset().mockResolvedValue(occupationContext(posting));
   container = document.createElement("div"); document.body.append(container); root = createRoot(container);
 });
 afterEach(async () => { await act(async () => root.unmount()); container.remove(); });
@@ -32,6 +36,30 @@ function changeInput(input: HTMLInputElement, value: string) {
   input.dispatchEvent(new Event("input", { bubbles: true }));
 }
 describe("real posting browser", () => {
+  it("labels inference provenance fields in Korean and omits missing values", async () => {
+    const association = occupationContext(posting).items[0];
+    await act(async () => root.render(createElement(AssociationProvenance, { items: [{ ...association,
+      source_pins: { run_id: "수집-실행", source_hash: "원문-해시", normalized_hash: "정규화-해시", source_facts_sha256: "사실-해시" },
+      catalog_pins: { pin: "분류-버전", catalog_hash: "분류-해시" },
+    }] })));
+    const rows = Array.from(container.querySelectorAll("dl div"));
+    expect(Object.fromEntries(rows.map(row => [row.querySelector("dt")?.textContent, row.querySelector("dd")?.textContent]))).toMatchObject({
+      "연결 식별자": association.association_id, "원문 출처": "잡코리아", "원문 수집 실행": "수집-실행", "원문 검증값": "원문-해시",
+      "정규화 자료 검증값": "정규화-해시", "원문 사실 검증값": "사실-해시", "분류 기준 버전": "분류-버전", "분류 자료 검증값": "분류-해시",
+    });
+    await act(async () => root.render(createElement(AssociationProvenance, { items: [{ ...association, source_pins: { run_id: null, source_hash: null, normalized_hash: null, source_facts_sha256: null }, catalog_pins: { pin: null, catalog_hash: null } }] })));
+    expect(container.textContent).not.toContain("원문 수집 실행");
+    expect(container.textContent).not.toContain("분류 자료 검증값");
+  });
+  it.each(["2026-10-20T09:30:00", "invalid-start"])("formats an application start instant or preserves its invalid source value: %s", async application_start_at => {
+    await act(async () => root.render(createElement(PostingDetail, { postingId: posting.posting_id, posting: { ...posting, application_start_at, application_start_date: "2026-10-01" } })));
+    const start = Array.from(container.querySelectorAll("dl div")).find(row => row.querySelector("dt")?.textContent === "접수 시작")?.querySelector("dd")?.textContent;
+    if (application_start_at === "invalid-start") expect(start).toBe(application_start_at);
+    else {
+      expect(start).toMatch(/2026년\s*10월\s*20일\s*오전\s*9:30/);
+      expect(start).not.toContain(application_start_at);
+    }
+  });
   it("loads graph-linked filters and opens the actual selected posting detail", async () => {
     await renderPage("?ncs_category=20010203");
     expect(resourcesApi.postings).toHaveBeenCalledWith(expect.objectContaining({ ncs_category: "20010203", limit: 20, offset: 0 }));
@@ -39,9 +67,24 @@ describe("real posting browser", () => {
     expect(resourcesApi.posting).toHaveBeenCalledWith("urn:posting:a/b");
     expect(container.querySelector(".posting-detail")?.textContent).toContain("수집 기관");
     expect(container.querySelector(".posting-detail")?.textContent).toContain("0명");
-    expect(container.querySelector(".posting-detail")?.textContent).toContain("수집 기준 2026-10-20");
+    expect(container.querySelector(".posting-detail")?.textContent).toContain("데이터 반영 2026-10-20");
     expect(container.querySelector('.posting-detail a')?.getAttribute("href")).toBe("https://example.org/posting");
     expect(container.textContent).toContain("현재 접수 여부");
+  });
+  it("shows each supplied source without reordering a server-paginated feed or inventing NCS mappings", async () => {
+    const jobkorea = { ...posting, source_provenance: { source_id: "jobkorea", run_id: "exact-jk", data_as_of: "2026-10-08T02:31:45Z" }, posting_id: "jobkorea:001", source_id: "jobkorea", ncs_categories: [] };
+    const alio = { ...posting, posting_id: "001", source_id: "job_alio" };
+    const sources = [{ source_id: "jobkorea", run_id: "jk-ready", data_as_of: "2026-10-08T02:31:45Z" }, ...list.sources];
+    vi.mocked(resourcesApi.postings).mockResolvedValue({ ...list, sources, items: [jobkorea, alio], total: 2 });
+    vi.mocked(resourcesApi.posting).mockResolvedValue({ item: jobkorea, sources: [sources[0]] });
+    await renderPage();
+    expect(Array.from(container.querySelectorAll(".posting-card-source")).map(item => item.textContent)).toEqual(["잡코리아", "JOB-ALIO"]);
+    expect(Array.from(container.querySelectorAll(".postings-source")).map(item => item.textContent)).toEqual(["잡코리아 · 데이터 반영 2026-10-08", "JOB-ALIO · 데이터 반영 2026-10-20"]);
+    await act(async () => container.querySelector<HTMLButtonElement>(".posting-card")!.click());
+    expect(resourcesApi.posting).toHaveBeenLastCalledWith("jobkorea:001");
+    expect(container.querySelector(".posting-detail")?.textContent).toContain("잡코리아 · 데이터 반영 2026-10-08");
+    const ncs = Array.from(container.querySelectorAll(".posting-detail dl div")).find(row => row.querySelector("dt")?.textContent === "NCS 분야");
+    expect(ncs?.querySelector("dd")?.textContent).toBe("제공되지 않음");
   });
   it("paginates real results and resets paging and detail when search changes", async () => {
     await renderPage("?q=old&offset=20&posting=urn%3Aposting%3Aa%2Fb");
@@ -134,13 +177,39 @@ describe("real posting browser", () => {
     expect(container.querySelector("a")).toBeNull();
     expect(container.textContent).toContain("원문 링크가 제공되지 않았어요");
   });
+  it("paginates associated postings using nested previews and clears context on a normal search", async () => {
+    vi.mocked(resourcesApi.occupationContext).mockResolvedValue({ ...occupationContext(posting), total: 25 });
+    await renderPage("?occupation=20010203&offset=20&posting=urn%3Aposting%3Aa%2Fb");
+    expect(resourcesApi.occupationContext).toHaveBeenLastCalledWith("20010203", 20, 20);
+    expect(resourcesApi.postings).not.toHaveBeenCalled();
+    expect(resourcesApi.posting).not.toHaveBeenCalled();
+    expect(container.textContent).toContain("역량 요구나 보유 역량의 근거로 반영하지 않아요");
+    expect(container.textContent).toContain("미검토");
+    expect(container.textContent).toContain("exact-catalog");
+    await act(async () => button("이전").click());
+    expect(resourcesApi.occupationContext).toHaveBeenLastCalledWith("20010203", 20, 0);
+    await act(async () => container.querySelector("form")!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
+    expect(resourcesApi.postings).toHaveBeenLastCalledWith(expect.objectContaining({ offset: 0 }));
+    expect(container.querySelector(".occupation-context-banner")).toBeNull();
+  });
+  it("shows the true application start and exact item provenance independently of feed freshness", async () => {
+    vi.mocked(resourcesApi.posting).mockResolvedValueOnce({ sources: [{ source_id: "jobkorea", run_id: "latest-run", data_as_of: "2026-10-21" }], item: { ...posting, application_start_date: "2026-10-10", source_status: "CLOSED", source_provenance: { source_id: "jobkorea", run_id: "old-run", data_as_of: "2026-10-01" } } });
+    await act(async () => root.render(createElement(PostingDetail, { postingId: posting.posting_id })));
+    const fields = Array.from(container.querySelectorAll("dl div"));
+    expect(fields.find(row => row.querySelector("dt")?.textContent === "접수 시작")?.textContent).toContain("2026-10-10");
+    expect(container.textContent).toContain("모집 종료 · 원문 상태");
+    expect(container.textContent).toContain("old-run");
+    expect(container.textContent).not.toContain("latest-run");
+    expect(container.textContent).not.toContain("데이터 반영 2026-10-21");
+  });
   it("shows real posting metadata when an aggregate graph node is opened", async () => {
-    await act(async () => root.render(createElement(MemoryRouter, null, createElement(PostingEvidence, { category: "20010203" }))));
-    expect(resourcesApi.postings).toHaveBeenCalledWith({ ncs_category: "20010203", limit: 3 });
+    await act(async () => root.render(createElement(MemoryRouter, null, createElement(PostingEvidence, { occupation: "20010203" }))));
+    expect(resourcesApi.occupationContext).toHaveBeenCalledWith("20010203", 3);
+    expect(resourcesApi.postings).not.toHaveBeenCalled();
     expect(container.textContent).toContain(posting.title!);
     expect(container.textContent).toContain(posting.organization_name!);
     const link = container.querySelector<HTMLAnchorElement>(".node-posting-card")!;
     expect(new URL(link.href).searchParams.get("posting")).toBe(posting.posting_id);
-    expect(new URL(link.href).searchParams.get("ncs_category")).toBe("20010203");
+    expect(new URL(link.href).searchParams.get("occupation")).toBe("20010203");
   });
 });

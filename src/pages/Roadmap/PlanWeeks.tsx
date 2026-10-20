@@ -80,10 +80,10 @@ export function PlanWeeks({ plan, draft, changedIds, busy, onChange, onSelect }:
                 {step.moved && <span className="wp-chip wp-chip--indigo">직접 바꾼 순서</span>}
                 {warning && <span className="wp-warning">{warning}</span>}
               </div>
-              {draft ? <label className="wp-hours-input"><input type="number" min={1} max={400} step={1} aria-label={`${stepTitle(step)} 학습 시간`} value={draft.hours[step.step_id] ?? step.recommended_hours} disabled={busy} onChange={event => {
+              {draft ? <label className="wp-hours-input"><input type="number" min={1} max={400} step={1} aria-label={`${stepTitle(step)} 학습 시간`} value={step.state === "COMPLETED" ? step.hours : draft.hours[step.step_id] ?? step.recommended_hours} disabled={busy || step.state === "COMPLETED"} onChange={event => {
                 const value = event.currentTarget.valueAsNumber;
                 if (Number.isInteger(value) && value >= 1 && value <= 400) onChange({ ...draft, hours: { ...draft.hours, [step.step_id]: value } });
-              }} /><span>시간</span><small>원래 {step.recommended_hours}시간</small></label> : <><span className="wp-chip">{step.hours}시간 · {basisLabels[step.hours_basis]}</span>
+              }} /><span>시간</span><small>{step.state === "COMPLETED" ? "완료 기록 유지" : `원래 ${step.recommended_hours}시간`}</small></label> : <><span className="wp-chip">{step.hours}시간 · {basisLabels[step.hours_basis]}</span>
                 <div className="wp-why"><button type="button" aria-label={`${step.name} 배치 이유`} aria-expanded={reasonId === step.step_id} aria-controls={reasonId === step.step_id ? `plan-reason-${step.step_id}` : undefined} onClick={() => setReasonId(reasonId === step.step_id ? null : step.step_id)} onKeyDown={event => { if (event.key === "Escape") setReasonId(null); }}><span aria-hidden="true">?</span></button>
                   {reasonId === step.step_id && <div id={`plan-reason-${step.step_id}`} role="region" aria-label={`${step.name} 배치 이유`} className="wp-popover"><strong>학습 우선순위 {step.number}</strong><p>{stepReason(step)}</p><small>{step.field_name ?? ""} · {step.start_week}–{step.end_week}주차</small><NcsLevel level={step.ncs_level} compact /></div>}
                 </div></>}

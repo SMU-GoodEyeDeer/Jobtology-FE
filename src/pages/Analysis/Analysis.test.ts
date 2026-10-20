@@ -23,6 +23,7 @@ vi.mock("../../hooks/useGoals", () => ({ useGoals: () => ({
 }) }));
 vi.mock("../../context/SessionContext", () => ({ useSession: () => ({ session: { user_id: "user" }, loading: false }) }));
 vi.mock("../../components/AppSidebar", () => ({ AppSidebar: ({ children }: { children: ReactNode }) => createElement("aside", null, children) }));
+vi.mock("./AnalysisPostingContext", () => ({ AnalysisPostingContext: () => null }));
 vi.mock("./SkillList", () => ({ SkillList: () => null }));
 vi.mock("./AnalysisPublications", () => ({ AnalysisPublications: ({ onLoadingChange }: { onLoadingChange: (value: boolean) => void }) => {
   useEffect(() => { onLoadingChange(false); }, [onLoadingChange]); return null;
@@ -111,7 +112,21 @@ describe("analysis goal eligibility", () => {
     await render();
     expect(mocks.analysisApi.create).not.toHaveBeenCalled();
     mocks.loading = false; await render();
-    expect(mocks.analysisApi.create).toHaveBeenCalledWith({ goal_id: targeted.goal_id, expected_profile_version: 4, basis_type: "EDITORIAL" });
+    expect(mocks.analysisApi.create).toHaveBeenCalledWith({ goal_id: targeted.goal_id, expected_profile_version: 4, basis_type: "EDITORIAL", refresh: false }, expect.any(String));
+  });
+
+  it("explicitly refreshes a stored analysis and retains the idempotency key after a failed submission", async () => {
+    mocks.goals = [targeted]; mocks.selectedGoalId = targeted.goal_id;
+    mocks.dashboardApi.get.mockResolvedValue({ state: "READY", analysis_id: "analysis" });
+    await render();
+    expect(mocks.analysisApi.create).not.toHaveBeenCalled();
+    mocks.analysisApi.create.mockRejectedValueOnce(new Error("offline"));
+    await act(async () => container.querySelector<HTMLButtonElement>(".an-reanalyze-btn")!.click());
+    const first = mocks.analysisApi.create.mock.calls[0];
+    expect(first[0]).toEqual({ goal_id: targeted.goal_id, expected_profile_version: 4, basis_type: "EDITORIAL", refresh: true });
+    expect(first[1]).toEqual(expect.any(String));
+    await act(async () => [...container.querySelectorAll("button")].find(button => button.textContent === "다시 시도")!.click());
+    expect(mocks.analysisApi.create.mock.calls[1]).toEqual(first);
   });
 
   it("handles the typed goal requirement before the generic 409 stored-analysis fallback", async () => {

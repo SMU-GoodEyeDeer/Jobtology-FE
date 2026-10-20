@@ -228,6 +228,7 @@ export interface DashboardResponse {
 
 // ─── Analysis ────────────────────────────────────────────────────────────────
 export interface AnalysisRequest {
+  refresh?: boolean;
   goal_id: string;
   expected_profile_version: number;
   basis_type: "EDITORIAL";
@@ -444,7 +445,28 @@ export type EvidenceNodeKind =
   | "qualification"
   | "technology";
 
-export interface EvidenceNode {
+export interface EvidenceSource {
+  readonly source_id: string | null;
+  readonly source_run_id: string | null;
+  readonly catalog_run_id: string | null;
+  readonly source_current: boolean;
+  readonly catalog_current: boolean;
+  readonly review_status: string;
+  readonly stage: string;
+  readonly accepted: boolean;
+  readonly postings: number;
+  readonly basis: "METADATA_INFERRED";
+  readonly confidence: null;
+  readonly confidence_state: "UNASSESSED";
+}
+export interface EvidenceMetadata {
+  readonly basis?: "METADATA_INFERRED" | "REFERENCE";
+  readonly evidence_sources?: readonly EvidenceSource[];
+  readonly review_statuses?: readonly string[];
+  readonly stages?: readonly string[];
+}
+export interface EvidenceNode extends EvidenceMetadata {
+  readonly excluded_associations?: number;
   readonly ncs_category?: string | null;
   readonly ncs_base_code?: string | null;
   readonly requirement_key?: string | null;
@@ -456,7 +478,9 @@ export interface EvidenceNode {
   readonly weight: number | null;
 }
 
-export interface EvidenceEdge {
+export interface EvidenceEdge extends EvidenceMetadata {
+  readonly source_run_ids?: readonly string[];
+  readonly catalog_pins?: readonly string[];
   readonly source: string;
   readonly target: string;
   readonly kind: string;

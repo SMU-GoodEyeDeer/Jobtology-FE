@@ -27,6 +27,7 @@ export interface WeeklyPlanStep {
 }
 
 export interface WeeklyPlanResponse {
+  readonly version: number;
   readonly roadmap_id: string;
   readonly start_date: string;
   readonly target_date: string | null;
@@ -55,6 +56,7 @@ export interface WeeklyPlanWarning {
 }
 
 export interface WeeklyPlanInput {
+  readonly expected_version: number;
   readonly weekly_hours: number;
   readonly rest_weeks: readonly number[];
   readonly order: readonly string[];

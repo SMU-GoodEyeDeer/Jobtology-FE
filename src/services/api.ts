@@ -173,7 +173,7 @@ export const roadmapsApi = {
   getPlan: (roadmapId: string) => get<WeeklyPlanResponse>(`/v1/roadmaps/${roadmapId}/plan`),
   previewPlan: (roadmapId: string, body: WeeklyPlanInput | null) => post<WeeklyPlanResponse>(`/v1/roadmaps/${roadmapId}/plan/preview`, body),
   savePlan: (roadmapId: string, body: WeeklyPlanInput) => put<WeeklyPlanResponse>(`/v1/roadmaps/${roadmapId}/plan`, body),
-  resetPlan: (roadmapId: string) => del<WeeklyPlanResponse>(`/v1/roadmaps/${roadmapId}/plan`),
+  resetPlan: (roadmapId: string, expectedVersion: number) => del<WeeklyPlanResponse>(`/v1/roadmaps/${roadmapId}/plan?expected_version=${expectedVersion}`),
   list: () => get<RoadmapListResponse>("/v1/roadmaps"),
   get: (roadmapId: string) => get<RoadmapDetailResponse>(`/v1/roadmaps/${roadmapId}`),
   create: (body: {

@@ -11,6 +11,7 @@ import { isAnalyzableGoal, requiresActiveTargetedGoal } from "../../services/ana
 import { useGoals } from "../../hooks/useGoals";
 import { useSession } from "../../context/SessionContext";
 import type { AnalysisResponse } from "../../services/types";
+import { AnalysisPostingContext } from "./AnalysisPostingContext";
 import { SkillList } from "./SkillList";
 import { AnalysisPublications } from "./AnalysisPublications";
 
@@ -38,20 +39,28 @@ export function Analysis() {
   const [analysisResult, setAnalysisResult] = useState<AnalysisResponse | null>(null);
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const analysisRun = useRef(0);
+  const analysisAttempt = useRef<{ signature: string; key: string } | null>(null);
+  const retryRefresh = useRef(false);
 
   // Trigger analysis for selected goal
-  const triggerAnalysis = useCallback(async (run = analysisRun.current) => {
+  const triggerAnalysis = useCallback(async (run = analysisRun.current, refresh = false) => {
     if (goalsLoading || goalsError) return;
     if (!analyzableGoalId) { setPollState("goal_required"); return; }
+    retryRefresh.current = refresh;
     setPollState("pending");
     try {
       const profile = await profileApi.get();
       if (run !== analysisRun.current) return;
-      const res = await analysisApi.create({
+      const body = {
         goal_id: analyzableGoalId,
         expected_profile_version: profile.version,
-        basis_type: "EDITORIAL",
-      });
+        basis_type: "EDITORIAL" as const,
+        refresh,
+      };
+      const signature = JSON.stringify(body);
+      if (analysisAttempt.current?.signature !== signature) analysisAttempt.current = { signature, key: crypto.randomUUID() };
+      const res = await analysisApi.create(body, analysisAttempt.current.key);
+      analysisAttempt.current = null;
       if (run === analysisRun.current) pollForResult(res.recompute_request_id, run);
     } catch (err) {
       const status = (err as Error & { status?: number }).status;
@@ -178,7 +187,7 @@ export function Analysis() {
           <h2 className="main-title">역량 분석</h2>
           <button
             className="an-reanalyze-btn"
-            onClick={() => void triggerAnalysis()}
+            onClick={() => void triggerAnalysis(analysisRun.current, true)}
             disabled={!analyzableGoalId || !!goalsError || goalsLoading || pollState === "goal_required" || pollState === "pending" || pollState === "running"}
           >
             다시 분석하기
@@ -224,7 +233,7 @@ export function Analysis() {
           ) : pollState === "failed" ? (
             <div className="an-error-banner">
               분석 중 오류가 발생했어요.
-              <button className="an-retry-btn" onClick={() => void triggerAnalysis()}>다시 시도</button>
+              <button className="an-retry-btn" onClick={() => void triggerAnalysis(analysisRun.current, retryRefresh.current)}>다시 시도</button>
             </div>
           ) : null}
 
@@ -254,6 +263,8 @@ export function Analysis() {
             </div>
             {(analysisResult?.result?.weighted_required_pct != null || analysisResult?.result?.weighted_preferred_pct != null) && <p className="an-fulfillment-sub">본인 입력과 근거를 바탕으로 학습량을 계산한 모델 지표예요. 검증된 실력이나 취업 확률이 아니에요.</p>}
           </section>
+
+          {analyzableGoalId && selectedGoal?.occupation_id && <AnalysisPostingContext occupationId={selectedGoal.occupation_id} />}
 
           <SkillList key={selectedGoalId ?? "no-goal"} skills={skills} goalId={selectedGoalId} linksReady={pollState === "completed" && !publicationsLoading}
             emptyMessage={pollState === "completed"
