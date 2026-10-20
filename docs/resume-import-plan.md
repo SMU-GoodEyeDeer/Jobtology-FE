@@ -1,6 +1,6 @@
 # Résumé import interaction plan
 
-Assessed 2026-10-20 on `feat/functionality-improvements`. This is a proposed FE integration for the tested parser capabilities; **no production upload control or import endpoint is enabled by this change**. The [BE feasibility report](https://github.com/SMU-GoodEyeDeer/Jobtology-BE/blob/feat/functionality-improvements/docs/plans/resume-import-feasibility.md) records the probe, format limits, security findings, deployment requirements, and proposed API.
+Assessed 2026-10-20 on `feat/functionality-improvements`. The processor source is now copied into the monolithic BE, validated on Python 3.12, and packaged with its native converter assets. This is a proposed FE integration for those capabilities; **no production upload control or import endpoint is enabled by this change**. The [BE feasibility report](https://github.com/SMU-GoodEyeDeer/Jobtology-BE/blob/feat/functionality-improvements/docs/plans/resume-import-feasibility.md) records the probe, format limits, security findings, deployment requirements, and proposed API.
 
 ## Shared entry point
 
