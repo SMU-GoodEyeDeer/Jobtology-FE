@@ -1,3 +1,4 @@
+import { GoalArrow } from "../../components/GoalArrow";
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "../Home/Home.css";
@@ -79,7 +80,7 @@ export function Progress() {
           <div className="goal-wrapper" ref={goalRef}>
             <button className="goal-button" aria-expanded={goalOpen} aria-controls="goal-dropdown" onClick={() => setGoalOpen((v) => !v)}>
               {selectedGoalName}
-              <img src={chevronDownIcon} alt="▾" className="goal-arrow" />
+              <GoalArrow />
             </button>
             <GoalDropdown open={goalOpen}>
                 {goals.map((goal) => (
@@ -155,7 +156,7 @@ export function Progress() {
                   ))
                 ) : (
                   <li className="pg-change-item">
-                    <span style={{ color: "#9ca3af" }}>아직 완료한 단계가 없어요</span>
+                    <span style={{ color: "var(--tertiary)" }}>아직 완료한 단계가 없어요</span>
                   </li>
                 )}
               </ul>
@@ -166,19 +167,19 @@ export function Progress() {
               {selectedGoal ? (
                 <ul className="pg-schedule-list">
                   <li className="pg-schedule-item" style={{ flexDirection: "column", alignItems: "flex-start", gap: 4 }}>
-                    <span style={{ fontWeight: 600, color: "#374151" }}>
+                    <span style={{ fontWeight: 600, color: "var(--text-secondary)" }}>
                       {selectedGoalName}
                     </span>
-                    <span style={{ fontSize: 13, color: "#6b7280" }}>
+                    <span style={{ fontSize: 13, color: "var(--muted)" }}>
                       목표일: {new Date(selectedGoal.target_by).toLocaleDateString("ko-KR")}
                     </span>
-                    <span style={{ fontSize: 13, color: "#6b7280" }}>
+                    <span style={{ fontSize: 13, color: "var(--muted)" }}>
                       상태: {selectedGoal.status}
                     </span>
                   </li>
                 </ul>
               ) : (
-                <p style={{ color: "#9ca3af", fontSize: 14 }}>목표를 선택해주세요</p>
+                <p style={{ color: "var(--tertiary)", fontSize: 14 }}>목표를 선택해주세요</p>
               )}
             </div>
           </div>

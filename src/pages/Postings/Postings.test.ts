@@ -26,7 +26,7 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => root.unmount()); container.remove(); });
 async function renderPage(query = "") { await act(async () => root.render(createElement(MemoryRouter, { initialEntries: [`/postings${query}`] }, createElement(Postings)))); }
-function button(label: string) { return Array.from(container.querySelectorAll("button")).find(item => item.textContent === label)!; }
+function button(label: string) { return Array.from(container.querySelectorAll("button")).find(item => item.textContent === label || item.getAttribute("aria-label") === `${label} 페이지`)!; }
 function changeInput(input: HTMLInputElement, value: string) {
   Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, value);
   input.dispatchEvent(new Event("input", { bubbles: true }));
@@ -51,6 +51,43 @@ describe("real posting browser", () => {
     await act(async () => container.querySelector("form")!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
     expect(resourcesApi.postings).toHaveBeenLastCalledWith(expect.objectContaining({ q: "백엔드", offset: 0 }));
     expect(container.querySelector(".posting-detail")).toBeNull();
+  });
+  it("shows total pages at both ends of the list and jumps without losing applied filters", async () => {
+    vi.mocked(resourcesApi.postings).mockResolvedValue({ ...list, total: 2000 });
+    await renderPage("?q=개발&ncs_category=20010203&region=서울&open_on=2026-10-20&posting=urn%3Aposting%3Aa%2Fb");
+    const pagers = container.querySelectorAll(".postings-pagination");
+    expect(pagers).toHaveLength(2);
+    expect(pagers[0].querySelector(".postings-page-count")?.textContent).toContain("1 / 100페이지");
+    expect(pagers[0].querySelector<HTMLButtonElement>('[aria-label="이전 페이지"]')?.disabled).toBe(true);
+    const jumpForm = pagers[0].querySelector("form")!;
+    await act(async () => changeInput(jumpForm.querySelector("input")!, "73"));
+    await act(async () => jumpForm.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
+    expect(resourcesApi.postings).toHaveBeenLastCalledWith({ q: "개발", ncs_category: "20010203", region: "서울", open_on: "2026-10-20", offset: 1440, limit: 20 });
+    expect(container.querySelector(".posting-detail")).toBeNull();
+    expect(Array.from(container.querySelectorAll('[aria-current="page"]')).map(item => item.textContent)).toEqual(["73", "73"]);
+    expect(document.activeElement).toBe(container.querySelector(".postings-list-heading h2"));
+    await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="100페이지"]')!.click());
+    expect(resourcesApi.postings).toHaveBeenLastCalledWith(expect.objectContaining({ offset: 1980 }));
+    expect(container.querySelector<HTMLButtonElement>('[aria-label="다음 페이지"]')?.disabled).toBe(true);
+    await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="1페이지"]')!.click());
+    expect(resourcesApi.postings).toHaveBeenLastCalledWith(expect.objectContaining({ offset: 0 }));
+  });
+  it("rejects direct page entries outside the result range or between pages", async () => {
+    await renderPage();
+    const form = container.querySelector(".postings-page-jump")!;
+    for (const value of ["0", "3", "1.5", ""]) {
+      await act(async () => changeInput(form.querySelector("input")!, value));
+      await act(async () => form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
+    }
+    expect(resourcesApi.postings).toHaveBeenCalledTimes(1);
+    expect(container.querySelector('[aria-current="page"]')?.textContent).toBe("1");
+  });
+  it.each([25, 0])("recovers an out-of-range URL when only %s postings remain", async total => {
+    vi.mocked(resourcesApi.postings).mockResolvedValue({ ...list, total, items: total ? [posting] : [] });
+    await renderPage("?q=개발&offset=4000");
+    expect(resourcesApi.postings).toHaveBeenLastCalledWith(expect.objectContaining({ q: "개발", offset: total ? 20 : 0 }));
+    if (total) expect(container.querySelector('[aria-current="page"]')?.textContent).toBe("2");
+    else expect(container.querySelector(".postings-pagination")).toBeNull();
   });
   it("keeps trimmed draft filters when choosing today and clears paging and posting selection", async () => {
     vi.useFakeTimers(); vi.setSystemTime(new Date(2026, 9, 20, 12));

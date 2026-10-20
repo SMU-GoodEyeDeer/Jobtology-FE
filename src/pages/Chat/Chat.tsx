@@ -1,9 +1,9 @@
+import { GoalArrow } from "../../components/GoalArrow";
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Chat.css";
 import { AppSidebar } from "../../components/AppSidebar";
 import { GoalDropdown } from "../../components/GoalDropdown";
-import chevronDownIcon from "../../assets/Chevron down.svg";
 import { capabilitiesApi, chatApi, roleEvidenceGraphApi } from "../../services/api";
 import type { ChatCapabilityCandidate, ChatMessagePayload, RoleEvidenceGraph } from "../../services/types";
 import { EvidenceGraph } from "./EvidenceGraph";
@@ -219,7 +219,7 @@ export function Chat() {
           <div className="goal-wrapper" ref={goalRef}>
             <button className="goal-button" aria-expanded={goalOpen} aria-controls="goal-dropdown" onClick={() => setGoalOpen((v) => !v)}>
               {selectedGoalName}
-              <img src={chevronDownIcon} alt="▾" className="goal-arrow" />
+              <GoalArrow />
             </button>
             <GoalDropdown open={goalOpen}>
                 {goals.map((goal) => (

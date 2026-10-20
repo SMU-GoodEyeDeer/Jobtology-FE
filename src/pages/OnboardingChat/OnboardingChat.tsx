@@ -7,6 +7,7 @@ import { useSession } from "../../context/SessionContext";
 import { useOccupations } from "../../context/OccupationsContext";
 import { saveProfile, startGoal } from "../../services/onboardingSave";
 import { SpecManager } from "../../components/specs/SpecManager";
+import { ThemeToggle } from "../../components/ThemeToggle";
 import { progressIndex, progressSteps } from "./progress";
 import { Chip, EASE_OUT, Outro, BrandMark, ProgressTrail, SPRING } from "./parts";
 import { INTRO_FADE_S, OUTRO_MIN_MS, introElapsedMs, introHoldMs, resetIntroStart } from "./timings";
@@ -103,7 +104,7 @@ export function OnboardingChat() {
       <div className="ob-bg" aria-hidden="true"><div className="ob-blob ob-blob--a" /><div className="ob-blob ob-blob--b" /><div className="ob-blob ob-blob--c" /></div>
       <AnimatePresence>{introVisible && <motion.div className="ob-intro" role="status" aria-label="잡톨로지" exit={{ opacity: 0 }} transition={{ duration: reduceMotion ? 0 : INTRO_FADE_S, ease: EASE_OUT }}><motion.div className="ob-intro-stack" exit={{ scale: .96, filter: "blur(8px)" }} transition={{ duration: reduceMotion ? 0 : INTRO_FADE_S, ease: EASE_OUT }}><BrandMark /><span className="ob-intro-word">Jobtology</span></motion.div></motion.div>}</AnimatePresence>
       <AnimatePresence>{outroVisible && <Outro reduceMotion={reduceMotion} />}</AnimatePresence>
-      <header className="ob-header"><div className="ob-header-inner"><div className="ob-brand"><img src={logoIcon} alt="로고" /><h1>잡톨로지</h1></div><ProgressTrail steps={progressSteps()} current={progressIndex(step)} /><button className="ob-stop" disabled={busy || specBusy} onClick={() => void run(finish)}>그만하고 시작하기</button></div></header>
+      <header className="ob-header"><div className="ob-header-inner"><div className="ob-brand"><img src={logoIcon} alt="로고" /><h1>잡톨로지</h1></div><ProgressTrail steps={progressSteps()} current={progressIndex(step)} /><div className="ob-header-actions"><ThemeToggle compact /><button className="ob-stop" disabled={busy || specBusy} onClick={() => void run(finish)}>그만하고 시작하기</button></div></div></header>
       <main className={`ob-chat${centerStart ? " ob-chat--center" : ""}`}>
         {messages.map((message, index) => message.role === "user"
           ? <motion.div key={index} className="ob-user" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduceMotion ? 0 : .24, ease: EASE_OUT }}>{message.text}</motion.div>

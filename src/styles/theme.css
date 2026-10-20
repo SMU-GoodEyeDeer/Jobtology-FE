@@ -1,0 +1,111 @@
+:root {
+  color-scheme: light;
+  --surface: #ffffff;
+  --canvas: #f7f8fa;
+  --surface-soft: #f8fafc;
+  --surface-hover: #f3f4f6;
+  --border: #e2e8f0;
+  --border-soft: #eef0f6;
+  --text: #1e293b;
+  --text-secondary: #475569;
+  --muted: #5e6c81;
+  --tertiary: #6b7280;
+  --on-accent: #ffffff;
+  --on-strong-muted: #c7d2fe;
+  --graph-edge: #d1d5db;
+  --accent: #4f46e5;
+  --accent-solid: #4f46e5;
+  --accent-hover: #4338ca;
+  --accent-strong: #4338ca;
+  --accent-tint: #eef2ff;
+  --accent-border: #c7d2fe;
+  --accent-focus: #818cf8;
+  --strong-bg: #1e1b4b;
+  --accent-soft-fill: #bdb8fc;
+  --success: #15803d;
+  --success-text: #166534;
+  --success-bg: #f0fdf4;
+  --success-border: #bbf7d0;
+  --danger: #dc2626;
+  --danger-solid: #b91c1c;
+  --danger-text: #b91c1c;
+  --danger-bg: #fef2f2;
+  --danger-border: #fecaca;
+  --warning: #e38b10;
+  --warning-text: #92400e;
+  --warning-bg: #fffbeb;
+  --warning-border: #f5d98b;
+  --info: #1d4ed8;
+  --info-bg: #eff6ff;
+  --info-border: #bfdbfe;
+  --pink: #db2777;
+  --pink-bg: #fce7f3;
+  --scrollbar: #c8cdd5;
+  --scrollbar-hover: #a5adb9;
+  --intro-top: #f7f8ff;
+  --intro-bottom: #edf0ff;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface: #192132;
+  --canvas: #101522;
+  --surface-soft: #202a3d;
+  --surface-hover: #28334a;
+  --border: #354158;
+  --border-soft: #29344a;
+  --text: #e8edf7;
+  --text-secondary: #bdc9dc;
+  --muted: #a0aec5;
+  --tertiary: #8f9eb7;
+  --on-accent: #ffffff;
+  --on-strong-muted: #e4dfff;
+  --graph-edge: #66758f;
+  --accent: #b0a5ff;
+  --accent-solid: #6c5ce7;
+  --accent-hover: #5c4ed1;
+  --accent-strong: #c4baff;
+  --accent-tint: #2b2947;
+  --accent-border: #63558c;
+  --accent-focus: #a99aff;
+  --strong-bg: #5345b8;
+  --accent-soft-fill: #635a9e;
+  --success: #4ade80;
+  --success-text: #8ee7b0;
+  --success-bg: #16372d;
+  --success-border: #315e49;
+  --danger: #ff8b99;
+  --danger-solid: #b9384b;
+  --danger-text: #ffabb4;
+  --danger-bg: #402632;
+  --danger-border: #74404c;
+  --warning: #f3b44b;
+  --warning-text: #f4cd84;
+  --warning-bg: #3b3224;
+  --warning-border: #726043;
+  --info: #9abfff;
+  --info-bg: #20354f;
+  --info-border: #405e83;
+  --pink: #f59ec6;
+  --pink-bg: #422b43;
+  --scrollbar: #4a5870;
+  --scrollbar-hover: #64748d;
+  --intro-top: #14182a;
+  --intro-bottom: #211d38;
+}
+html, body { background: var(--canvas); color: var(--text); }
+input, select, textarea { accent-color: var(--accent-solid); }
+::selection { background: var(--accent-tint); color: var(--text); }
+:root[data-theme="dark"] .nav-icon { filter: brightness(0) invert(1); }
+:root[data-theme="dark"] .sidebar-logo-text, :root[data-theme="dark"] .ob-intro-word { background-image: linear-gradient(120deg, #c4baff, #a5b4fc 55%, #d8b4fe); }
+:root[data-theme="dark"] .onboarding .card img { filter: brightness(0) invert(1); }
+.onboarding .card img { filter: brightness(0) opacity(.75); }
+:root[data-theme="dark"] .graph-node circle { stroke: #c4b5fd60; stroke-width: 1px; }
+
+/* Native snapshots crossfade the whole palette without overriding interaction/layout transitions. */
+::view-transition-old(root), ::view-transition-new(root) {
+  animation-duration: 220ms;
+  animation-timing-function: ease-in-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+}

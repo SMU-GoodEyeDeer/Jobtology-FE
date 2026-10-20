@@ -2,10 +2,10 @@
 .page-data-content[hidden] { display: none; }
 .page-data-content > * { flex-shrink: 0; }
 .page-skeleton { display: flex; flex-direction: column; gap: 20px; }
-.page-skeleton > p { font-size: 13px; line-height: 20px; color: #6b7280; }
-.page-skeleton-card { display: flex; flex-direction: column; gap: 18px; min-height: 168px; padding: 24px; border: 1px solid #e5e7eb; border-radius: 14px; background: #fff; }
+.page-skeleton > p { font-size: 13px; line-height: 20px; color: var(--muted); }
+.page-skeleton-card { display: flex; flex-direction: column; gap: 18px; min-height: 168px; padding: 24px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); }
 .page-skeleton-card--tall { min-height: 340px; gap: 28px; }
-.page-skeleton-card i { display: block; height: 16px; width: 55%; border-radius: 6px; background: #f0f1f5; animation: skeleton-pulse 1.5s ease-in-out infinite alternate; }
+.page-skeleton-card i { display: block; height: 16px; width: 55%; border-radius: 6px; background: var(--surface-hover); animation: skeleton-pulse 1.5s ease-in-out infinite alternate; }
 .page-skeleton-card i:first-child { width: 30%; }
 .page-skeleton-card i:nth-child(2n) { width: 75%; }
 @keyframes skeleton-pulse { to { opacity: .4; } }

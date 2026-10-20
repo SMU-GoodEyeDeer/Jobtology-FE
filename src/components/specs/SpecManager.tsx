@@ -3,6 +3,7 @@ import type { MutableRefObject } from "react";
 import { capabilitiesApi, profileApi } from "../../services/api";
 import type { CapabilityDetailResponse, CapabilityWrite, ChatCapabilityCandidate } from "../../services/types";
 import { SpecEditor } from "./SpecEditor";
+import { SpecDialog } from "./SpecDialog";
 import { SpecDetailsSummary } from "./SpecDetailsSummary";
 import { PROFICIENCIES, SPEC_CATEGORIES } from "./specModel";
 import type { SpecDraft } from "./specModel";
@@ -31,8 +32,6 @@ export function SpecManager({ occupationId, candidate, disabled, mutationLock, o
   const [notice, setNotice] = useState<string | null>(null);
   const [editor, setEditor] = useState<{ item: CapabilityDetailResponse | null; candidate?: ChatCapabilityCandidate | null; baseline?: number; initialDraft?: SpecDraft; onSaved?: () => void } | null>(() => candidate ? { item: null, candidate } : null);
   const [resumeOpen, setResumeOpen] = useState(false);
-  const editorNode = useRef<HTMLDivElement>(null);
-  const editorOpen = editor !== null;
   const [editorError, setEditorError] = useState<string | null>(null);
   const [removing, setRemoving] = useState<CapabilityDetailResponse | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
@@ -44,12 +43,6 @@ export function SpecManager({ occupationId, candidate, disabled, mutationLock, o
   const editingCallback = useRef(onEditingChange); editingCallback.current = onEditingChange;
   useEffect(() => { countCallback.current?.(items.length); }, [items]);
   useEffect(() => { editingCallback.current?.(editor !== null || resumeOpen); }, [editor !== null, resumeOpen]);
-  useEffect(() => {
-    if (editorOpen) {
-      editorNode.current?.scrollIntoView?.({ block: "start", behavior: "instant" });
-      editorNode.current?.focus({ preventScroll: true });
-    }
-  }, [editorOpen, editor?.initialDraft]);
 
   async function load() {
     const generation = ++loadGeneration.current;
@@ -117,9 +110,10 @@ export function SpecManager({ occupationId, candidate, disabled, mutationLock, o
       committed = true;
       editor.onSaved?.();
       report(version, response.profile_version, "스펙을 저장했어요. 현재 목표와의 연결 여부를 확인하고 다시 분석해 주세요.");
-      setEditor(null); newKey.current = null; lastAttempt.current = null;
+      newKey.current = null; lastAttempt.current = null;
       try { await readSaved(response.capability_id); }
       catch { setSavedId(response.capability_id); setError("저장은 완료됐지만 결과를 불러오지 못했어요. 새로 추가하지 말고 저장 결과를 다시 불러와 주세요."); }
+      setEditor(null);
     } catch (cause) {
       const status = (cause as { status?: number }).status;
       if (status === 409 || status === 422) { lastAttempt.current = null; newKey.current = null; }
@@ -143,26 +137,41 @@ export function SpecManager({ occupationId, candidate, disabled, mutationLock, o
       else setError((cause as { status?: number }).status === 409 ? "다른 정보가 변경됐어요. 스펙은 유지했어요. 삭제를 다시 눌러 주세요." : "스펙을 삭제하지 못했어요. 연결을 확인하고 다시 시도해 주세요.");
     } finally { end(); }
   }
-  return <section className="spec-manager" aria-label="내 스펙 관리" aria-busy={loading || busy}>
-    <header className="spec-manager-heading"><div><h2>내 스펙</h2><p>기술, 자격증, 시험 점수, 프로젝트와 업무 경험을 한곳에 정리해요.</p></div><div className="spec-item-actions"><button type="button" className="spec-secondary" disabled={disabled || busy || loading || !ready || savedId !== null || editor !== null || resumeOpen} onClick={() => { setResumeOpen(true); setError(null); }}>이력서에서 가져오기</button><button type="button" className="spec-primary" disabled={disabled || busy || loading || !ready || savedId !== null || editor !== null || resumeOpen} onClick={() => { setEditor({ item: null }); setEditorError(null); newKey.current = null; lastAttempt.current = null; }}>스펙 추가</button></div></header>
-    <p className="spec-help">연결 여부는 현재 활성 목표 기준이에요. 직접 등록한 스펙은 본인 입력 정보로, 연결한 역량·근거·수행 수준에 따라 학습시간 감소를 모델링해요. 새로 분석해 변경 결과를 확인할 수 있고, 기존 진행 중인 로드맵은 자동으로 교체하지 않아요.</p>
-    {loading && <p className="spec-help" role="status">스펙을 불러오는 중이에요…</p>}
+  function cancelEditor() {
+    setEditor(null); setEditorError(null); lastAttempt.current = null; newKey.current = null;
+  }
+  const dialogOpen = resumeOpen || editor !== null;
+  const feedback = <>
     {error && <div className="spec-error" role="alert"><p>{error}</p>{savedId ? <button type="button" disabled={busy} onClick={async () => {
       if (!begin()) return;
       try { await readSaved(savedId); } catch { setError("저장 결과를 불러오지 못했어요. 잠시 후 다시 불러와 주세요."); } finally { end(); }
     }}>저장 결과 다시 불러오기</button> : !ready && <button type="button" disabled={loading} onClick={() => void load()}>스펙 다시 불러오기</button>}</div>}
     {notice && <p className="spec-notice" role="status">{notice}</p>}
-    {resumeOpen && <ResumeScanner occupationId={occupationId} existingCompetencyIds={items.flatMap(item => item.details.competency_ids ?? [])} disabled={disabled || busy || loading || !ready || savedId !== null || editor !== null} onReview={(initialDraft, onSaved) => { setEditor({ item: null, initialDraft, onSaved }); setEditorError(null); newKey.current = null; lastAttempt.current = null; }} onClose={() => setResumeOpen(false)} />}
-    {editor && <div ref={editorNode} tabIndex={-1}><SpecEditor key={editor.item?.capability_id ?? "new"} item={editor.item} candidate={editor.candidate} initialDraft={editor.initialDraft} occupationId={occupationId} busy={busy || disabled} canSave={ready && !loading} error={editorError} onSave={save} onCancel={() => { setEditor(null); setEditorError(null); lastAttempt.current = null; newKey.current = null; }} /></div>}
-    {!loading && ready && !items.length && !editor && !resumeOpen && <p className="spec-empty">아직 등록한 스펙이 없어요. 목표 직무가 없어도 역량을 찾아 추가할 수 있어요.</p>}
+  </>;
+  return <section className="spec-manager" aria-label="내 스펙 관리" aria-busy={loading || busy}>
+    <header className="spec-manager-heading"><div><h2>내 스펙 <span className="spec-count">{items.length}</span></h2><p>배운 것과 직접 해낸 경험을 모아 보세요.</p></div><div className="spec-entry-actions"><button type="button" className="spec-secondary" disabled={disabled || busy || loading || !ready || savedId !== null || dialogOpen} onClick={() => { setResumeOpen(true); setError(null); setNotice(null); }}>이력서에서 가져오기</button><button type="button" className="spec-primary" disabled={disabled || busy || loading || !ready || savedId !== null || dialogOpen} onClick={() => { setEditor({ item: null }); setEditorError(null); setNotice(null); newKey.current = null; lastAttempt.current = null; }}>스펙 추가</button></div></header>
+    <details className="spec-explainer"><summary>내 스펙은 분석에 어떻게 반영되나요?</summary><p className="spec-help">연결 여부는 현재 활성 목표 기준이에요. 직접 등록한 스펙은 본인 입력 정보로, 연결한 역량·근거·수행 수준에 따라 학습시간 감소를 모델링해요. 새로 분석해 변경 결과를 확인할 수 있고, 기존 진행 중인 로드맵은 자동으로 교체하지 않아요.</p></details>
+    {loading && <p className="spec-help" role="status">스펙을 불러오는 중이에요…</p>}
+    {!dialogOpen && feedback}
+    {dialogOpen && <SpecDialog title={editor ? editor.item ? "스펙 수정" : "새로운 스펙 추가" : "이력서에서 스펙 찾기"}
+      description={editor ? "역량을 연결하고, 직접 수행한 경험을 정리해 주세요." : "원문을 확인하고, 내 경험에 맞는 제안을 하나씩 저장하세요."}
+      view={editor ? "editor" : "resume"} busy={busy || disabled} back={resumeOpen && editor !== null}
+      onDismiss={() => { if (editor) cancelEditor(); else setResumeOpen(false); }}>
+      {feedback}
+      {resumeOpen && <div hidden={editor !== null}><ResumeScanner occupationId={occupationId} existingCompetencyIds={items.flatMap(item => item.details.competency_ids ?? [])} disabled={disabled || busy || loading || !ready || savedId !== null || editor !== null} onReview={(initialDraft, onSaved) => { setEditor({ item: null, initialDraft, onSaved }); setEditorError(null); setNotice(null); newKey.current = null; lastAttempt.current = null; }} onClose={() => setResumeOpen(false)} /></div>}
+      {editor && <SpecEditor key={editor.item?.capability_id ?? "new"} item={editor.item} candidate={editor.candidate} initialDraft={editor.initialDraft} occupationId={occupationId} busy={busy || disabled} canSave={ready && !loading} error={editorError} onSave={save} onCancel={cancelEditor} />}
+    </SpecDialog>}
+    {!loading && ready && !items.length && !dialogOpen && <div className="spec-empty"><strong>첫 번째 경험을 추가해 볼까요?</strong><p>기술·역량, 프로젝트, 업무 경험, 자격증과 시험 점수를 정리할 수 있어요.<br />이력서를 가져오거나 직접 역량을 검색해서 시작하세요.</p></div>}
     <ul className="spec-list">{items.map(item => <li className="spec-item" key={item.capability_id}>
-      <div className="spec-item-heading"><div><small>{item.category === "ROADMAP_OUTCOME" ? "로드맵 완료 기록" : `${SPEC_CATEGORIES.find(category => category.value === item.category)?.label} · ${item.details.source === "DOCUMENT_IMPORT" ? "이력서에서 가져옴 · 본인 확인" : "본인 입력"}`}</small><h3>{item.raw_text}</h3></div>{item.category !== "ROADMAP_OUTCOME" && <div className="spec-item-actions"><button type="button" disabled={disabled || busy || loading || editor !== null} onClick={() => void edit(item)} aria-label={`${item.raw_text} 수정`}>수정</button><button type="button" disabled={disabled || busy || loading || editor !== null} onClick={() => { setRemoving(item); setError(null); }} aria-label={`${item.raw_text} 삭제`}>삭제</button></div>}</div>
+      <div className="spec-item-heading"><div><small className="spec-category">{item.category === "ROADMAP_OUTCOME" ? "로드맵 완료 기록" : SPEC_CATEGORIES.find(category => category.value === item.category)?.label}</small><h3>{item.raw_text}</h3><small>{item.details.source === "DOCUMENT_IMPORT" ? "이력서에서 가져옴 · 본인 확인" : "본인 입력"}</small></div>{item.category !== "ROADMAP_OUTCOME" && <div className="spec-item-actions"><button type="button" disabled={disabled || busy || loading || dialogOpen} onClick={() => void edit(item)} aria-label={`${item.raw_text} 수정`}>수정</button><button type="button" disabled={disabled || busy || loading || dialogOpen} onClick={() => { setRemoving(item); setError(null); }} aria-label={`${item.raw_text} 삭제`}>삭제</button></div>}</div>
       <p className="spec-help">{PROFICIENCIES.find(value => value.value === item.proficiency)?.label}</p>
-      <SpecDetailsSummary item={item} />
       <p className={`spec-matching spec-matching--${item.matching.status}`}><strong>{statusLabels[item.matching.status]}</strong> · 모델 반영 비율 {Math.round(item.matching.credit * 100)}%</p>
+      <details className="spec-item-detail"><summary>근거와 연결 역량 보기</summary>
+      <SpecDetailsSummary item={item} />
       <p className="spec-help">{item.matching.message}</p>
       {!!item.matching.competencies.length && <ul className="spec-competencies">{item.matching.competencies.map(value => <li key={value.entity_id}>{value.label}{!value.requirement_keys.length && <small>현재 목표와 연결 없음</small>}</li>)}</ul>}
       {item.details.evidence && <p className="spec-evidence">{item.details.evidence}</p>}
+      </details>
       {removing?.capability_id === item.capability_id && <section className="spec-delete-confirm" aria-label={`${item.raw_text} 삭제 확인`}><p>‘{item.raw_text}’ 스펙을 삭제할까요? 다음 분석의 입력에서 제외돼요.</p><div className="spec-actions"><button type="button" disabled={busy} onClick={() => setRemoving(null)}>취소</button><button type="button" className="spec-danger" disabled={disabled || busy} onClick={() => void remove()}>{busy ? "삭제 중…" : "삭제 확인"}</button></div></section>}
     </li>)}</ul>
   </section>;

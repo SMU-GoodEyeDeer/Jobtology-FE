@@ -1,3 +1,4 @@
+import { GoalArrow } from "../../components/GoalArrow";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import "../Home/Home.css";
@@ -5,7 +6,6 @@ import "./MyInfo.css";
 import { AppSidebar } from "../../components/AppSidebar";
 import { GoalDropdown } from "../../components/GoalDropdown";
 import { LoadingContent } from "../../components/LoadingContent";
-import chevronDownIcon from "../../assets/Chevron down.svg";
 import { analysisApi, profileApi } from "../../services/api";
 import type { ChatCapabilityCandidate, ProfileDetailResponse } from "../../services/types";
 import { SpecManager } from "../../components/specs/SpecManager";
@@ -191,7 +191,7 @@ export function MyInfo() {
           <div className="goal-wrapper" ref={goalRef}>
             <button className="goal-button" aria-expanded={goalOpen} aria-controls="goal-dropdown" onClick={() => setGoalOpen((v) => !v)}>
               {selectedGoalName}
-              <img src={chevronDownIcon} alt="▾" className="goal-arrow" />
+              <GoalArrow />
             </button>
             <GoalDropdown open={goalOpen}>
                 {goals.map((goal) => (

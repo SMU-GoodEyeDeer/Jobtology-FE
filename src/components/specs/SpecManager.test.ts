@@ -274,6 +274,75 @@ describe("explicit AI fallback and confirmation", () => {
 });
 
 describe("resume review through the shared spec manager", () => {
+  it("keeps one modal and the scan between reviews, returning on Escape and saving successive entries", async () => {
+    const quote = "Python으로 데이터를 정제하고 분석 결과를 문서로 정리했어요.";
+    const block = { block_id: "b".repeat(24), text: quote, text_hash: "c".repeat(64), page: null };
+    const suggestion = { block_id: block.block_id, category: "project", competencies: [ncs], quote, start: 0, end: Array.from(quote).length, method: "KEYWORD", score: null, score_max: null };
+    api.resumeApi.status.mockResolvedValue({ formats: ["docx"], max_bytes: 10485760, max_pdf_pages: 20, parse_timeout_seconds: 60, ai_available: false });
+    api.resumeApi.scan.mockResolvedValue({ document_sha256: "a".repeat(64), parser_revision: "jobtology-resume-v1-7541e87", warnings: [], skipped_pages: [], blocks: [block], suggestions: [{ ...suggestion, suggestion_id: "first", title: "분석 프로젝트" }, { ...suggestion, suggestion_id: "second", title: "문서화 프로젝트", competencies: [onet] }] });
+    await render(); await act(async () => button("이력서에서 가져오기").focus()); await click("이력서에서 가져오기");
+    const dialog = container.querySelector("dialog")!;
+    expect(dialog.open).toBe(true); expect(document.body.style.overflow).toBe("hidden");
+    await act(async () => { const input = container.querySelector<HTMLInputElement>('input[type="file"]')!; Object.defineProperty(input, "files", { value: [new File(["test"], "resume.docx")] }); input.dispatchEvent(new Event("change", { bubbles: true })); });
+    await click("검토하고 추가");
+    expect(container.querySelector(".resume-scanner")?.parentElement?.hidden).toBe(true);
+    await act(async () => dialog.dispatchEvent(new Event("cancel", { cancelable: true })));
+    expect(container.querySelector(".spec-editor")).toBeNull();
+    expect(container.querySelector(".resume-scanner")?.parentElement?.hidden).toBe(false);
+    expect(container.querySelector("dialog")).toBe(dialog);
+    await click("검토하고 추가");
+    await act(async () => { dialog.close(); dialog.dispatchEvent(new Event("close")); });
+    expect(container.querySelector(".spec-editor")).toBeNull();
+    expect(container.querySelector(".resume-scanner")?.parentElement?.hidden).toBe(false);
+    expect(dialog.open).toBe(true);
+    await click("검토하고 추가"); await change("직접 수행한 수준", "GUIDED"); await click("스펙 저장");
+    expect(button("검토하고 추가").disabled).toBe(false);
+    await click("검토하고 추가");
+    expect(field("스펙 제목").value).toBe("문서화 프로젝트");
+    expect(field("직접 수행한 수준").value).toBe("");
+    await change("직접 수행한 수준", "INDEPENDENT"); await click("스펙 저장");
+    expect(api.resumeApi.scan).toHaveBeenCalledOnce();
+    expect(api.capabilitiesApi.create.mock.calls.map(([request]) => request.expected_profile_version)).toEqual([4, 5]);
+    expect(container.querySelectorAll(".spec-item")).toHaveLength(2);
+    await act(async () => dialog.dispatchEvent(new Event("cancel", { cancelable: true })));
+    expect(container.querySelector("dialog")).toBeNull(); expect(document.body.style.overflow).toBe("");
+    expect(document.activeElement).toBe(button("이력서에서 가져오기"));
+  });
+  it("keeps the dialog open during a save and restores scrolling and focus after success", async () => {
+    let finish!: (value: CapabilityMutationResponse) => void;
+    api.capabilitiesApi.create.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    document.body.style.overflow = "auto";
+    await render(); await act(async () => button("스펙 추가").focus()); await start(); await click("스펙 저장");
+    const dialog = container.querySelector("dialog")!;
+    await act(async () => dialog.dispatchEvent(new Event("cancel", { cancelable: true })));
+    expect(dialog.open).toBe(true); expect(container.querySelector(".spec-editor")).not.toBeNull();
+    await act(async () => { dialog.close(); dialog.dispatchEvent(new Event("close")); });
+    expect(dialog.open).toBe(true); expect(field("스펙 제목").value).toBe("새 스펙");
+    expect(api.capabilitiesApi.create).toHaveBeenCalledOnce();
+    items.push(stored("cap-1"));
+    await act(async () => finish({ capability_id: "cap-1", profile_version: 5 }));
+    expect(container.querySelector("dialog")).toBeNull();
+    expect(document.body.style.overflow).toBe("auto"); expect(document.activeElement).toBe(button("스펙 추가"));
+    document.body.style.overflow = "";
+  });
+  it("ignores a queued close after reopening, then synchronizes an idle native close and restores the trigger", async () => {
+    await render(); await act(async () => button("스펙 추가").focus()); await start();
+    const dialog = container.querySelector("dialog")!;
+    await act(async () => dialog.dispatchEvent(new Event("close")));
+    expect(container.querySelector("dialog")).toBe(dialog); expect(dialog.open).toBe(true);
+    await act(async () => { dialog.close(); dialog.dispatchEvent(new Event("close")); });
+    expect(container.querySelector("dialog")).toBeNull();
+    expect(document.body.style.overflow).toBe("");
+    expect(document.activeElement).toBe(button("스펙 추가"));
+    expect(button("스펙 추가").disabled).toBe(false);
+  });
+  it("ignores native close events on a detached dialog", async () => {
+    await render(); await start();
+    const dialog = container.querySelector("dialog")!;
+    container.remove();
+    await act(async () => { dialog.close(); dialog.dispatchEvent(new Event("close")); });
+    expect(container.querySelector("dialog")).toBe(dialog); expect(dialog.open).toBe(false);
+  });
   it("requires a chosen level, saves once with source evidence, then shows full matching feedback immediately", async () => {
     const quote = "Python으로 데이터를 정제하고 분석 결과를 문서로 정리했어요.";
     api.resumeApi.status.mockResolvedValue({ formats: ["docx"], max_bytes: 10485760, max_pdf_pages: 20, parse_timeout_seconds: 60, ai_available: false });

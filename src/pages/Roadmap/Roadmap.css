@@ -1,9 +1,9 @@
 /* ── 섹션 공통 ── */
 .rm-section {
-  background: #ffffff;
+  background: var(--surface);
   border-radius: 14px;
   padding: 20px 24px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -18,13 +18,13 @@
 .rm-section-title {
   font-size: 15px;
   font-weight: 700;
-  color: #111827;
+  color: var(--text);
   margin: 0;
 }
 
 .rm-section-sub {
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--tertiary);
   margin: 0;
 }
 
@@ -41,10 +41,10 @@
   gap: 6px;
   padding: 5px 14px;
   border-radius: 99px;
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
+  border: 1px solid var(--border);
+  background: var(--surface);
   font-size: 13px;
-  color: #374151;
+  color: var(--text-secondary);
   cursor: pointer;
   transition:
     background 0.15s,
@@ -53,33 +53,33 @@
 }
 
 .rm-chip:not(.rm-chip--active):hover {
-  background: #f3f4f6;
+  background: var(--surface-hover);
 }
 
 .rm-chip--active {
-  background: #4f46e5;
-  border-color: #4f46e5;
-  color: #ffffff;
+  background: var(--accent-solid);
+  border-color: var(--accent-solid);
+  color: var(--on-accent);
 }
 
 .rm-chip-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #9ca3af;
+  background: var(--tertiary);
   flex-shrink: 0;
 }
 
 .rm-chip--active .rm-chip-dot {
-  background: #ffffff;
+  background: var(--surface);
 }
 
 /* ── 경로 카드 ── */
 .rm-card {
-  background: #ffffff;
+  background: var(--surface);
   border-radius: 14px;
   padding: 20px 24px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -100,30 +100,30 @@
 .rm-card-title {
   font-size: 15px;
   font-weight: 700;
-  color: #111827;
+  color: var(--text);
 }
 
 .rm-card-sub {
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--tertiary);
   margin: -8px 0 0;
 }
 
 .rm-save-btn {
   padding: 7px 16px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--surface);
   font-size: 13px;
   font-weight: 500;
-  color: #374151;
+  color: var(--text-secondary);
   cursor: pointer;
   white-space: nowrap;
   transition: background 0.15s;
 }
 
 .rm-save-btn:hover {
-  background: #f9fafb;
+  background: var(--surface-soft);
 }
 
 /* ── 배지 ── */
@@ -138,25 +138,25 @@
 }
 
 .rm-badge--profile {
-  background: #eef2ff;
-  color: #4f46e5;
+  background: var(--accent-tint);
+  color: var(--accent);
 }
 
 .rm-badge--done {
-  background: #dcfce7;
-  color: #16a34a;
+  background: var(--success-bg);
+  color: var(--success);
 }
 
 .rm-badge--now {
-  background: #fce7f3;
-  color: #db2777;
+  background: var(--pink-bg);
+  color: var(--pink);
 }
 
 /* ── 로드맵 스텝 아이템 ── */
 .rm-step-item {
-  background: #f9fafb;
+  background: var(--surface-soft);
   border-radius: 10px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border);
   padding: 16px 18px;
   display: flex;
   flex-direction: column;
@@ -164,8 +164,8 @@
 }
 
 .rm-step-item--current {
-  background: #fff0f6;
-  border-color: #e11d48;
+  background: var(--pink-bg);
+  border-color: var(--danger);
 }
 
 .rm-step-top {
@@ -183,17 +183,17 @@
 .rm-step-name {
   font-size: 15px;
   font-weight: 700;
-  color: #111827;
+  color: var(--text);
 }
 
 .rm-step-desc {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--muted);
   margin: 0;
 }
 
 .rm-link {
-  color: #4f46e5;
+  color: var(--accent);
   text-decoration: underline;
   cursor: pointer;
 }
@@ -207,24 +207,24 @@
   font-size: 11px;
   font-weight: 600;
   white-space: nowrap;
-  background: #eef2ff;
-  color: #4f46e5;
+  background: var(--accent-tint);
+  color: var(--accent);
   cursor: pointer;
 }
 
 .rm-completed-badge {
   font-size: 12px;
   font-weight: 600;
-  color: #16a34a;
+  color: var(--success);
 }
 
 .rm-complete-btn {
   align-self: flex-start;
   padding: 1px 10px;
   border-radius: 8px;
-  border: 1.5px solid #22c55e;
-  background: #f0fdf4;
-  color: #16a34a;
+  border: 1.5px solid var(--success);
+  background: var(--success-bg);
+  color: var(--success);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -232,12 +232,12 @@
 }
 
 .rm-complete-btn:hover {
-  background: #dcfce7;
+  background: var(--success-bg);
 }
 
 /* ── 지금 가장 먼저 할 일 ── */
 .rm-priority-section {
-  background: #181b29;
+  background: var(--strong-bg);
   border-radius: 14px;
   padding: 24px;
   display: flex;
@@ -248,13 +248,13 @@
 .rm-priority-title {
   font-size: 15px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--on-accent);
   margin: 0;
 }
 
 .rm-priority-sub {
   font-size: 12px;
-  color: #a5b4fc;
+  color: var(--on-strong-muted);
   margin: 0;
 }
 
@@ -271,7 +271,7 @@
 
 .rm-priority-card {
   flex: 1;
-  background: rgba(255, 255, 255, 0.08);
+  background: color-mix(in srgb, var(--surface) 8%, transparent);
   border-radius: 10px;
   padding: 16px;
   display: flex;
@@ -284,27 +284,27 @@
 }
 
 .rm-priority-card:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: color-mix(in srgb, var(--surface) 25%, transparent);
   transform: scale(1.03);
 }
 
 .rm-priority-num {
   font-size: 16px;
   font-weight: 700;
-  color: #818cf8;
+  color: var(--accent-focus);
 }
 
 .rm-priority-name {
   font-size: 14px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--on-accent);
   margin: 0;
   line-height: 1.4;
 }
 
 .rm-priority-desc {
   font-size: 12px;
-  color: #9aa1b9;
+  color: var(--tertiary);
   margin: 0;
 }
 
@@ -316,9 +316,9 @@
 }
 
 .rm-saved-card {
-  background: #f9fafb;
+  background: var(--surface-soft);
   border-radius: 10px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border);
   padding: 16px 18px;
 }
 
@@ -338,21 +338,21 @@
 .rm-saved-title {
   font-size: 15px;
   font-weight: 700;
-  color: #111827;
+  color: var(--text);
   margin: 0;
 }
 
 .rm-saved-sub {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--muted);
   margin: 2px 0 0;
 }
 
 .rm-edit-btn {
   font-size: 13px;
-  color: #6b7280;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 6px;
   padding: 4px 12px;
   cursor: pointer;
@@ -367,27 +367,27 @@
 .rm-saved-btn {
   padding: 5px 14px;
   border-radius: 8px;
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
+  border: 1px solid var(--border);
+  background: var(--surface);
   font-size: 13px;
   font-weight: 500;
-  color: #374151;
+  color: var(--text-secondary);
   cursor: pointer;
   transition: background 0.15s;
 }
 
 .rm-saved-btn:hover {
-  background: #f3f4f6;
+  background: var(--surface-hover);
 }
 
 .rm-saved-btn--delete {
-  border-color: #fca5a5;
-  color: #dc2626;
-  background: #fff;
+  border-color: var(--danger-border);
+  color: var(--danger);
+  background: var(--surface);
 }
 
 .rm-saved-btn--delete:hover {
-  background: #fef2f2;
+  background: var(--danger-bg);
 }
 
 /* ── 하단 버튼 ── */
@@ -399,11 +399,11 @@
 .rm-bottom-btn {
   padding: 7px 20px;
   border-radius: 10px;
-  border: 1.5px solid #e5e7eb;
-  background: #ffffff;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
   font-size: 14px;
   font-weight: 600;
-  color: #374151;
+  color: var(--text-secondary);
   cursor: pointer;
   transition:
     background 0.15s,
@@ -411,6 +411,6 @@
 }
 
 .rm-bottom-btn:hover {
-  background: #f3f4f6;
-  border-color: #d1d5db;
+  background: var(--surface-hover);
+  border-color: var(--border);
 }

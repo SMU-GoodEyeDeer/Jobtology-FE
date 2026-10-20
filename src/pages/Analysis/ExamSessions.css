@@ -1,7 +1,7 @@
-.sd-exam-toggle { display: flex; align-items: center; gap: 8px; width: 100%; padding: 4px 0; border: 0; background: transparent; color: #4338ca; font: inherit; line-height: 1.7; text-align: left; cursor: pointer; }
+.sd-exam-toggle { display: flex; align-items: center; gap: 8px; width: 100%; padding: 4px 0; border: 0; background: transparent; color: var(--accent-strong); font: inherit; line-height: 1.7; text-align: left; cursor: pointer; }
 .sd-exam-toggle svg { flex: none; transition: transform .22s ease; }
 .sd-exam-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
-.sd-exam-toggle:focus-visible { outline: 2px solid #6366f1; outline-offset: 4px; border-radius: 4px; }
+.sd-exam-toggle:focus-visible { outline: 2px solid var(--accent-focus); outline-offset: 4px; border-radius: 4px; }
 .sd-exam-fold { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows .24s ease, opacity .18s ease; }
 .sd-exam-fold[data-expanded="true"] { grid-template-rows: 1fr; opacity: 1; }
 .sd-exam-fold-inner { min-height: 0; overflow: hidden; }

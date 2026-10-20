@@ -1,3 +1,4 @@
+import { GoalArrow } from "../../components/GoalArrow";
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "../Home/Home.css";
@@ -5,7 +6,6 @@ import "./Roadmap.css";
 import { AppSidebar } from "../../components/AppSidebar";
 import { GoalDropdown } from "../../components/GoalDropdown";
 import { LoadingContent } from "../../components/LoadingContent";
-import chevronDownIcon from "../../assets/Chevron down.svg";
 import { profileApi, roadmapsApi, catalogV2Api } from "../../services/api";
 import { useGoals } from "../../hooks/useGoals";
 import { useRoadmap } from "../../hooks/useRoadmap";
@@ -108,7 +108,7 @@ export function Roadmap() {
           <div className="goal-wrapper" ref={goalRef}>
             <button className="goal-button" aria-expanded={goalOpen} aria-controls="goal-dropdown" onClick={() => setGoalOpen((v) => !v)}>
               {selectedGoalName}
-              <img src={chevronDownIcon} alt="▾" className="goal-arrow" />
+              <GoalArrow />
             </button>
             <GoalDropdown open={goalOpen}>
                 {goals.map((goal) => (
@@ -163,8 +163,8 @@ export function Roadmap() {
             </RoadmapPlan>
           ) : (
             <section className="rm-card" style={{ padding: 32, textAlign: "center" }}>
-              <p style={{ color: "#6b7280", marginBottom: 16 }}>아직 로드맵이 없어요.</p>
-              <p style={{ color: "#9ca3af", fontSize: 14 }}>역량 분석 후 AI가 로드맵을 생성해드려요.</p>
+              <p style={{ color: "var(--muted)", marginBottom: 16 }}>아직 로드맵이 없어요.</p>
+              <p style={{ color: "var(--tertiary)", fontSize: 14 }}>역량 분석 후 AI가 로드맵을 생성해드려요.</p>
             </section>
           )}
 

@@ -1,10 +1,10 @@
+import { GoalArrow } from "../../components/GoalArrow";
 import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "./Home.css";
 import { AppSidebar } from "../../components/AppSidebar";
 import { GoalDropdown } from "../../components/GoalDropdown";
 import arrowIcon from "../../assets/→.svg";
-import chevronDownIcon from "../../assets/Chevron down.svg";
 import notificationsIcon from "../../assets/notifications.svg";
 import clockIcon from "../../assets/Clock.svg";
 import checkIcon from "../../assets/check.svg";
@@ -69,7 +69,7 @@ export function Home() {
           <div className="goal-wrapper" ref={goalRef}>
             <button className="goal-button" aria-expanded={goalOpen} aria-controls="goal-dropdown" onClick={() => setGoalOpen((v) => !v)}>
               {selectedGoalName}
-              <img src={chevronDownIcon} alt="▾" className="goal-arrow" />
+              <GoalArrow />
             </button>
             <GoalDropdown open={goalOpen}>
                 {goals.map((goal) => (
@@ -203,7 +203,7 @@ export function Home() {
                 )}
               </div>
             ) : (
-              <p style={{ color: "#9ca3af", fontSize: "14px" }}>로드맵을 생성하면 진행 상황이 보여요</p>
+              <p style={{ color: "var(--tertiary)", fontSize: "14px" }}>로드맵을 생성하면 진행 상황이 보여요</p>
             )}
             <button className="continue-btn" onClick={() => navigate("/roadmap")}>
               로드맵 보기

@@ -2,7 +2,7 @@
 .onboarding {
   min-height: 100vh;
   width: 100%;
-  background: linear-gradient(180deg, #0b0d17 0%, #1a1838 50%, #0d0e1a 100%);
+  background: linear-gradient(180deg, var(--intro-top), var(--intro-bottom));
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -24,8 +24,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #e0e7ff;
-  color: var(--btn-bg);
+  background: var(--accent-tint);
+  color: var(--accent);
   font-size: 1rem;
   font-weight: 700;
   padding: 0.3rem 0.5rem;
@@ -36,8 +36,8 @@
 }
 
 /* 메인 헤딩 */
-h1 {
-  color: #ffffff;
+.onboarding h1 {
+  color: var(--text);
   font-size: clamp(2.5rem, 5vw, 4rem);
   font-weight: 800;
   line-height: 1.2;
@@ -46,12 +46,12 @@ h1 {
 }
 
 .highlight {
-  color: #a5b4fc;
+  color: var(--accent);
 }
 
 /* 서브텍스트 */
 .subtitle {
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text-secondary);
   font-size: 20px;
   font-weight: 300;
   line-height: 1.6;
@@ -61,8 +61,8 @@ h1 {
 /* CTA 버튼 */
 .cta-btn {
   display: inline-block;
-  background: #ffffff;
-  color: var(--btn-bg);
+  background: var(--accent-solid);
+  color: var(--on-accent);
   border: none;
   border-radius: 8px;
   padding: 0.55rem 1.5rem;
@@ -78,13 +78,13 @@ h1 {
 }
 
 .cta-btn:hover {
-  background: var(--btn-bg);
-  color: var(--btn-text);
+  background: var(--accent-hover);
+  color: var(--on-accent);
 }
 
 /* 버튼 하단 캡션 */
 .caption {
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--muted);
   font-size: 0.85rem;
 }
 
@@ -102,8 +102,8 @@ h1 {
   flex: 1 1 calc((100% - 2 * 1.25rem) / 3);
   min-width: 200px;
   height: 120px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--surface) 75%, transparent);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 1.5rem;
   display: flex;
@@ -118,13 +118,13 @@ h1 {
 }
 
 .card-title {
-  color: #ffffff;
+  color: var(--text);
   font-weight: 700;
   font-size: 1rem;
 }
 
 .card-desc {
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text-secondary);
   font-size: 0.875rem;
   line-height: 1.5;
 }
