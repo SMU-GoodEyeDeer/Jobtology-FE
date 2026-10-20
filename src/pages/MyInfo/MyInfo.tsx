@@ -1,32 +1,21 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import "../Home/Home.css";
 import "./MyInfo.css";
 import { AppSidebar } from "../../components/AppSidebar";
 import { GoalDropdown } from "../../components/GoalDropdown";
 import { LoadingContent } from "../../components/LoadingContent";
 import chevronDownIcon from "../../assets/Chevron down.svg";
-import { analysisApi, profileApi, capabilitiesApi } from "../../services/api";
-import type { CapabilityDetailResponse, ProfileDetailResponse } from "../../services/types";
+import { analysisApi, profileApi } from "../../services/api";
+import type { ChatCapabilityCandidate, ProfileDetailResponse } from "../../services/types";
+import { SpecManager } from "../../components/specs/SpecManager";
+import type { SpecMutationNotice } from "../../components/specs/SpecManager";
 import { isAnalyzableGoal, requiresActiveTargetedGoal } from "../../services/analysisGoal";
 import { useGoals } from "../../hooks/useGoals";
 import { useSession } from "../../context/SessionContext";
 import { AccountSettings } from "./AccountSettings";
 import { GoalManagement } from "./GoalManagement";
 import { graduationDate, graduationSemester } from "./graduation";
-
-const SPEC_TABS = ["언어·도구", "자격증", "어학", "경력·활동"] as const;
-type SpecTab = typeof SPEC_TABS[number];
-
-const ONBOARDING_CATEGORY = "onboarding";
-const CHAT_CATEGORY = "chat";
-
-const TAB_TO_CATEGORY: Record<SpecTab, string> = {
-  "언어·도구": "LANGUAGE_TOOL",
-  "자격증": "CERTIFICATE",
-  "어학": "LANGUAGE",
-  "경력·활동": "EXPERIENCE",
-};
 
 const GRADES = ["1학년", "2학년", "3학년", "4학년"];
 const ENROLLMENT_OPTIONS = [
@@ -37,6 +26,8 @@ const ENROLLMENT_OPTIONS = [
 
 export function MyInfo() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const specCandidate = (location.state as { specCandidate?: ChatCapabilityCandidate } | null)?.specCandidate;
   const { session, loading: sessionLoading } = useSession();
 
   useEffect(() => {
@@ -47,7 +38,6 @@ export function MyInfo() {
 
   const { goals, selectedGoalId, setSelectedGoalId, selectedGoalName, getGoalName, loading: goalsLoading, error: goalsError, refresh: refreshGoals } = useGoals();
   const [profileLoading, setProfileLoading] = useState(true);
-  const [capabilitiesLoading, setCapabilitiesLoading] = useState(true);
 
   // Profile state
   const [major, setMajor] = useState("");
@@ -67,19 +57,13 @@ export function MyInfo() {
   const [graduationTerm, setGraduationTerm] = useState("");
   const [graduationEdited, setGraduationEdited] = useState(false);
 
-  // Capabilities state
-  const [capabilities, setCapabilities] = useState<CapabilityDetailResponse[]>([]);
-  const [specTab, setSpecTab] = useState<SpecTab>("언어·도구");
-  const [specInput, setSpecInput] = useState("");
-  const [addingSpec, setAddingSpec] = useState(false);
-  const [removingSpecId, setRemovingSpecId] = useState<string | null>(null);
-  const [capabilitiesReady, setCapabilitiesReady] = useState(false);
-  const [capabilitiesError, setCapabilitiesError] = useState<string | null>(null);
+  const [capabilityCount, setCapabilityCount] = useState(0);
+  const [specBusy, setSpecBusy] = useState(false);
   const [mutationNotice, setMutationNotice] = useState<string | null>(null);
   const [reanalyzing, setReanalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const mutationInFlight = useRef(false);
-  const mutationPending = savingProfile || addingSpec || removingSpecId !== null || reanalyzing;
+  const mutationPending = savingProfile || specBusy || reanalyzing;
 
   function applyProfile(p: ProfileDetailResponse) {
     setMajor(p.major_raw ?? "");
@@ -100,24 +84,9 @@ export function MyInfo() {
     finally { setProfileLoading(false); }
   }
 
-  async function loadCapabilities() {
-    setCapabilitiesLoading(true); setCapabilitiesError(null);
-    try {
-      const response = await capabilitiesApi.list();
-      setCapabilities(response.items.filter(item => item.lifecycle === "ACTIVE"));
-      setCapabilitiesReady(true);
-    } catch { setCapabilitiesError("등록한 역량을 불러오지 못했어요. 다시 불러온 뒤 수정해 주세요."); }
-    finally { setCapabilitiesLoading(false); }
-  }
-
   // Load profile on mount
   useEffect(() => {
     void loadProfile();
-  }, []);
-
-  // Load capabilities on mount
-  useEffect(() => {
-    void loadCapabilities();
   }, []);
 
   useEffect(() => {
@@ -174,51 +143,12 @@ export function MyInfo() {
     }
   }
 
-  async function handleAddSpec() {
-    const trimmed = specInput.trim();
-    if (!trimmed || mutationInFlight.current || !capabilitiesReady) return;
-    mutationInFlight.current = true;
-    setAddingSpec(true);
-    setCapabilitiesError(null); setMutationNotice(null); setAnalysisError(null); setProfileSaved(false);
-    try {
-      const profile = await profileApi.get();
-      const category = TAB_TO_CATEGORY[specTab];
-      const requestVersion = profile.profile_version ?? profile.version;
-      const created = await capabilitiesApi.create({
-        expected_profile_version: requestVersion,
-        category,
-        raw_text: trimmed,
-      });
-      setProfileVersionValue(previous => previous === requestVersion ? Math.max(previous, created.profile_version) : previous);
-      setCapabilities(prev => [...prev.filter(item => item.capability_id !== created.capability_id), {
-        capability_id: created.capability_id, category, raw_text: trimmed, lifecycle: "ACTIVE",
-      }]);
-      setSpecInput("");
-      setMutationNotice(`‘${trimmed}’ 역량을 추가했어요. 분석에 연결되는 항목은 다시 분석해서 확인할 수 있어요.`);
-    } catch (err) {
-      setCapabilitiesError((err as { status?: number })?.status === 409 ? "다른 정보가 변경됐어요. 입력 내용은 유지했어요. 추가를 다시 눌러 주세요." : "역량을 추가하지 못했어요. 입력 내용은 유지했어요. 연결을 확인한 뒤 다시 시도해 주세요.");
-    } finally {
-      mutationInFlight.current = false;
-      setAddingSpec(false);
-    }
-  }
-
-  async function handleRemoveSpec(capabilityId: string) {
-    if (mutationInFlight.current || !capabilitiesReady) return;
-    mutationInFlight.current = true; setRemovingSpecId(capabilityId);
-    setCapabilitiesError(null); setMutationNotice(null); setAnalysisError(null); setProfileSaved(false);
-    try {
-      const profile = await profileApi.get();
-      const requestVersion = profile.profile_version ?? profile.version;
-      const deleted = await capabilitiesApi.delete(capabilityId, { expected_profile_version: requestVersion });
-      setProfileVersionValue(previous => previous === requestVersion ? Math.max(previous, deleted.profile_version) : previous);
-      setCapabilities((prev) => prev.filter((c) => c.capability_id !== capabilityId));
-      setMutationNotice("역량을 삭제했어요. 분석 결과를 갱신하려면 다시 분석해 주세요.");
-    } catch (err) {
-      if ((err as { status?: number })?.status === 404) await loadCapabilities();
-      else setCapabilitiesError((err as { status?: number })?.status === 409 ? "다른 정보가 변경됐어요. 역량은 삭제되지 않았어요. 삭제를 다시 눌러 주세요." : "역량을 삭제하지 못했어요. 연결을 확인한 뒤 다시 시도해 주세요.");
-    } finally { mutationInFlight.current = false; setRemovingSpecId(null); }
-  }
+  const handleSpecMutation = useCallback(({ requestVersion, profileVersion: version, message }: SpecMutationNotice) => {
+    // Advance known versions only for our own sequential writes. An unrelated
+    // profile change must still be detected before replacing local form fields.
+    setProfileVersionValue(previous => previous === requestVersion ? Math.max(previous, version) : previous);
+    setMutationNotice(message); setAnalysisError(null); setProfileSaved(false);
+  }, []);
 
   async function handleReanalyze() {
     const goal = goals.find(isAnalyzableGoal);
@@ -233,12 +163,6 @@ export function MyInfo() {
     } finally { mutationInFlight.current = false; setReanalyzing(false); }
   }
 
-  const filteredCaps = capabilities.filter(
-    (c) => c.category === TAB_TO_CATEGORY[specTab]
-  );
-  const onboardingCaps = capabilities.filter((c) => c.category === ONBOARDING_CATEGORY);
-  const chatCaps = capabilities.filter((c) => c.category === CHAT_CATEGORY);
-  const otherCaps = capabilities.filter(c => !Object.values(TAB_TO_CATEGORY).includes(c.category) && ![ONBOARDING_CATEGORY, CHAT_CATEGORY].includes(c.category));
   const graduationYears = [...new Set([...(graduationYear ? [Number(graduationYear)] : []), ...Array.from({ length: 86 }, (_, index) => new Date().getFullYear() + 15 - index)])].sort((a, b) => b - a);
 
   return (
@@ -249,7 +173,7 @@ export function MyInfo() {
           <p className="satisfaction-title">{selectedGoalName} 충족률</p>
           <div className="satisfaction-row">
             <span className="satisfaction-label">역량</span>
-            <span className="satisfaction-pct">{capabilities.length}개 등록됨</span>
+            <span className="satisfaction-pct">{capabilityCount}개 등록됨</span>
           </div>
         </div>
       </AppSidebar>
@@ -286,7 +210,7 @@ export function MyInfo() {
             <div className="mi-persistence-actions">{goals.some(isAnalyzableGoal) ? <button className="mi-save-btn" disabled={mutationPending} onClick={() => void handleReanalyze()}>{reanalyzing ? "분석 요청 중..." : "변경 내용으로 다시 분석"}</button> : <Link to="/myinfo#goals">분석할 목표 설정하기</Link>}<Link to="/analysis">분석 화면 열기 →</Link></div>
             {analysisError && <p className="mi-persistence-error" role="alert">{analysisError} <Link to="/myinfo#goals">목표 확인</Link></p>}
           </section>}
-          <LoadingContent loading={goalsLoading || profileLoading || capabilitiesLoading}>
+          <LoadingContent loading={goalsLoading || profileLoading}>
           <div className="mi-two-col">
 
             {/* 내 프로필 */}
@@ -364,79 +288,10 @@ export function MyInfo() {
               </button>
             </div>
 
-            {/* 내 스펙 (Capabilities) */}
             <div className="mi-spec-card">
-              <p className="mi-card-title">내 스펙</p>
-              <p className="mi-spec-sub">직무와 연결되는 역량을 분석과 경로 추천에 반영해요</p>
-              {capabilitiesError && <div className="mi-persistence-error" role="alert"><p>{capabilitiesError}</p>{!capabilitiesReady && <button className="mi-save-btn" onClick={() => void loadCapabilities()} disabled={capabilitiesLoading}>역량 다시 불러오기</button>}</div>}
-
-              <div className="mi-spec-tab-row">
-                {SPEC_TABS.map((tab) => (
-                  <button
-                    key={tab}
-                    className={`mi-spec-tab ${specTab === tab ? "mi-spec-tab--active" : ""}`}
-                    disabled={mutationPending}
-                    onClick={() => setSpecTab(tab)}
-                  >
-                    {tab}
-                  </button>
-                ))}
-              </div>
-
-              {onboardingCaps.length > 0 && (
-                <>
-                  <p className="mi-spec-sub">처음 설정할 때 고른 역량 · 본인 응답</p>
-                  <ul className="mi-spec-list">
-                    {onboardingCaps.map((cap) => (
-                      <li key={cap.capability_id} className="mi-spec-item">
-                        <span className="mi-spec-item-label">{cap.raw_text}</span>
-                        <button className="mi-spec-remove" disabled={mutationPending} aria-label={`${cap.raw_text} 삭제`} onClick={() => void handleRemoveSpec(cap.capability_id)}>{removingSpecId === cap.capability_id ? "삭제 중..." : "×"}</button>
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              )}
-
-              {chatCaps.length > 0 && (
-                <>
-                  <p className="mi-spec-sub">AI 대화에서 추가한 역량 · 본인 응답</p>
-                  <ul className="mi-spec-list">
-                    {chatCaps.map((cap) => (
-                      <li key={cap.capability_id} className="mi-spec-item">
-                        <span className="mi-spec-item-label">{cap.raw_text}</span>
-                        <button className="mi-spec-remove" disabled={mutationPending} aria-label={`${cap.raw_text} 삭제`} onClick={() => void handleRemoveSpec(cap.capability_id)}>{removingSpecId === cap.capability_id ? "삭제 중..." : "×"}</button>
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              )}
-
-              <ul className="mi-spec-list">
-                {filteredCaps.map((cap) => (
-                  <li key={cap.capability_id} className="mi-spec-item">
-                    <span className="mi-spec-item-label">{cap.raw_text}</span>
-                    <button className="mi-spec-remove" disabled={mutationPending} aria-label={`${cap.raw_text} 삭제`} onClick={() => void handleRemoveSpec(cap.capability_id)}>{removingSpecId === cap.capability_id ? "삭제 중..." : "×"}</button>
-                  </li>
-                ))}
-              </ul>
-              {!filteredCaps.length && <p className="mi-persistence-help">등록한 {specTab} 항목이 없어요.</p>}
-              {otherCaps.length > 0 && <><p className="mi-spec-sub">기타 등록 역량</p><ul className="mi-spec-list">{otherCaps.map(cap => <li key={cap.capability_id} className="mi-spec-item"><span className="mi-spec-item-label">{cap.raw_text}</span><button className="mi-spec-remove" disabled={mutationPending} aria-label={`${cap.raw_text} 삭제`} onClick={() => void handleRemoveSpec(cap.capability_id)}>{removingSpecId === cap.capability_id ? "삭제 중..." : "×"}</button></li>)}</ul></>}
-
-              <div className="mi-spec-input-row">
-                <input
-                  className="mi-input mi-spec-input"
-                  placeholder={`${specTab} 추가 (예: TensorFlow)`}
-                  aria-label={`${specTab} 추가`}
-                  maxLength={500}
-                  value={specInput}
-                  onChange={(e) => setSpecInput(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") handleAddSpec(); }}
-                  disabled={mutationPending || !capabilitiesReady}
-                />
-                <button className="mi-add-btn" onClick={() => void handleAddSpec()} disabled={mutationPending || !capabilitiesReady || !specInput.trim()}>
-                  {addingSpec ? "추가 중..." : "추가"}
-                </button>
-              </div>
+              <SpecManager occupationId={goals.find(goal => goal.status === "ACTIVE")?.occupation_id} candidate={specCandidate}
+                disabled={savingProfile || reanalyzing} mutationLock={mutationInFlight} onBusyChange={setSpecBusy}
+                onCountChange={setCapabilityCount} onMutation={handleSpecMutation} />
             </div>
 
           </div>

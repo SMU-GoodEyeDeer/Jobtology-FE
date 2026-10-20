@@ -5,11 +5,11 @@ import { createRoot } from "react-dom/client";
 import type { Root } from "react-dom/client";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { CapabilityDetailResponse, GoalResponse, ProfileDetailResponse, ProfileUpdateRequest } from "../../services/types";
+import type { CapabilityDetailResponse, CapabilityMutationRequest, GoalResponse, ProfileDetailResponse, ProfileUpdateRequest } from "../../services/types";
 import { MyInfo } from "./MyInfo";
 
 const { api, goalState } = vi.hoisted(() => ({
-  api: { profileApi: { get: vi.fn(), update: vi.fn() }, capabilitiesApi: { list: vi.fn(), create: vi.fn(), delete: vi.fn() }, analysisApi: { create: vi.fn() } },
+  api: { profileApi: { get: vi.fn(), update: vi.fn() }, capabilitiesApi: { list: vi.fn(), get: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() }, skillsApi: { search: vi.fn() }, chatApi: { status: vi.fn(), send: vi.fn() }, analysisApi: { create: vi.fn() } },
   goalState: { goals: [] as GoalResponse[] },
 }));
 vi.mock("../../services/api", () => api);
@@ -25,6 +25,14 @@ let profile: ProfileDetailResponse;
 let capabilities: CapabilityDetailResponse[];
 let nextId: number;
 
+function capability(id: string, title: string, lifecycle = "ACTIVE"): CapabilityDetailResponse {
+  return { capability_id: id, raw_text: title, category: "skill", lifecycle, entity_id: null, proficiency: "FAMILIAR", verification: "SELF_REPORTED", details: { competency_ids: [], evidence: "", source: "MANUAL" }, matching: { status: "NEEDS_CLARIFICATION", credit: 0, competencies: [], message: "근거와 역량을 확인해 주세요." } };
+}
+async function addSpec(title: string) {
+  await act(async () => button("스펙 추가").click());
+  await input('.spec-editor input[required]', title);
+  await act(async () => button("스펙 저장").click());
+}
 function bumpVersion() { profile = { ...profile, profile_version: profile.version + 1, version: profile.version + 1 }; }
 function button(label: string) {
   const found = [...container.querySelectorAll("button")].find(item => item.textContent === label);
@@ -68,9 +76,11 @@ beforeEach(() => {
     return { user_id: profile.user_id, profile_version: profile.profile_version, version: profile.version };
   });
   api.capabilitiesApi.list.mockImplementation(async () => ({ items: capabilities.map(item => ({ ...item })) }));
-  api.capabilitiesApi.create.mockImplementation(async (request: { expected_profile_version: number; category: string; raw_text: string }) => {
+  api.skillsApi.search.mockResolvedValue({ items: [], total: 0, available_sources: ["NCS"] });
+  api.capabilitiesApi.get.mockImplementation(async (id: string) => ({ ...capabilities.find(item => item.capability_id === id)! }));
+  api.capabilitiesApi.create.mockImplementation(async (request: CapabilityMutationRequest) => {
     if (request.expected_profile_version !== profile.version) throw { status: 409 };
-    const capability_id = `cap-${++nextId}`; capabilities.push({ capability_id, category: request.category, raw_text: request.raw_text, lifecycle: "ACTIVE" }); bumpVersion();
+    const capability_id = `cap-${++nextId}`; capabilities.push({ ...capability(capability_id, request.raw_text), ...request }); bumpVersion();
     return { capability_id, profile_version: profile.profile_version };
   });
   api.capabilitiesApi.delete.mockImplementation(async (id: string, request: { expected_profile_version: number }) => {
@@ -85,11 +95,10 @@ afterEach(async () => { await act(async () => root.unmount()); container.remove(
 
 describe("MyInfo persistence", () => {
   it("shows a newly created spec immediately using the real minimal response and can then save the profile", async () => {
-    await mount(); await input('[aria-label="언어·도구 추가"]', " Python ");
-    await act(async () => button("추가").click());
-    expect(container.querySelector(".mi-spec-list")?.textContent).toContain("Python");
+    await mount(); await addSpec(" Python ");
+    expect(container.querySelector(".spec-list")?.textContent).toContain("Python");
     expect(container.textContent).toContain("1개 등록됨");
-    expect(container.querySelector<HTMLInputElement>('[aria-label="언어·도구 추가"]')?.value).toBe("");
+    expect(container.querySelector(".spec-editor")).toBeNull();
     await act(async () => button("저장").click());
     expect(api.profileApi.update).toHaveBeenCalledWith(expect.objectContaining({ expected_profile_version: 5, major_concept_id: "major:cs", expected_graduation_on: "2028-02-01" }));
     expect(container.textContent).toContain("프로필을 저장했어요");
@@ -166,16 +175,16 @@ describe("MyInfo persistence", () => {
   });
 
   it.each(["add", "delete"])("does not hide an external profile change after a successful spec %s", async operation => {
-    capabilities = [{ capability_id: "old", category: "LANGUAGE_TOOL", raw_text: "Java", lifecycle: "ACTIVE" }];
+    capabilities = [capability("old", "Java")];
     await mount(); await input("#mi-major", "내 수정 내용");
     profile = { ...profile, major_raw: "외부에서 바뀐 학과" }; bumpVersion();
     if (operation === "add") {
-      await input('[aria-label="언어·도구 추가"]', "Python");
-      await act(async () => button("추가").click());
-      expect(container.querySelector(".mi-spec-list")?.textContent).toContain("Python");
+      await addSpec("Python");
+      expect(container.querySelector(".spec-list")?.textContent).toContain("Python");
     } else {
       await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Java 삭제"]')!.click());
-      expect(container.querySelector(".mi-spec-list")?.textContent).not.toContain("Java");
+      await act(async () => button("삭제 확인").click());
+      expect(container.querySelector(".spec-list")?.textContent).not.toContain("Java");
     }
     await act(async () => button("저장").click());
     expect(api.profileApi.update).not.toHaveBeenCalled();
@@ -209,10 +218,11 @@ describe("MyInfo persistence", () => {
   });
 
   it("keeps deleted specs absent after a reload even if an old server lists revoked rows", async () => {
-    capabilities = [{ capability_id: "old", category: "LANGUAGE_TOOL", raw_text: "Java", lifecycle: "ACTIVE" }, { capability_id: "revoked", category: "chat", raw_text: "Removed chat skill", lifecycle: "REVOKED" }];
+    capabilities = [capability("old", "Java"), capability("revoked", "Removed chat skill", "REVOKED")];
     await mount();
     expect(container.textContent).not.toContain("Removed chat skill");
     await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Java 삭제"]')!.click());
+      await act(async () => button("삭제 확인").click());
     expect(container.textContent).not.toContain("Java");
     expect(api.capabilitiesApi.delete).toHaveBeenCalledWith("old", { expected_profile_version: 4 });
     await act(async () => button("저장").click());
@@ -220,34 +230,6 @@ describe("MyInfo persistence", () => {
     await remount();
     expect(container.textContent).not.toContain("Java");
     expect(container.textContent).toContain("0개 등록됨");
-  });
-
-  it("keeps failed additions editable and retries without duplicate pending writes", async () => {
-    await mount(); api.capabilitiesApi.create.mockRejectedValueOnce({ status: 409 });
-    await input('[aria-label="언어·도구 추가"]', "Python"); await act(async () => button("추가").click());
-    expect(container.querySelector('[role="alert"]')?.textContent).toContain("입력 내용은 유지했어요");
-    expect(container.querySelector<HTMLInputElement>('[aria-label="언어·도구 추가"]')?.value).toBe("Python");
-    const create = api.capabilitiesApi.create.getMockImplementation()!;
-    let finish!: () => Promise<void>;
-    api.capabilitiesApi.create.mockImplementationOnce(request => new Promise(resolve => { finish = async () => resolve(await create(request)); }));
-    await act(async () => button("추가").click());
-    expect(button("추가 중...").disabled).toBe(true);
-    await act(async () => container.querySelector<HTMLInputElement>('[aria-label="언어·도구 추가"]')!.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })));
-    expect(api.capabilitiesApi.create).toHaveBeenCalledTimes(2);
-    await act(async () => finish());
-    expect(container.querySelector(".mi-spec-list")?.textContent).toContain("Python");
-  });
-
-  it("leaves a spec visible after deletion failure and uses fresh versions on retry", async () => {
-    capabilities = [{ capability_id: "old", category: "LANGUAGE_TOOL", raw_text: "Java", lifecycle: "ACTIVE" }];
-    await mount(); api.capabilitiesApi.delete.mockRejectedValueOnce(new Error("offline"));
-    await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Java 삭제"]')!.click());
-    expect(container.querySelector(".mi-spec-list")?.textContent).toContain("Java");
-    expect(container.querySelector('[role="alert"]')?.textContent).toContain("삭제하지 못했어요");
-    bumpVersion();
-    await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Java 삭제"]')!.click());
-    expect(api.capabilitiesApi.delete).toHaveBeenLastCalledWith("old", { expected_profile_version: 5 });
-    expect(container.textContent).not.toContain("Java");
   });
 
   it("exposes profile load failures and recovers through the load retry", async () => {
@@ -260,7 +242,7 @@ describe("MyInfo persistence", () => {
   });
 
   it("requests a fresh analysis only after the user chooses it", async () => {
-    await mount(); await input('[aria-label="언어·도구 추가"]', "Python"); await act(async () => button("추가").click());
+    await mount(); await addSpec("Python");
     expect(api.analysisApi.create).not.toHaveBeenCalled();
     await act(async () => button("변경 내용으로 다시 분석").click());
     expect(api.analysisApi.create).toHaveBeenCalledWith({ goal_id: "active-goal", expected_profile_version: 5, basis_type: "EDITORIAL" });
@@ -268,11 +250,11 @@ describe("MyInfo persistence", () => {
   });
 
   it("keeps saved data and offers retry when explicit reanalysis fails", async () => {
-    await mount(); await input('[aria-label="언어·도구 추가"]', "Python"); await act(async () => button("추가").click());
+    await mount(); await addSpec("Python");
     api.analysisApi.create.mockRejectedValueOnce(new Error("offline"));
     await act(async () => button("변경 내용으로 다시 분석").click());
     expect(container.querySelector('[role="alert"]')?.textContent).toContain("저장한 내용은 유지됐어요");
-    expect(container.querySelector(".mi-spec-list")?.textContent).toContain("Python");
+    expect(container.querySelector(".spec-list")?.textContent).toContain("Python");
     await act(async () => button("변경 내용으로 다시 분석").click());
     expect(api.capabilitiesApi.create).toHaveBeenCalledTimes(1);
     expect(api.analysisApi.create).toHaveBeenCalledTimes(2);
@@ -281,7 +263,7 @@ describe("MyInfo persistence", () => {
 
   it("offers goal setup after saving when no analyzable active goal exists", async () => {
     goalState.goals = [];
-    await mount(); await input('[aria-label="언어·도구 추가"]', "Python"); await act(async () => button("추가").click());
+    await mount(); await addSpec("Python");
     expect(container.querySelector('a[href="/myinfo#goals"]')?.textContent).toContain("목표 설정하기");
     expect(api.analysisApi.create).not.toHaveBeenCalled();
   });

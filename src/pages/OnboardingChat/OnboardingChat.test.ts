@@ -2,7 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
-import { OnboardingChat, QUESTIONS, chatIntroIndex } from "./OnboardingChat";
+import { OnboardingChat, QUESTIONS } from "./OnboardingChat";
 import { Outro } from "./parts";
 import { progressIndex, progressSteps } from "./progress";
 import { INTRO_FADE_MS, INTRO_HOLD_MS, INTRO_TOTAL_MS, introHoldMs } from "./timings";
@@ -42,24 +42,23 @@ describe("OnboardingChat", () => {
     expect(render()).toMatch(/<input class="ob-input"[^>]*disabled=""/);
   });
 
-  it("renders five progress steps by default", () => {
+  it("renders the shared optional spec step for every role choice", () => {
     const html = render();
     const labels = [...html.matchAll(/ob-progress-label">([^<]+)</g)].map((m) => m[1]);
-    expect(labels).toEqual(["직무", "학과", "학년", "해본 것", "대화"]);
+    expect(labels).toEqual(["직무", "학과", "학년", "내 스펙"]);
     expect(html).toContain('aria-label="온보딩 진행 단계"');
     expect(html).toContain('aria-current="step"');
   });
 });
 
 describe("progress trail", () => {
-  it("shows 3 steps when there is no target occupation (discovery)", () => {
-    expect(progressSteps(true).map((s) => s.label)).toEqual(["직무", "학과", "학년", "해본 것", "대화"]);
-    expect(progressSteps(false).map((s) => s.label)).toEqual(["직무", "학과", "학년"]);
+  it("offers the same four steps without requiring a target occupation", () => {
+    expect(progressSteps().map(step => step.label)).toEqual(["직무", "학과", "학년", "내 스펙"]);
   });
 
   it("maps each step to its trail index", () => {
     expect(progressIndex("occupation")).toBe(0);
-    expect(progressIndex("chat")).toBe(4);
+    expect(progressIndex("specs")).toBe(3);
     expect(progressIndex("unknown")).toBe(-1);
   });
 });
@@ -86,18 +85,5 @@ describe("outro", () => {
     expect(html).toContain("로딩 중");
     expect(html).toContain('role="status"');
     expect(html).toContain('aria-live="polite"');
-  });
-});
-
-describe("chatIntroIndex", () => {
-  it("sends only the conversation that follows the experience prompt", () => {
-    const messages = [
-      { role: "ai" as const, text: QUESTIONS.occupation },
-      { role: "user" as const, text: "백엔드 개발자" },
-      { role: "ai" as const, text: QUESTIONS.chat },
-      { role: "user" as const, text: "Spring으로 API를 만들었어요" },
-    ];
-    expect(chatIntroIndex(messages)).toBe(2);
-    expect(chatIntroIndex(messages.slice(0, 2))).toBe(0);
   });
 });

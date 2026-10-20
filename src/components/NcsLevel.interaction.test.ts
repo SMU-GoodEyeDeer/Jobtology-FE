@@ -49,6 +49,17 @@ afterEach(async () => {
 });
 
 describe("NCS popup focus and dismissal", () => {
+  it("labels partial competency credit and remaining learning without claiming verified proficiency", async () => {
+    await act(async () => root.render(createElement(MemoryRouter, null, createElement(SkillDetailPanel, {
+      skill: { name: "부분 역량", type: "필수", status: "PARTIAL", credit: .75, estimated_hours: 10, base_estimated_hours: 40, hours_basis: "ESTIMATED" }, roadmap: { state: "ready", data: null }, overlay: false, onClose: vi.fn(),
+    }))));
+    expect(container.textContent).toContain("부분 반영");
+    expect(container.textContent).not.toContain("입력 필요");
+    expect(container.textContent).toContain("남은 예상 학습 시간");
+    expect(container.textContent).toContain("추가 약 10시간");
+    expect(container.textContent).toContain("모델 반영 비율 75%");
+    expect(container.textContent).toContain("기본 40시간");
+  });
   it("uses the native top layer, clamps its position, and restores focus on Escape", async () => {
     await act(async () => root.render(createElement(NcsLevel, { level: 7, compact: true })));
     const trigger = container.querySelector<HTMLButtonElement>(".ncs-level-trigger")!;

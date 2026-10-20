@@ -30,16 +30,71 @@ export interface ProfileUpdateRequest {
   expected_graduation_on?: string | null;
 }
 
+export type SpecCategory = "skill" | "certification" | "test" | "project" | "experience";
+export type SpecProficiency = "FAMILIAR" | "GUIDED" | "INDEPENDENT" | "PRODUCTION";
+export interface SpecDetails {
+  competency_ids: string[];
+  evidence: string;
+  source: "MANUAL" | "LLM_ASSISTED";
+  started_on?: string | null;
+  ended_on?: string | null;
+  ongoing?: boolean;
+  issuer?: string | null;
+  credential_code?: string | null;
+  issued_on?: string | null;
+  expires_on?: string | null;
+  score?: number | null;
+  score_max?: number | null;
+  score_unit?: string | null;
+  organization?: string | null;
+  role?: string | null;
+  url?: string | null;
+}
+export interface MatchedCompetency { entity_id: string; label: string; requirement_keys: string[] }
+export interface SpecMatching {
+  status: "MATCHED" | "NEEDS_CLARIFICATION" | "UNUSED" | "EXPIRED";
+  credit: number;
+  competencies: MatchedCompetency[];
+  message: string;
+}
 export interface CapabilityDetailResponse {
   capability_id: string;
   raw_text: string;
-  category: string;
+  category: SpecCategory | "ROADMAP_OUTCOME";
   lifecycle: string;
+  entity_id: string | null;
+  proficiency: SpecProficiency | null;
+  verification: string;
+  details: Partial<SpecDetails>;
+  matching: SpecMatching;
+}
+export interface CapabilityWrite {
+  category: SpecCategory;
+  raw_text: string;
+  proficiency: SpecProficiency;
+  details: SpecDetails;
+}
+export interface CapabilityMutationRequest extends CapabilityWrite {
+  expected_profile_version: number;
 }
 
 export interface CapabilityMutationResponse {
   capability_id: string;
   profile_version: number;
+}
+
+export interface CatalogSkill extends MatchedCompetency {
+  source: "NCS" | "ONET";
+  original_label: string;
+  aliases: string[];
+  ncs_level: number | null;
+  source_url?: string | null;
+  translation_status?: string | null;
+}
+export interface SkillSearchResponse {
+  items: CatalogSkill[];
+  total: number;
+  available_sources: ("NCS" | "ONET")[];
 }
 
 // ─── Occupations ─────────────────────────────────────────────────────────────
@@ -154,6 +209,9 @@ export interface AnalysisResponse {
 export interface AnalysisResult {
   readonly required_pct?: number | null;
   readonly preferred_pct?: number | null;
+  readonly weighted_required_pct?: number | null;
+  readonly weighted_preferred_pct?: number | null;
+  readonly weighted_score_method?: string;
   readonly skills?: readonly Skill[];
 }
 
@@ -168,7 +226,9 @@ export interface Skill {
   readonly achievement?: string | null;
   readonly requirement_key?: string;
   readonly ncs_base_code?: string | null;
-  readonly status?: "UNMET" | "NEEDS_INPUT";
+  readonly status?: "UNMET" | "NEEDS_INPUT" | "PARTIAL";
+  readonly credit?: number;
+  readonly base_estimated_hours?: number | null;
   readonly ncs_level?: number | null;
   readonly estimated_hours?: number | null;
   readonly hours_basis?: "OFFICIAL" | "ESTIMATED" | null;
@@ -301,34 +361,6 @@ export interface RouteProposalSummary {
   feasibility: RouteFeasibility;
 }
 
-// ─── Onboarding capability checklist ────────────────────────────────────────
-export interface CapabilityChecklistItem {
-  item_id: string;
-  label: string;
-}
-
-export interface CapabilityChecklistGroup {
-  label: string;
-  items: CapabilityChecklistItem[];
-}
-
-export interface CapabilityChecklistResponse {
-  occupation_id: string;
-  checklist_version: number;
-  groups: CapabilityChecklistGroup[];
-}
-
-export interface OnboardingCapabilitiesRequest {
-  expected_profile_version: number;
-  occupation_id: string;
-  item_ids: string[];
-}
-
-export interface OnboardingCapabilitiesResponse {
-  profile_version: number;
-  saved_count: number;
-}
-
 // ─── AI Chat ─────────────────────────────────────────────────────────────────
 export interface ChatMessagePayload {
   role: "user" | "assistant";
@@ -339,6 +371,7 @@ export interface ChatCapabilityCandidate {
   entity_id: string;
   label: string;
   evidence_quote: string;
+  category?: SpecCategory | null;
 }
 
 export interface ChatReplyResponse {

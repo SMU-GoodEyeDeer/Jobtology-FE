@@ -18,7 +18,7 @@ export function formatHours(skill: Skill, detail = false): string {
   if (skill.estimated_hours == null) return skill.achievement ?? "—";
   const basis = skill.hours_basis === "ESTIMATED" ? "추정" : skill.hours_basis === "OFFICIAL" ? "공식" : null;
   const suffix = detail ? (basis ? ` · ${basis}` : "") : (basis === "추정" ? " (추정)" : "");
-  return `약 ${skill.estimated_hours}시간${suffix}`;
+  return skill.status === "PARTIAL" ? `추가 약 ${skill.estimated_hours}시간${suffix}` : `약 ${skill.estimated_hours}시간${suffix}`;
 }
 
 export function linkedRoadmapSteps(skill: Skill, steps: readonly RoadmapStep[]): RoadmapStep[] {

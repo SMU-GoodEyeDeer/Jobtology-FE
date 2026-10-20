@@ -106,7 +106,7 @@ export function SkillList({ skills, goalId, emptyMessage, linksReady = true }: S
         transition={{ duration: reducedMotion ? 0 : .12 }}>
         {visible.map(skill => {
           const identity = skillIdentity(skill);
-          const subline = [skill.ncs_level != null ? `NCS 수준 ${skill.ncs_level}` : "",
+          const subline = [skill.status === "PARTIAL" ? `부분 반영 · 모델 ${Math.round((skill.credit ?? 0) * 100)}%` : "", skill.ncs_level != null ? `NCS 수준 ${skill.ncs_level}` : "",
             skill.qualifications?.length ? `관련 자격증 ${skill.qualifications.length}개` : ""].filter(Boolean).join(" · ");
           return <button type="button" className={`sd-row${linkedIdentity === identity ? " sd-row--linked" : ""}`} data-requirement={skill.requirement_key} key={identity} aria-pressed={selectedId === identity}
             ref={button => { if (button) rowButtons.current.set(identity, button); else rowButtons.current.delete(identity); }}
