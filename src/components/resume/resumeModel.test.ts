@@ -12,6 +12,8 @@ describe("resume source evidence", () => {
       .toBe(`문서의 텍스트를 읽지 못했어요. 다시 시도하거나 DOCX 등 다른 형식으로 저장해 주세요. (문의 코드: ${request_id})`);
     expect(resumeError({ status: 422, detail: { error: { code: "PARSE_TIMEOUT", request_id } } }))
       .toContain("시간이 초과됐어요");
+    expect(resumeError({ status: 503, detail: { error: { code: "PARSER_ISOLATION_UNAVAILABLE", request_id } } }))
+      .toBe(`현재 서버의 문서 처리 환경을 사용할 수 없어요. 잠시 후 다시 시도해 주세요. (문의 코드: ${request_id})`);
     expect(resumeError({ status: 500, detail: { error: { request_id: "untrusted text" } } })).not.toContain("untrusted text");
   });
   it("rejects empty quotations before every anchoring and draft path", () => {

@@ -12,11 +12,16 @@ export function useRoutePreferences(userId: string | undefined, sessionReady: bo
   const [attempt, setAttempt] = useState(0);
   const generation = useRef(0);
   const savingNow = useRef(false);
+  const preferencesOwner = useRef(userId);
 
   useEffect(() => {
     const current = ++generation.current;
-    setPreferences(null); setError(null); setSaving(false); savingNow.current = false;
-    if (!sessionReady || !userId) { setLoading(false); return; }
+    if (preferencesOwner.current !== userId) {
+      preferencesOwner.current = userId;
+      setPreferences(null);
+    }
+    setError(null); setSaving(false); savingNow.current = false;
+    if (!sessionReady || !userId) { setLoading(!!userId && !sessionReady); return; }
     setLoading(true);
     routePrefsApi.get().then(value => {
       if (current === generation.current) setPreferences(value);
@@ -27,7 +32,7 @@ export function useRoutePreferences(userId: string | undefined, sessionReady: bo
   }, [userId, sessionReady, attempt]);
 
   async function save(change: Partial<Omit<RoutePreferencesUpdateRequest, "expected_profile_version">>): Promise<boolean> {
-    if (!preferences || loading || savingNow.current) return false;
+    if (!preferences || !sessionReady || !userId || preferencesOwner.current !== userId || loading || savingNow.current) return false;
     const previous = preferences;
     const current = generation.current;
     savingNow.current = true; setSaving(true); setError(null);
@@ -69,5 +74,5 @@ export function useRoutePreferences(userId: string | undefined, sessionReady: bo
     return save(field === "budget_mode" ? { budget_mode: enabled ? "LOW_COST" : "REGULAR" } : { [field]: enabled });
   }
 
-  return { preferences, loading, saving, error, toggle, saveAvailability: (value: RouteAvailability) => save(value), retry: () => setAttempt(value => value + 1) };
+  return { preferences: preferencesOwner.current === userId ? preferences : null, loading, saving, error, toggle, saveAvailability: (value: RouteAvailability) => save(value), retry: () => setAttempt(value => value + 1) };
 }

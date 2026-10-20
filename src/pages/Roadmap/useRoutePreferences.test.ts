@@ -89,6 +89,27 @@ describe("roadmap preference loading and saves", () => {
     expect(update).toHaveBeenCalledTimes(1);
     expect(state.preferences?.career_switch).toBe(false);
   });
+  it("keeps current preferences during same-account retries but clears them on account changes", async () => {
+    await render();
+    let finish!: (value: RoutePreferencesResponse) => void;
+    get.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    await act(async () => state.retry());
+    expect(state.preferences).toEqual(defaults);
+    expect(state.loading).toBe(true);
+    await act(async () => finish({ ...defaults, profile_version: 8 }));
+    expect(state.preferences?.profile_version).toBe(8);
+    get.mockImplementationOnce(() => new Promise(() => {}));
+    await render("another-account");
+    expect(state.preferences).toBeNull();
+  });
+  it("keeps the editor data disabled while the same session is rechecked", async () => {
+    await render();
+    await render("user", false);
+    expect(state.preferences).toEqual(defaults);
+    expect(state.loading).toBe(true);
+    expect(await state.saveAvailability({ weekly_availability: [], unavailable_dates: [] })).toBe(false);
+    expect(update).not.toHaveBeenCalled();
+  });
   it("does not apply another account's late load response", async () => {
     let finish!: (value: RoutePreferencesResponse) => void;
     get.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
