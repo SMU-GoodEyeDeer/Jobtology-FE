@@ -13,12 +13,12 @@
 .resume-source, .resume-suggestions { min-width: 0; padding: 14px; background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; }
 .resume-source-scroll, .resume-suggestions { max-height: 560px; overflow-y: auto; scrollbar-width: thin; scrollbar-gutter: stable; }
 .resume-source-scroll { padding: 3px; }
-.resume-block { display: block; width: 100%; padding: 12px; margin: 0 0 8px; border: 1px solid #e2e8f0; background: #fff; border-radius: 8px; text-align: left; font: inherit; color: #334155; line-height: 1.8; }
+.resume-block { display: block; width: 100%; padding: 12px; margin: 0 0 8px; border: 1px solid #e2e8f0; background: #fff; border-radius: 8px; text-align: left; font: inherit; color: #334155; line-height: 1.8; transition: border-color .18s, box-shadow .18s, background-color .18s; }
 .resume-block small { display: block; font-size: 10px; margin-bottom: 5px; color: #64748b; }
 .resume-block span { white-space: pre-wrap; overflow-wrap: anywhere; }
-.resume-block--selected { border-color: #6366f1; box-shadow: inset 3px 0 #6366f1; }
+.resume-block--selected { border-color: #6366f1; box-shadow: inset 3px 0 #6366f1; background: #fafaff; }
 .resume-block mark { background: #e0e7ff; color: #312e81; border-radius: 2px; }
-.resume-candidate { padding: 12px; margin: 12px 0 0; border: 1px solid #e2e8f0; border-radius: 8px; }
+.resume-candidate { padding: 12px; margin: 12px 0 0; border: 1px solid #e2e8f0; border-radius: 8px; transition: border-color .18s, background-color .18s; }
 .resume-candidate--selected { border-color: #6366f1; }
 .resume-candidate small { color: #64748b; font-size: 10px; }
 .resume-candidate h5 { font-size: 14px; margin: 7px 0; overflow-wrap: anywhere; }
@@ -34,6 +34,11 @@
 .resume-tabs button { border: 1px solid #d8dfeb; border-radius: 7px; padding: 8px 12px; background: #fff; color: #475569; font: inherit; font-size: 12px; }
 .resume-tabs button[aria-pressed="true"] { background: #4f46e5; border-color: #4f46e5; color: #fff; }
 .spec-import-evidence { padding: 12px; background: #fff; border: 1px solid #c7d2fe; border-radius: 8px; margin-bottom: 16px; font-size: 12px; }
+.resume-ai, .resume-candidate, .resume-progress { animation: spec-content-in .18s ease-out; }
+.resume-workspace--source .resume-source { animation: spec-editor-in .18s ease-out; }
+.resume-workspace--suggestions .resume-suggestions { animation: spec-resume-in .18s ease-out; }
+.resume-tabs button { transition: background-color .16s, color .16s, border-color .16s; }
+.resume-ai textarea { transition: border-color .18s, box-shadow .18s; }
 @container resume (max-width: 640px) {
   .resume-heading { flex-wrap: wrap; }
   .resume-workspace { display: block; }

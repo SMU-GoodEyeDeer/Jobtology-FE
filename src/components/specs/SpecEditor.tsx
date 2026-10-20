@@ -125,6 +125,6 @@ export function SpecEditor({ item, candidate, initialDraft, occupationId, busy, 
       </section>
     </fieldset>
     {(validation || error) && <p className="spec-error" role="alert">{validation || error}</p>}
-    <footer className="spec-actions spec-editor-actions"><span className="spec-save-hint">선택한 역량 {draft.selected.length}개 · 저장 후 연결 여부를 확인할 수 있어요.</span><button className="spec-secondary" type="button" disabled={disabled} onClick={onCancel}>취소</button><button className="spec-primary" type="submit" disabled={disabled || !canSave}>{busy ? "저장 중…" : "스펙 저장"}</button></footer>
+    <footer className="spec-actions spec-editor-actions"><span className="spec-save-hint">선택한 역량 {draft.selected.length}/12개 · 저장 후 연결 여부를 확인할 수 있어요.</span><button className="spec-secondary" type="button" disabled={disabled} onClick={onCancel}>취소</button><button className="spec-primary" type="submit" disabled={disabled || !canSave}>{busy ? "저장 중…" : "스펙 저장"}</button></footer>
   </form>;
 }

@@ -26,8 +26,7 @@ export function SkillPicker({ occupationId, selected, disabled, onChange }: Prop
   }, [key, query, targetOnly, occupationId]);
   const current = result?.key === key ? result : null;
   return <fieldset className="spec-picker" disabled={disabled}>
-    <legend>연결할 역량 찾기 <span>최대 12개</span></legend>
-    <p className="spec-help">한국어 이름이나 영어 별칭으로 검색하고, 실제로 수행한 역량을 선택해 주세요.</p>
+    <legend className="spec-sr-only">연결할 역량</legend>
     <label htmlFor={id}>역량 검색</label>
     <input id={id} type="search" value={query} maxLength={200} placeholder="예: SQL, 데이터 분석, 프로그래밍" onChange={event => setQuery(event.target.value)} onKeyDown={event => { if (event.key === "Enter" && !event.nativeEvent.isComposing) event.preventDefault(); }} />
     {occupationId && <label className="spec-check"><input type="checkbox" checked={targetOnly} onChange={event => setTargetOnly(event.target.checked)} />현재 목표의 NCS 역량 우선</label>}

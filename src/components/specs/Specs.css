@@ -2,11 +2,11 @@
 .spec-manager-heading, .spec-item-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
 .spec-manager-heading > div:first-child, .spec-item-heading > div:first-child { min-width: 0; }
 .spec-manager h2 { margin: 4px 0 0; font-size: 22px; letter-spacing: -.5px; }
-.spec-eyebrow { color: #6366f1; font-size: 10px; font-weight: 750; letter-spacing: 1.8px; }
 .spec-count { display: inline-flex; justify-content: center; align-items: center; min-width: 25px; height: 25px; margin-left: 6px; padding: 0 7px; border-radius: 8px; background: #eef2ff; color: #4f46e5; font-size: 12px; vertical-align: middle; }
 .spec-manager-heading p { margin: 8px 0 18px; color: #64748b; font-size: 13px; line-height: 1.7; }
-.spec-manager button { font-family: inherit; cursor: pointer; transition: background .15s, border-color .15s, box-shadow .15s; }
+.spec-manager button { font-family: inherit; cursor: pointer; transition: background .16s, color .16s, border-color .16s, box-shadow .16s, opacity .16s, transform .14s; }
 .spec-manager button:disabled { cursor: default; opacity: .55; }
+.spec-manager button:active:not(:disabled) { transform: translateY(1px) scale(.98); }
 .spec-primary, .spec-secondary, .spec-actions button, .spec-item-actions button { border-radius: 9px; padding: 11px 15px; font-size: 13px; font-weight: 600; white-space: nowrap; }
 .spec-primary, .spec-actions .spec-primary { background: #4f46e5; border: 1px solid #4f46e5; color: #fff; box-shadow: 0 3px 8px #4f46e51a; }
 .spec-primary:hover:not(:disabled), .spec-actions .spec-primary:hover:not(:disabled) { background: #4338ca; border-color: #4338ca; }
@@ -23,41 +23,42 @@
 .spec-dialog[open] { display: flex; flex-direction: column; animation: spec-dialog-in .18s ease-out; }
 .spec-dialog::backdrop { background: #0f172a80; backdrop-filter: blur(5px); }
 .spec-dialog-heading { display: flex; flex: none; justify-content: space-between; align-items: flex-start; gap: 20px; padding: 26px 32px 23px; border-bottom: 1px solid #eef0f6; background: linear-gradient(120deg, #f8faff, #fff 65%); }
-.spec-dialog-heading h2 { margin: 7px 0 0; font-size: 24px; letter-spacing: -.6px; outline: none; }
+.spec-dialog-heading h2 { margin: 0; font-size: 24px; letter-spacing: -.6px; outline: none; }
 .spec-dialog-heading p { margin: 8px 0 0; font-size: 13px; color: #64748b; line-height: 1.7; }
 .spec-dialog-close { display: inline-flex; flex: none; align-items: center; justify-content: center; gap: 8px; min-width: 38px; min-height: 38px; padding: 9px; border: 1px solid #e2e8f0; border-radius: 10px; background: #fff; color: #475569; font-size: 12px; }
 .spec-dialog-close:hover:not(:disabled) { background: #eef2ff; border-color: #c7d2fe; }
 .spec-dialog-content { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 28px 32px; scrollbar-gutter: stable; }
 .spec-dialog-content > .spec-notice, .spec-dialog-content > .spec-error { margin: 0 0 20px; }
+.spec-dialog-content[data-view="editor"] { animation: spec-editor-in .18s ease-out; }
+.spec-dialog-content[data-view="resume"] { animation: spec-resume-in .18s ease-out; }
 .spec-editor { margin: 0; min-width: 0; }
 .spec-fields, .spec-picker { border: 0; margin: 0; padding: 0; min-width: 0; }
 .spec-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; align-items: start; }
 .spec-editor-section { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
-.spec-editor-search { padding: 22px; background: #f7f8fd; border: 1px solid #eef0fa; border-radius: 16px; }
 .spec-section-heading { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 3px; }
 .spec-section-heading > span { display: grid; place-items: center; flex: none; width: 30px; height: 30px; border: 1px solid #dfe3ff; border-radius: 10px; background: #eef2ff; color: #4f46e5; font-size: 11px; font-weight: 700; }
 .spec-section-heading h3 { margin: 3px 0 0; font-size: 15px; letter-spacing: -.25px; }
 .spec-section-heading p { margin: 7px 0 0; color: #64748b; font-size: 12px; line-height: 1.7; }
 .spec-fields label, .spec-picker > label { display: grid; gap: 8px; font-size: 13px; font-weight: 500; color: #334155; }
-.spec-fields input:not([type="checkbox"]), .spec-fields select, .spec-fields textarea { width: 100%; box-sizing: border-box; border: 1px solid #d8dfeb; border-radius: 9px; background: #fff; color: #1e293b; font: inherit; font-weight: 400; padding: 12px 13px; min-width: 0; }
+.spec-fields input:not([type="checkbox"]), .spec-fields select, .spec-fields textarea { width: 100%; box-sizing: border-box; border: 1px solid #d8dfeb; border-radius: 9px; background: #fff; color: #1e293b; font: inherit; font-weight: 400; padding: 12px 13px; min-width: 0; transition: border-color .18s, box-shadow .18s, background-color .18s; }
+.spec-fields input:focus, .spec-fields select:focus, .spec-fields textarea:focus { border-color: #818cf8; box-shadow: 0 0 0 3px #6366f112; }
 .spec-fields textarea { resize: vertical; line-height: 1.8; min-height: 120px; }
 .spec-fields input::placeholder, .spec-fields textarea::placeholder { color: #94a3b8; }
 .spec-fields :disabled { opacity: .65; }
 .spec-manager :focus-visible { outline: 2px solid #6366f1; outline-offset: 3px; }
 .spec-picker { padding: 0; }
-.spec-picker legend { font-size: 13px; font-weight: 600; padding: 0; }
-.spec-picker legend span { color: #64748b; font-size: 11px; font-weight: 400; margin-left: 5px; }
+.spec-picker > label { margin-bottom: 8px; }
 .spec-fields .spec-check { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 12px; }
 .spec-check input, .spec-skill-option input { accent-color: #4f46e5; flex: none; width: 15px; height: 15px; }
 .spec-search-results { margin-top: 16px; max-height: 340px; overflow-y: auto; scrollbar-width: thin; scrollbar-gutter: stable; }
-.spec-fields .spec-skill-option { display: flex; align-items: flex-start; gap: 10px; padding: 12px 8px; border-top: 1px solid #e7eaf3; cursor: pointer; border-radius: 7px; }
+.spec-fields .spec-skill-option { display: flex; align-items: flex-start; gap: 10px; padding: 12px 8px; border-top: 1px solid #e7eaf3; cursor: pointer; border-radius: 7px; transition: background-color .18s, border-color .18s; }
 .spec-skill-option:hover, .spec-skill-option:has(input:checked) { background: #eeedff; }
 .spec-skill-option input { margin-top: 4px; }
 .spec-skill-option strong, .spec-skill-option small { display: block; line-height: 1.7; }
 .spec-skill-option span { min-width: 0; overflow-wrap: anywhere; }
 .spec-skill-option small { color: #64748b; font-size: 11px; font-weight: 400; }
 .spec-selected { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; padding: 0; margin: 12px 0 0; }
-.spec-selected li { display: flex; align-items: center; gap: 7px; border: 1px solid #ddd6fe; border-radius: 8px; padding: 6px 8px; background: #f0edff; color: #4338ca; font-size: 12px; }
+.spec-selected li { display: flex; align-items: center; gap: 7px; border: 1px solid #ddd6fe; border-radius: 8px; padding: 6px 8px; background: #f0edff; color: #4338ca; font-size: 12px; animation: spec-chip-in .16s ease-out; }
 .spec-selected button { background: none; border: 0; color: inherit; padding: 0 3px; font-size: 16px; }
 .spec-field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .spec-ai { padding: 16px; background: #eeedff; border-radius: 12px; display: grid; gap: 12px; }
@@ -115,10 +116,25 @@
   .spec-dialog-heading p { font-size: 12px; }
   .spec-dialog-back-label { display: none; }
   .spec-dialog-content { padding: 20px; }
-  .spec-editor-search { padding: 16px; }
   .spec-section-heading h3 { font-size: 14px; }
   .spec-editor-actions { bottom: -20px; margin: 24px -20px -20px; padding: 14px 20px max(14px, env(safe-area-inset-bottom)); }
   .spec-item { padding: 18px; }
 }
 @keyframes spec-dialog-in { from { opacity: 0; transform: translateY(8px) scale(.99); } to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: reduce) { .spec-dialog[open] { animation: none; } .spec-manager button { transition: none; } }
+@keyframes spec-editor-in { from { opacity: .45; } to { opacity: 1; } }
+@keyframes spec-resume-in { from { opacity: .45; } to { opacity: 1; } }
+@keyframes spec-content-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@keyframes spec-chip-in { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: none; } }
+.spec-ai, .spec-ai-candidate, .spec-field-grid, .spec-field-grid > label, .spec-import-evidence, .spec-notice, .spec-error, .spec-delete-confirm, .spec-item { animation: spec-content-in .18s ease-out; }
+.spec-manager summary { transition: color .16s; }
+.spec-manager summary:hover { color: #4338ca; }
+/* Native disclosure animation, with ordinary details behavior as the fallback. */
+@supports (interpolate-size: allow-keywords) and selector(details::details-content) {
+  .spec-manager details { interpolate-size: allow-keywords; }
+  .spec-manager details::details-content { height: 0; opacity: 0; overflow: clip; transition: height .2s ease, opacity .16s ease, content-visibility .2s allow-discrete; }
+  .spec-manager details[open]::details-content { height: auto; opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spec-manager *, .spec-manager *::before, .spec-manager *::after, .spec-manager details::details-content { animation: none !important; transition: none !important; }
+  .spec-manager button:active:not(:disabled) { transform: none; }
+}
