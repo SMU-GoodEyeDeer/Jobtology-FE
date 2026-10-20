@@ -38,6 +38,9 @@
 .wp-phases { display: flex; flex-direction: column; overflow: hidden; }
 .wp-phases-heading { padding: 20px 22px 16px; border-bottom: 1px solid var(--sd-border); }
 .wp-phases-heading p { color: var(--sd-muted); font-size: 12px; margin-top: 6px; }
+.wp-phases-heading > .ncs-level { padding: 8px 0 6px; }
+.wp-phase > .ncs-degree-note { margin: 0 14px 12px; }
+.wp-detail-body > .ncs-degree-note { margin: 0 0 16px; }
 .wp-phase-progress { display: flex; gap: 8px; margin-top: 18px; }
 .wp-phase-progress > div { min-width: 104px; }
 .wp-progress-track { height: 6px; border-radius: 6px; background: var(--sd-border); margin-bottom: 6px; overflow: hidden; }

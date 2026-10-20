@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion, useIsPresent, useReducedMotion } from "motion/react";
 import { SkillDefinition, SkillQualifications } from "../Analysis/SkillEvidence";
-import { NcsLevel } from "../../components/NcsLevel";
+import { NcsDegreeNote } from "../../components/NcsLevel";
 import { analysisSkillHref } from "../../services/skillNavigation";
 import type { Skill, WeeklyPlanResponse, WeeklyPlanStep } from "../../services/types";
 import { basisLabels, phaseLabels, shortDate, stateLabels, stepReason, stepTitle, prerequisiteWarning } from "../../services/weeklyPlan";
@@ -54,7 +54,7 @@ export function PlanStepDetail({ plan, step, skill, busy, onComplete, onClose }:
         <div><dt>NCS 수준</dt><dd>{step.ncs_level === null ? "—" : `${step.ncs_level}수준`}</dd><small>{step.field_name ?? "분야 정보 없음"}</small></div>
         <div><dt>공고 요구</dt><dd>{step.demand_pct === null ? "—" : `${step.demand_pct}%`}</dd><small>채용 공고 기준</small></div>
       </dl>
-      <NcsLevel level={step.ncs_level} compact />
+      <NcsDegreeNote level={step.ncs_level} />
       <div className="wp-schedule"><strong>일정</strong><span>{step.start_week}–{step.end_week}주차 · {shortDate(step.start_date)}–{shortDate(step.end_date)}<small>주 {plan.weekly_hours}시간 기준</small></span></div>
       <section className="wp-reason"><h3>왜 이 순서?</h3><p>{stepReason(step)}</p></section>
       {warning && <p className="wp-warning">{warning}</p>}

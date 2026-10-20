@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { WeeklyPlanResponse, WeeklyPlanStep } from "../../services/types";
 import { basisLabels, phaseLabels, prerequisiteWarning, stateLabels, stepTitle } from "../../services/weeklyPlan";
-import { NcsLevel } from "../../components/NcsLevel";
+import { NcsDegreeNote, NcsLevel } from "../../components/NcsLevel";
 
 interface Props {
   readonly plan: WeeklyPlanResponse;
@@ -46,6 +46,7 @@ export function PlanPhases({ plan, selectedId, onSelect }: Props) {
         <span className="wp-phase-count"><b>{p.done}/{p.steps.length} 완료</b><small>{p.steps.length}단계</small></span>
         <svg className="wp-phase-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m4 6 4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
       </button>
+      <NcsDegreeNote levels={p.steps.map(step => step.ncs_level)} />
       <div className="wp-phase-fold" id={`phase-${p.phase}`} data-expanded={expanded.has(p.phase)}
         aria-hidden={!expanded.has(p.phase)} inert={!expanded.has(p.phase)}>
         <div className="wp-phase-fold-inner"><div className="wp-phase-steps">{p.steps.map((step, index) => <PhaseRow key={step.step_id} step={step} groupNumber={index + 1} steps={plan.steps} selected={step.step_id === selectedId} visible={expanded.has(p.phase)} onSelect={() => onSelect(step.step_id)} />)}</div></div>
