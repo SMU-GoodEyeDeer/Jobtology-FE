@@ -9,6 +9,7 @@ import type { SpecDraft } from "./specModel";
 interface Props {
   readonly item?: CapabilityDetailResponse | null;
   readonly candidate?: ChatCapabilityCandidate | null;
+  readonly initialDraft?: SpecDraft;
   readonly occupationId?: string | null;
   readonly busy?: boolean;
   readonly canSave?: boolean;
@@ -16,9 +17,9 @@ interface Props {
   readonly onSave: (value: CapabilityWrite) => Promise<void>;
   readonly onCancel: () => void;
 }
-export function SpecEditor({ item, candidate, occupationId, busy, canSave = true, error, onSave, onCancel }: Props) {
+export function SpecEditor({ item, candidate, initialDraft, occupationId, busy, canSave = true, error, onSave, onCancel }: Props) {
   const id = useId();
-  const [draft, setDraft] = useState(() => specDraft(item, candidate));
+  const [draft, setDraft] = useState(() => initialDraft ?? specDraft(item, candidate));
   const [validation, setValidation] = useState<string | null>(null);
   const [aiOpen, setAiOpen] = useState(false);
   const [aiAvailable, setAiAvailable] = useState<boolean | null>(null);
@@ -63,7 +64,7 @@ export function SpecEditor({ item, candidate, occupationId, busy, canSave = true
       title: previous.title || suggestion.label,
       selected: previous.selected.some(value => value.entity_id === suggestion.entity_id) ? previous.selected : [...previous.selected, { entity_id: suggestion.entity_id, label: suggestion.label, requirement_keys: [] }],
       evidence: previous.evidence || description.trim() || suggestion.evidence_quote,
-      source: "LLM_ASSISTED",
+      source: previous.document_evidence ? "DOCUMENT_IMPORT" : "LLM_ASSISTED",
     }));
   }
   const datedExperience = draft.category === "project" || draft.category === "experience";
@@ -71,6 +72,7 @@ export function SpecEditor({ item, candidate, occupationId, busy, canSave = true
   return <form className="spec-editor" onSubmit={event => void submit(event)} aria-labelledby={`${id}-title`}>
     <header className="spec-editor-heading"><h3 id={`${id}-title`}>{item ? "스펙 수정" : "스펙 추가"}</h3><p>역량을 연결하고 실제로 수행한 내용을 남겨 주세요.</p></header>
     {candidate && <p className="spec-notice">AI가 제안한 내용을 가져왔어요. 역량과 근거, 수행 수준을 직접 검토한 뒤 저장해 주세요.</p>}
+    {draft.document_evidence && <div className="spec-import-evidence"><strong>이력서 원문 근거 · 본인 확인 필요</strong><blockquote>{draft.document_evidence.quote}</blockquote><p className="spec-help">키워드나 AI 제안은 실력·자격을 검증하지 않아요. 종류, 역량, 근거와 수행 수준을 확인해 주세요. 원문 인용은 저장한 스펙과 함께 남아요.</p></div>}
     <fieldset className="spec-fields" disabled={disabled}>
       <label>스펙 종류<select value={draft.category} onChange={event => change("category", event.target.value as SpecDraft["category"])}>{SPEC_CATEGORIES.map(category => <option key={category.value} value={category.value}>{category.label}</option>)}</select></label>
       <SkillPicker occupationId={occupationId} selected={draft.selected} disabled={disabled} onChange={selected => {
@@ -92,7 +94,7 @@ export function SpecEditor({ item, candidate, occupationId, busy, canSave = true
         }) : <p className="spec-help">확인할 수 있는 역량 제안이 없어요. 직접 검색하거나 연결할 역량 없이 보관할 수 있어요.</p>}</>}
       </section>}
       <label>스펙 제목<input value={draft.title} required maxLength={500} onChange={event => change("title", event.target.value)} placeholder="예: Python 데이터 분석, 정보처리기사, 주문 API 프로젝트" /></label>
-      <label>직접 수행한 수준<select value={draft.proficiency} onChange={event => change("proficiency", event.target.value as SpecDraft["proficiency"])}>{PROFICIENCIES.map(value => <option key={value.value} value={value.value}>{value.label}</option>)}</select></label>
+      <label>직접 수행한 수준<select required value={draft.proficiency} onChange={event => change("proficiency", event.target.value as SpecDraft["proficiency"])}><option value="" disabled>직접 수행한 수준을 선택해 주세요</option>{PROFICIENCIES.map(value => <option key={value.value} value={value.value}>{value.label}</option>)}</select></label>
       <label>수행 내용·근거<textarea value={draft.evidence} maxLength={2000} rows={4} onChange={event => change("evidence", event.target.value)} placeholder="직접 한 일, 사용한 방법, 결과를 구체적으로 적어 주세요." /></label>
       <p className="spec-help">{Array.from(draft.evidence.trim()).length}/2000자 · 현재 목표와 연결되는 역량을 선택하고 20자 이상의 근거가 있어야 분석에 반영할 수 있어요. 연결 정보나 근거가 없으면 저장만 되고 반영 비율은 0이에요.</p>
       {credential && <div className="spec-field-grid">

@@ -33,6 +33,7 @@ import type {
   ExamSessionsResponse,
   WeeklyPlanInput,
   WeeklyPlanResponse,
+  ResumeStatus, ResumeScan, ResumeFormat, ResumeSuggestion,
 } from "./types";
 
 const BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "/api").replace(/\/$/, "");
@@ -235,6 +236,23 @@ export const skillsApi = {
     for (const [key, value] of Object.entries(filters)) if (value !== undefined && value !== "") query.set(key, String(value));
     return get<SkillSearchResponse>(`/v1/skills?${query}`);
   },
+};
+
+export const resumeApi = {
+  status: () => get<ResumeStatus>("/v1/me/resume/status"),
+  scan: async (file: File, format: ResumeFormat, occupationId?: string | null, signal?: AbortSignal): Promise<ResumeScan> => {
+    const query = new URLSearchParams({ format });
+    if (occupationId) query.set("occupation_id", occupationId);
+    const headers: Record<string, string> = { "Content-Type": "application/octet-stream" };
+    if (_csrfToken) headers["X-CSRF-Token"] = _csrfToken;
+    const response = await fetch(`${BASE_URL}/v1/me/resume/scan?${query}`, { method: "POST", credentials: "include", headers, body: file, signal });
+    if (!response.ok) {
+      const detail = await response.json().catch(() => null);
+      throw Object.assign(new Error("이력서를 읽지 못했어요."), { status: response.status, detail });
+    }
+    return response.json() as Promise<ResumeScan>;
+  },
+  interpret: (text: string, occupationId?: string | null) => post<{ suggestions: ResumeSuggestion[]; rejected_count: number }>("/v1/me/resume/interpret", { text, occupation_id: occupationId ?? null }),
 };
 
 // ─── AI Chat ─────────────────────────────────────────────────────────────────

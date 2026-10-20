@@ -1,0 +1,37 @@
+.resume-scanner { margin: 18px 0; padding: 20px; border: 1px solid #c7d2fe; border-radius: 14px; background: #f8faff; font-size: 13px; min-width: 0; }
+.resume-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.resume-heading h3 { margin: 0; font-size: 17px; color: #1e293b; }
+.resume-heading p { margin: 8px 0; color: #64748b; line-height: 1.7; font-size: 12px; }
+.resume-upload { padding: 16px; border: 1px dashed #a5b4fc; border-radius: 10px; background: #fff; }
+.resume-upload label, .resume-ai > label { display: grid; gap: 10px; font-weight: 600; font-size: 12px; }
+.resume-upload input { max-width: 100%; font: inherit; }
+.resume-upload input::file-selector-button { padding: 9px 12px; border: 1px solid #d8dfeb; border-radius: 6px; margin-right: 10px; background: #f1f5f9; color: #334155; cursor: pointer; }
+.resume-progress { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 16px 0; color: #4338ca; }
+.resume-warnings { margin: 16px 0; padding: 12px 12px 12px 28px; background: #fffbeb; color: #92400e; border-radius: 8px; font-size: 12px; line-height: 1.8; }
+.resume-workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.resume-workspace h4, .resume-selected h4 { margin: 0 0 8px; font-size: 13px; }
+.resume-source, .resume-suggestions { min-width: 0; padding: 14px; background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; }
+.resume-source-scroll, .resume-suggestions { max-height: 560px; overflow-y: auto; scrollbar-width: thin; scrollbar-gutter: stable; }
+.resume-source-scroll { padding: 3px; }
+.resume-block { display: block; width: 100%; padding: 12px; margin: 0 0 8px; border: 1px solid #e2e8f0; background: #fff; border-radius: 8px; text-align: left; font: inherit; color: #334155; line-height: 1.8; }
+.resume-block small { display: block; font-size: 10px; margin-bottom: 5px; color: #64748b; }
+.resume-block span { white-space: pre-wrap; overflow-wrap: anywhere; }
+.resume-block--selected { border-color: #6366f1; box-shadow: inset 3px 0 #6366f1; }
+.resume-block mark { background: #e0e7ff; color: #312e81; border-radius: 2px; }
+.resume-candidate { padding: 12px; margin: 12px 0 0; border: 1px solid #e2e8f0; border-radius: 8px; }
+.resume-candidate--selected { border-color: #6366f1; }
+.resume-candidate small { color: #64748b; font-size: 10px; }
+.resume-candidate h5 { font-size: 14px; margin: 7px 0; overflow-wrap: anywhere; }
+.resume-candidate blockquote, .resume-selected blockquote, .spec-import-evidence blockquote { margin: 8px 0; padding: 8px 10px; border-left: 2px solid #c7d2fe; background: #f8fafc; color: #475569; font-size: 12px; line-height: 1.8; white-space: pre-wrap; overflow-wrap: anywhere; }
+.resume-candidate ul { padding-left: 16px; font-size: 12px; line-height: 1.8; }
+.resume-card-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+.resume-card-actions button { font-size: 11px; padding: 7px 9px; }
+.resume-selected { padding: 16px; background: #fff; border: 1px solid #c7d2fe; border-radius: 10px; margin-top: 16px; }
+.resume-ai { margin-top: 16px; padding: 14px; background: #f0f2ff; border-radius: 8px; }
+.resume-ai textarea { box-sizing: border-box; width: 100%; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px; font: inherit; font-weight: 400; line-height: 1.8; resize: vertical; }
+.resume-ai .spec-check { display: flex; align-items: center; gap: 8px; margin: 12px 0; line-height: 1.7; font-weight: 400; }
+.resume-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+.resume-tabs button { border: 1px solid #d8dfeb; border-radius: 7px; padding: 8px 12px; background: #fff; color: #475569; font: inherit; font-size: 12px; }
+.resume-tabs button[aria-pressed="true"] { background: #4f46e5; border-color: #4f46e5; color: #fff; }
+.spec-import-evidence { padding: 12px; background: #fff; border: 1px solid #c7d2fe; border-radius: 8px; margin-bottom: 16px; font-size: 12px; }
+@media (max-width: 800px) { .resume-scanner { padding: 12px; } .resume-heading { flex-wrap: wrap; } .resume-workspace { display: block; } .resume-workspace--source .resume-suggestions, .resume-workspace--suggestions .resume-source { display: none; } .resume-source-scroll, .resume-suggestions { max-height: 430px; } }

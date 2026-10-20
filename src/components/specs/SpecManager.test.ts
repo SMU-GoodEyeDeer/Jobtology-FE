@@ -9,6 +9,7 @@ import { SpecManager } from "./SpecManager";
 const api = vi.hoisted(() => ({
   capabilitiesApi: { list: vi.fn(), get: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
   profileApi: { get: vi.fn() }, skillsApi: { search: vi.fn() }, chatApi: { status: vi.fn(), send: vi.fn() },
+  resumeApi: { status: vi.fn(), scan: vi.fn(), interpret: vi.fn() },
 }));
 vi.mock("../../services/api", () => api);
 const ncs: CatalogSkill = { entity_id: "ncs:2001020301", label: "프로그래밍", source: "NCS", original_label: "프로그래밍", aliases: ["Python", "programming"], requirement_keys: ["BACKEND:2001020301"], ncs_level: 4 };
@@ -269,5 +270,29 @@ describe("explicit AI fallback and confirmation", () => {
     expect(container.textContent).toContain("직접 입력은 계속 이용");
     expect(api.chatApi.send).not.toHaveBeenCalled();
     await click("스펙 저장"); expect(api.capabilitiesApi.create).toHaveBeenCalledOnce();
+  });
+});
+
+describe("resume review through the shared spec manager", () => {
+  it("requires a chosen level, saves once with source evidence, then shows full matching feedback immediately", async () => {
+    const quote = "Python으로 데이터를 정제하고 분석 결과를 문서로 정리했어요.";
+    api.resumeApi.status.mockResolvedValue({ formats: ["docx"], max_bytes: 10485760, max_pdf_pages: 20, parse_timeout_seconds: 60, ai_available: false });
+    api.resumeApi.scan.mockResolvedValue({ document_sha256: "a".repeat(64), parser_revision: "jobtology-resume-v1-7541e87", warnings: [], skipped_pages: [], blocks: [{ block_id: "b".repeat(24), text: quote, text_hash: "c".repeat(64), page: null }], suggestions: [{ suggestion_id: "rule", block_id: "b".repeat(24), title: "분석 프로젝트", category: "project", competencies: [ncs], quote, start: 0, end: Array.from(quote).length, method: "KEYWORD", score: null, score_max: null }] });
+    await render(); await click("이력서에서 가져오기");
+    await act(async () => { const input = container.querySelector<HTMLInputElement>('input[type="file"]')!; Object.defineProperty(input, "files", { value: [new File(["test"], "resume.docx")] }); input.dispatchEvent(new Event("change", { bubbles: true })); });
+    await click("검토하고 추가");
+    expect(field("직접 수행한 수준").value).toBe("");
+    await act(async () => container.querySelector("form")!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
+    expect(api.capabilitiesApi.create).not.toHaveBeenCalled();
+    await change("직접 수행한 수준", "GUIDED"); await click("스펙 저장");
+    expect(api.capabilitiesApi.create).toHaveBeenCalledOnce();
+    expect(api.capabilitiesApi.create.mock.calls[0][0]).toMatchObject({ category: "project", proficiency: "GUIDED", expected_profile_version: 4, details: { source: "DOCUMENT_IMPORT", evidence: quote, document_evidence: { quote, method: "KEYWORD", block_id: "b".repeat(24) } } });
+    expect(api.capabilitiesApi.get).toHaveBeenCalledWith("cap-1");
+    expect(container.querySelector(".spec-item")?.textContent).toContain("분석 프로젝트");
+    expect(container.querySelector(".spec-item")?.textContent).toContain("현재 목표와 연결됨");
+    expect(button("저장 완료").disabled).toBe(true);
+    expect(api.resumeApi.interpret).not.toHaveBeenCalled(); expect(api.chatApi.send).not.toHaveBeenCalled();
+    await click("가져오기 끝내기"); expect(container.querySelector(".resume-scanner")).toBeNull();
+    expect(items).toHaveLength(1);
   });
 });

@@ -1,48 +1,16 @@
-# Résumé import interaction plan
+# Résumé import flow
 
-Assessed 2026-10-20 on `feat/functionality-improvements`. The processor source is now copied into the monolithic BE, validated on Python 3.12, and packaged with its native converter assets. This is a proposed FE integration for those capabilities; **no production upload control or import endpoint is enabled by this change**. The [BE feasibility report](https://github.com/SMU-GoodEyeDeer/Jobtology-BE/blob/feat/functionality-improvements/docs/plans/resume-import-feasibility.md) records the probe, format limits, security findings, deployment requirements, and proposed API.
+Implemented in the shared `SpecManager`, available during onboarding and in My Info on `feat/functionality-improvements`. It uses the copied processor inside the monolithic BE. See the [BE scanner contract](https://github.com/SMU-GoodEyeDeer/Jobtology-BE/blob/feat/functionality-improvements/docs/resume-scanner.md) for endpoints, limits, retention and deployment details.
 
-## Shared entry point
+1. **이력서에서 가져오기** checks the authenticated BE's runtime-supported formats. The input supports those formats only, up to 10 MiB, with a 20-page PDF limit. The file is uploaded as raw bytes without its filename. A loading state supports cancellation.
+2. The BE processes locally and removes source/temp artifacts after the request. No AI call or profile write occurs. Returned text is held only in this component; finishing/navigation/logout clears it. Crash leftovers are swept after 15 minutes. Only confirmed quotation/fields remain with saved specs.
+3. A split view shows extracted plain text and keyword suggestions. Mobile uses **추출한 원문 / 제안** views. Source buttons and suggestion actions are keyboard accessible; **원문 근거 보기** selects, scrolls and highlights the exact span. React renders text, never processor HTML/CSS. Missing PDF text shows an OCR notice and affected pages; OCR is not available.
+4. **검토하고 추가** opens the existing spec editor with canonical candidates and the exact source quote. Category, issuer, scores, dates, evidence and skill choices remain editable. The experience-level selector starts empty and must be selected by the user. Neither file mentions nor an AI suggestion establish proficiency or credential validity. Existing-competency overlap is shown; no existing entry is overwritten or automatically merged.
+5. **역량을 못 찾겠어요 · AI 도움** is an explicit fallback for the selected passage. The exact outgoing text is editable, common email/phone patterns are masked, the configured provider is displayed, and a checkbox acknowledgment is required. The whole file is not sent. Returned IDs/spans are validated; modified text must map to an exact unambiguous original quote. Unavailable AI/quota leaves direct selection usable.
+6. Each confirmed record uses normal optimistic-version/idempotency/save/readback behavior, appears immediately with current-goal matching feedback, and is marked saved in the review list. A lost save response uses the same original operation key/version on retry. Successful save followed by failed GET retries only the GET. No bulk replacement occurs. Rerunning analysis applies changes; existing roadmap progress remains preserved.
 
-Add **이력서에서 가져오기** alongside **스펙 추가** in `SpecManager`, shared by onboarding and My Info. It is optional and works before a goal is chosen. Retain manual search/editing when extraction or AI is unavailable. Enable the button only when the authenticated backend advertises a configured import service and actual supported formats.
+`SpecDetails` includes `DOCUMENT_IMPORT` and typed `document_evidence` (document hash, parser version, block identity/hash, quote, Unicode code-point span, method). It is self-reported source context, not a verified qualification. Imported quotes remain visible when editing saved specs. O*NET identities remain separate from NCS, and Korean labels retain the existing translation/attribution notices.
 
-The initial UI should advertise DOCX and text-layer PDF only. HWPX can follow the Korean template tests; HWP/DOC require extra runtimes. A scanned PDF should explain that OCR is required, rather than suggesting the résumé contains no skills.
+The current scanner supports all five spec categories, literal NCS/O*NET aliases, explicit TOEIC/TOEFL/IELTS numeric results and manual review of any text block. It does not infer date precision, verified credentials, degree requirements or production experience, automatically edit education/profile fields, run OCR or retain original files. Real legacy HWP/DOC template accuracy and real-LLM résumé accuracy need further evaluation. HWP/DOC formats are advertised only when the BE discovers their native runtimes.
 
-## Review flow
-
-1. **Upload and parse.** Show format/size limits, processing status, and cancellation. Parsing is local to the service and does not automatically send the résumé to an LLM. Show skipped pages and unreadable sections prominently.
-2. **Review extraction.** Show the source document/text and candidate cards. The initial pass offers literal skill mentions and explicitly present dates/scores; label these **키워드 발견** or **문서에서 읽은 값**, not recognized proficiency. Separate projects, work experience, certificates, test scores, and possible education-field changes.
-3. **Optional AI interpretation.** Offer **AI로 경험 해석하기** for selected unrecognized sections. Show the text that will be sent, allow removal of contact/private information, explain the configured provider, and require a deliberate click. Typing, uploading, parsing, and saving a reviewed rule-derived item do not invoke AI. Show AI quota/unavailability errors without blocking manual review.
-4. **Inspect and edit.** Clicking a card or **원문 근거 보기** scrolls to and highlights its verified source quotation. Clicking a highlight selects its card. Keyboard activation must work in both directions. Use a visible outline/label as well as color and respect reduced motion. On narrow screens use **원문 / 제안** tabs and preserve selection.
-5. **Confirm each record.** Reuse `SpecEditor` for category, canonical skill selections, evidence, issuer/score/period/role, and experience level. Ask the user to choose level; a job title, employment duration, keyword, or model suggestion must not preselect `PRODUCTION`. Missing issuer/score fields remain editable and block saving only under the existing category rules. Keep original Korean/English evidence; translated explanations stay separate.
-6. **Save and show effect.** Use the existing versioned mutation/readback flow. Show per-item success and resumable failures if saving a selection sequentially; retry with stable idempotency keys. Never replace the whole spec list. Show the current-goal matching status and explain that rerunning analysis applies confirmed changes while existing roadmap progress remains preserved.
-
-Suggested card content:
-
-```text
-로그인 API 프로젝트                         문서에서 가져온 제안
-근거: “Python과 FastAPI로 로그인 API를 직접 구현했습니다.”
-역량 후보: 서버프로그램 구현                 확인 필요
-수행 수준: 선택해 주세요
-[원문 근거 보기] [검토하고 추가] [제외]
-```
-
-The source can support several skill suggestions while remaining one project record. Group those suggestions; avoid creating one duplicate project per keyword. A candidate matching an existing spec should offer review/merge as a deliberate action, without silently overwriting it. A résumé statement about a team member or future learning belongs in clarification, not accepted skills.
-
-## Source rendering and provenance
-
-Prefer a React renderer over verified JSON text blocks and annotation spans for the first version. Render text as text, preserve tables when safe, and use trusted application markup for `<mark>` spans. Do not insert the processor's raw HTML into the application DOM. The probe found that renderer style values are not a sanitization boundary, and hidden DOCX text can appear in extracted/rendered output.
-
-A later rich preview must arrive sanitized and use an opaque-origin sandbox iframe without scripts or `allow-same-origin`. Keep the interactive list outside that iframe. Do not relax the sandbox to support scrolling or card selection; use the controlled JSON renderer for those interactions. Ordinary links, embedded resources, SVG, forms, and document-provided CSS/URLs need a server-approved policy.
-
-Each highlight must reference an import/document version, parser revision, node ID, text hash, exact quote, occurrence, and validated offsets. Page numbers are optional; DOCX/HWPX do not always provide physical page locations. Do not invent “page 1” or silently highlight the first occurrence of a repeated phrase. An expired/replaced source needs a clear stale-preview state. API offsets should be Unicode code points; JavaScript string slicing uses UTF-16 code units, so convert indices or consume backend-resolved spans, especially around emoji/non-BMP text.
-
-Current `SpecDetails` allows only `MANUAL`/`LLM_ASSISTED` and has no typed document reference. Extend FE/BE types together before enabling import. Imported content remains self-reported after confirmation; source evidence does not verify a certificate, establish a test-score equivalence, or measure proficiency. O*NET selections retain their identity and do not imply NCS credit.
-
-## Profile fields and retention
-
-Show **프로필 정보도 발견했어요** separately from spec cards. Apply major, enrollment, or graduation changes only after field-level confirmation and the existing profile-version check. Preserve date precision: `2026.06` is not an exact date, and an academic year/semester should map only after confirmation. Do not infer goals, planning preferences, age, gender, health, or other sensitive traits from a résumé/photo/name.
-
-Display actual server retention rules once implemented: proposed original/IR/preview retention is at most 24 hours, with immediate cleanup on finish/cancel; confirmed quotes and structured fields remain with their spec. Status, preview, AI, and cancellation requests require the same account ownership. Account deletion also cancels imports and erases artifacts. Clear local file references/text on finish, cancel, logout, or deletion; keep document contents out of analytics, console logs, URLs, and localStorage.
-
-Validate loading/errors, empty and partially scanned PDFs, keyboard/mobile source navigation, exact repeated spans, duplicates, AI refusal/quota, unsafe preview content, expiration, cancellation, account deletion, optimistic conflicts, lost save responses, and immediate full readback. A rules-only path must complete with zero AI calls. LLM résumé accuracy and OCR are separate evaluation tasks; the current local probe does not establish either.
+Tests cover Unicode/repeated anchors, malicious text rendering, explicit AI consent, contact masking, cancellation/stale responses, unavailable/quota behavior and the shared scan → editor → confirmed save → full readback path. The BE covers real synthetic format parsing, session/CSRF checks, limits, timeouts/process termination and temporary cleanup. Browser review uses synthetic data and a local disposable service; no production résumé/account was changed.

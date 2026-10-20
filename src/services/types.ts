@@ -32,10 +32,21 @@ export interface ProfileUpdateRequest {
 
 export type SpecCategory = "skill" | "certification" | "test" | "project" | "experience";
 export type SpecProficiency = "FAMILIAR" | "GUIDED" | "INDEPENDENT" | "PRODUCTION";
+export interface DocumentEvidence {
+  document_sha256: string;
+  parser_revision: string;
+  block_id: string;
+  text_hash: string;
+  quote: string;
+  start: number;
+  end: number;
+  method: "KEYWORD" | "AI_ASSISTED" | "SELECTED_TEXT";
+}
 export interface SpecDetails {
   competency_ids: string[];
   evidence: string;
-  source: "MANUAL" | "LLM_ASSISTED";
+  source: "MANUAL" | "LLM_ASSISTED" | "DOCUMENT_IMPORT";
+  document_evidence?: DocumentEvidence | null;
   started_on?: string | null;
   ended_on?: string | null;
   ongoing?: boolean;
@@ -95,6 +106,39 @@ export interface SkillSearchResponse {
   items: CatalogSkill[];
   total: number;
   available_sources: ("NCS" | "ONET")[];
+}
+
+export type ResumeFormat = "pdf" | "docx" | "hwpx" | "hwp" | "doc";
+export interface ResumeStatus {
+  formats: ResumeFormat[];
+  max_bytes: number;
+  max_pdf_pages: number;
+  parse_timeout_seconds: number;
+  ai_available: boolean;
+  ai_provider: string | null;
+  retention: "REQUEST_ONLY";
+}
+export interface ResumeBlock { block_id: string; text: string; text_hash: string; page: number | null }
+export interface ResumeSuggestion {
+  suggestion_id: string;
+  category: SpecCategory;
+  title: string;
+  competencies: CatalogSkill[];
+  block_id: string;
+  quote: string;
+  start: number;
+  end: number;
+  method: "KEYWORD" | "AI_ASSISTED";
+  score: number | null;
+  score_max: number | null;
+}
+export interface ResumeScan {
+  document_sha256: string;
+  parser_revision: string;
+  blocks: ResumeBlock[];
+  suggestions: ResumeSuggestion[];
+  warnings: string[];
+  skipped_pages: number[];
 }
 
 // ─── Occupations ─────────────────────────────────────────────────────────────
