@@ -48,6 +48,15 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => root.unmount()); container.remove(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe("skill detail navigation and keyboard focus", () => {
+  it.each([undefined, 0, .5])("shows partial credit only when its value is supplied: %s", async credit => {
+    await render({ ...skill, status: "PARTIAL", credit });
+    const text = container.querySelector(".sd-modeled-credit")!.textContent;
+    expect(text).toContain("검증된 숙련도나 취업 확률이 아니에요");
+    if (credit == null) {
+      expect(text).toContain("부분 반영된 역량");
+      expect(text).not.toContain("%");
+    } else expect(text).toContain(`${Math.round(credit * 100)}%`);
+  });
   it("uses the exact NCS fallback in the footer and retains the loading disabled state", async () => {
     const legacy = { ...skill, requirement_key: undefined };
     await render(legacy, true);

@@ -5,6 +5,8 @@ import type {
   ProfileResponse,
   CapabilityDetailResponse,
   CapabilityMutationResponse,
+  CapabilityMutationRequest,
+  SkillSearchResponse,
   OccupationResponse,
   GoalListResponse,
   GoalDetailResponse,
@@ -24,9 +26,6 @@ import type {
   Neo4jPublicationResponse,
   Neo4jNcsAlignmentResponse,
   RouteProposalSummary,
-  CapabilityChecklistResponse,
-  OnboardingCapabilitiesRequest,
-  OnboardingCapabilitiesResponse,
   ChatMessagePayload,
   ChatReplyResponse,
   RoleEvidenceGraph,
@@ -34,6 +33,7 @@ import type {
   ExamSessionsResponse,
   WeeklyPlanInput,
   WeeklyPlanResponse,
+  ResumeStatus, ResumeScan, ResumeFormat, ResumeSuggestion,
 } from "./types";
 
 const BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "/api").replace(/\/$/, "");
@@ -223,31 +223,41 @@ export const roleEvidenceGraphApi = {
 export const capabilitiesApi = {
   list: () => get<{ items: CapabilityDetailResponse[] }>("/v1/me/capabilities"),
   get: (capabilityId: string) => get<CapabilityDetailResponse>(`/v1/me/capabilities/${capabilityId}`),
-  create: (body: {
-    expected_profile_version: number;
-    category: string;
-    raw_text: string;
-    entity_id?: string;
-    proficiency?: string;
-    details?: Record<string, unknown>;
-  }) => post<CapabilityMutationResponse>("/v1/me/capabilities", body),
-  update: (capabilityId: string, body: unknown) =>
-    patch<unknown>(`/v1/me/capabilities/${capabilityId}`, body),
+  create: (body: CapabilityMutationRequest, idempotencyKey?: string) => post<CapabilityMutationResponse>("/v1/me/capabilities", body, idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined),
+  update: (capabilityId: string, body: CapabilityMutationRequest) =>
+    patch<CapabilityMutationResponse>(`/v1/me/capabilities/${capabilityId}`, body),
   delete: (capabilityId: string, body: { expected_profile_version: number }) =>
     del<CapabilityMutationResponse>(`/v1/me/capabilities/${capabilityId}`, body),
-  checklist: (occupationId: string) =>
-    get<CapabilityChecklistResponse>(`/v1/occupations/${encodeURIComponent(occupationId)}/capability-checklist`),
-  replaceOnboarding: (body: OnboardingCapabilitiesRequest, idempotencyKey?: string) =>
-    put<OnboardingCapabilitiesResponse>(
-      "/v1/me/capabilities/onboarding",
-      body,
-      idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined
-    ),
+};
+
+export const skillsApi = {
+  search: (filters: { q?: string; occupation_id?: string; limit?: number } = {}) => {
+    const query = new URLSearchParams();
+    for (const [key, value] of Object.entries(filters)) if (value !== undefined && value !== "") query.set(key, String(value));
+    return get<SkillSearchResponse>(`/v1/skills?${query}`);
+  },
+};
+
+export const resumeApi = {
+  status: () => get<ResumeStatus>("/v1/me/resume/status"),
+  scan: async (file: File, format: ResumeFormat, occupationId?: string | null, signal?: AbortSignal): Promise<ResumeScan> => {
+    const query = new URLSearchParams({ format });
+    if (occupationId) query.set("occupation_id", occupationId);
+    const headers: Record<string, string> = { "Content-Type": "application/octet-stream" };
+    if (_csrfToken) headers["X-CSRF-Token"] = _csrfToken;
+    const response = await fetch(`${BASE_URL}/v1/me/resume/scan?${query}`, { method: "POST", credentials: "include", headers, body: file, signal });
+    if (!response.ok) {
+      const detail = await response.json().catch(() => null);
+      throw Object.assign(new Error("이력서를 읽지 못했어요."), { status: response.status, detail });
+    }
+    return response.json() as Promise<ResumeScan>;
+  },
+  interpret: (text: string, occupationId?: string | null) => post<{ suggestions: ResumeSuggestion[]; rejected_count: number }>("/v1/me/resume/interpret", { text, occupation_id: occupationId ?? null }),
 };
 
 // ─── AI Chat ─────────────────────────────────────────────────────────────────
 export const chatApi = {
   status: () => get<{ available: boolean }>("/v1/chat/status"),
-  send: (messages: ChatMessagePayload[], mode: "counsel" | "onboarding" = "counsel") =>
+  send: (messages: ChatMessagePayload[], mode: "counsel" | "onboarding" | "spec" = "counsel") =>
     post<ChatReplyResponse>("/v1/chat/messages", { messages, mode }),
 };

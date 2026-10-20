@@ -56,6 +56,34 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => root.unmount()); container.remove(); });
 
 describe("analysis goal eligibility", () => {
+  it.each([
+    { weighted_required_pct: 0 },
+    { weighted_preferred_pct: 50 },
+  ])("explains displayed modeled percentages even without a method field: %j", async (percentages) => {
+    mocks.goals = [targeted]; mocks.selectedGoalId = targeted.goal_id;
+    mocks.analysisApi.get.mockResolvedValueOnce({ analysis_id: "analysis", goal_id: targeted.goal_id, result: { ...percentages, skills: [] } });
+    await render();
+    expect(container.textContent).toContain("부분 반영을 포함한 모델 비율");
+    expect(container.textContent).toContain("본인 입력과 근거");
+    expect(container.textContent).toContain("검증된 실력이나 취업 확률이 아니에요");
+  });
+  it("omits the modeled-metric explanation when neither percentage is displayed", async () => {
+    mocks.goals = [targeted]; mocks.selectedGoalId = targeted.goal_id;
+    mocks.analysisApi.get.mockResolvedValueOnce({ analysis_id: "analysis", goal_id: targeted.goal_id, result: { weighted_score_method: "MODELED_COMPETENCY_CREDIT_V1", weighted_required_pct: null, weighted_preferred_pct: null, skills: [] } });
+    await render();
+    expect(container.textContent).not.toContain("부분 반영을 포함한 모델 비율");
+    expect(container.textContent).not.toContain("본인 입력과 근거");
+  });
+  it("keeps binary fulfillment separate from the modeled partial-credit coverage", async () => {
+    mocks.goals = [targeted]; mocks.selectedGoalId = targeted.goal_id;
+    mocks.analysisApi.get.mockResolvedValueOnce({ analysis_id: "analysis", goal_id: targeted.goal_id, result: { required_pct: 0, preferred_pct: 25, weighted_required_pct: 75, weighted_preferred_pct: 50, weighted_score_method: "MODELED_COMPETENCY_CREDIT_V1", skills: [] } });
+    await render();
+    expect(container.querySelectorAll(".an-fulfillment-pct")[0]?.textContent).toBe("0%");
+    expect(container.querySelectorAll(".an-fulfillment-pct")[1]?.textContent).toBe("25%");
+    expect(container.textContent).toContain("부분 반영을 포함한 모델 비율 75%");
+    expect(container.textContent).toContain("부분 반영을 포함한 모델 비율 50%");
+    expect(container.textContent).toContain("검증된 실력이나 취업 확률이 아니에요");
+  });
   it.each(unusable)("shows goal setup without requesting analysis for %s", async (_, goal) => {
     mocks.goals = goal ? [goal] : []; mocks.selectedGoalId = goal?.goal_id ?? null;
     await render();

@@ -60,6 +60,9 @@ describe("skill detail formatting", () => {
     // Then
     expect(actual).toEqual([]);
   });
+  it("labels partial-credit hours as remaining learning rather than the original total", () => {
+    expect(formatHours({ ...skill, status: "PARTIAL", credit: .75, estimated_hours: 10, base_estimated_hours: 40, hours_basis: "ESTIMATED" })).toBe("추가 약 10시간 (추정)");
+  });
 
   it.each([
     ["OFFICIAL" as const, "약 18시간 · 공식"],

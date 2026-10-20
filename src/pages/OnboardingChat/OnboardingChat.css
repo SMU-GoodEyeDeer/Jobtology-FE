@@ -537,3 +537,6 @@
   .ob-step-dot,
   .ob-ai { transition: none; }
 }
+.ob-specs { width: 100%; padding: 24px; box-sizing: border-box; border: 1px solid #e2e8f0; border-radius: 16px; background: #fff; }
+.ob-specs-finish { margin-top: 24px; }
+@media (max-width: 600px) { .ob-specs { padding: 14px; } }

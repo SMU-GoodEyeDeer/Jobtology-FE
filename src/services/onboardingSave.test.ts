@@ -41,17 +41,23 @@ describe("onboarding saves", () => {
     expect(created).toMatchObject({ expected_profile_version: 4, goal_mode: "TARGETED", occupation_id: "BACKEND_DEVELOPER" });
   });
 
-  it("skips the profile update when no major is known", async () => {
-    fetchMock.mockResolvedValueOnce(json({ version: 2, major_raw: "" }));
+  it("saves the selected grade without inventing a major", async () => {
+    fetchMock.mockResolvedValueOnce(json({ version: 2, major_raw: "" })).mockResolvedValueOnce(json({ version: 3 }));
 
-    expect(await saveProfile(null, 3)).toBe(false);
-    expect(calls()).toEqual(["GET /v1/me/profile"]);
+    expect(await saveProfile(null, 3)).toBe(true);
+    expect(calls()).toEqual(["GET /v1/me/profile", "PUT /v1/me/profile"]);
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toMatchObject({ major_raw: "", year: 3 });
   });
 
   it("saves the typed major with the selected grade", async () => {
     fetchMock.mockResolvedValueOnce(json({ version: 2, major_raw: "" })).mockResolvedValueOnce(json({ version: 3 }));
 
     expect(await saveProfile(" 컴퓨터공학과 ", 3)).toBe(true);
-    expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toEqual({ expected_profile_version: 2, major_raw: "컴퓨터공학과", year: 3 });
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toEqual({ expected_profile_version: 2, major_raw: "컴퓨터공학과", major_concept_id: null, year: 3, enrollment_status: null, expected_graduation_on: null });
+  });
+  it("preserves existing profile fields when academic answers are skipped", async () => {
+    fetchMock.mockResolvedValueOnce(json({ version: 8, major_raw: "기존 전공", major_concept_id: "major", year: 4, enrollment_status: "ENROLLED", expected_graduation_on: "2028-08-31" })).mockResolvedValueOnce(json({ version: 9 }));
+    await saveProfile(null, null);
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toEqual({ expected_profile_version: 8, major_raw: "기존 전공", major_concept_id: "major", year: 4, enrollment_status: "ENROLLED", expected_graduation_on: "2028-08-31" });
   });
 });

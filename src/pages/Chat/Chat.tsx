@@ -4,7 +4,7 @@ import "./Chat.css";
 import { AppSidebar } from "../../components/AppSidebar";
 import { GoalDropdown } from "../../components/GoalDropdown";
 import chevronDownIcon from "../../assets/Chevron down.svg";
-import { capabilitiesApi, chatApi, profileApi, roleEvidenceGraphApi } from "../../services/api";
+import { capabilitiesApi, chatApi, roleEvidenceGraphApi } from "../../services/api";
 import type { ChatCapabilityCandidate, ChatMessagePayload, RoleEvidenceGraph } from "../../services/types";
 import { EvidenceGraph } from "./EvidenceGraph";
 import { ReplyText } from "./ReplyText";
@@ -15,7 +15,7 @@ import { useGoals } from "../../hooks/useGoals";
 import { useRoadmap } from "../../hooks/useRoadmap";
 import { useSession } from "../../context/SessionContext";
 
-type CandidateStatus = "saving" | "saved" | "dismissed" | "error";
+type CandidateStatus = "dismissed";
 
 const MAX_HISTORY = 20;
 
@@ -102,8 +102,8 @@ export function Chat() {
   // Load capabilities to mark owned skills in graph
   useEffect(() => {
     capabilitiesApi.list().then((res) => {
-      const items = res.items as Array<{ raw_text: string }>;
-      const names = new Set(items.map((c) => c.raw_text.toLowerCase()));
+      const names = new Set(res.items.filter(item => item.lifecycle === "ACTIVE" && item.matching.status === "MATCHED" && item.matching.credit === 1)
+        .flatMap(item => item.matching.competencies.filter(value => value.requirement_keys.length).map(value => value.label.toLowerCase())));
       setOwnedSkills(names);
     }).catch(console.error);
   }, []);
@@ -172,23 +172,6 @@ export function Chat() {
     }
     setIsTyping(false);
     setMessages((prev) => [...prev, sentText === ROUTE_SUGGESTION ? { role: "ai-route" } : { role: "ai", text: "지금은 AI 상담을 연결할 수 없어요. 잠시 후 다시 시도해주세요." }]);
-  }
-
-  async function saveCandidate(key: string, candidate: ChatCapabilityCandidate) {
-    setCandidateStatus((prev) => ({ ...prev, [key]: "saving" }));
-    try {
-      const profile = await profileApi.get();
-      await capabilitiesApi.create({
-        expected_profile_version: profile.version,
-        category: "chat",
-        raw_text: candidate.label,
-        details: { source: "chat", evidence_quote: candidate.evidence_quote },
-      });
-      setOwnedSkills((prev) => new Set(prev).add(candidate.label.toLowerCase()));
-      setCandidateStatus((prev) => ({ ...prev, [key]: "saved" }));
-    } catch {
-      setCandidateStatus((prev) => ({ ...prev, [key]: "error" }));
-    }
   }
 
   const suggestions = aiSuggestions
@@ -316,27 +299,10 @@ export function Chat() {
                               <strong>{candidate.label}</strong> 역량을 보유 역량에 추가할까요?
                             </p>
                             <p className="cap-candidate-quote">“{candidate.evidence_quote}”</p>
-                            {status === "saved" ? (
-                              <p className="cap-candidate-done">추가했어요 · 본인 응답으로 저장됨</p>
-                            ) : (
-                              <div className="cap-candidate-actions">
-                                <button
-                                  className="cap-candidate-add"
-                                  disabled={status === "saving"}
-                                  onClick={() => saveCandidate(key, candidate)}
-                                >
-                                  {status === "saving" ? "추가 중..." : "추가"}
-                                </button>
-                                <button
-                                  className="cap-candidate-skip"
-                                  disabled={status === "saving"}
-                                  onClick={() => setCandidateStatus((prev) => ({ ...prev, [key]: "dismissed" }))}
-                                >
-                                  아니요
-                                </button>
-                                {status === "error" && <span className="cap-candidate-error">저장하지 못했어요</span>}
-                              </div>
-                            )}
+                            <div className="cap-candidate-actions">
+                              <button className="cap-candidate-add" onClick={() => navigate("/myinfo", { state: { specCandidate: candidate } })}>검토하고 스펙에 추가</button>
+                              <button className="cap-candidate-skip" onClick={() => setCandidateStatus(previous => ({ ...previous, [key]: "dismissed" }))}>아니요</button>
+                            </div>
                           </div>
                         );
                       })}

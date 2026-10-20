@@ -230,7 +230,8 @@ export function Analysis() {
               <div className="an-fulfillment-half">
                 <p className="an-half-label">필수 역량</p>
                 <p className="an-fulfillment-pct">{required_pct != null ? `${required_pct}%` : "—"}</p>
-                <p className="an-fulfillment-sub">거의 모든 공고가 요구하는 역량</p>
+                <p className="an-fulfillment-sub">완전히 반영된 필수 역량 비율</p>
+                {analysisResult?.result?.weighted_required_pct != null && <p className="an-fulfillment-sub">부분 반영을 포함한 모델 비율 {analysisResult.result.weighted_required_pct}%</p>}
                 <div className="progress-bar">
                   <div className="progress-fill progress-fill--blue" style={{ width: `${required_pct ?? 0}%` }} />
                 </div>
@@ -239,12 +240,14 @@ export function Analysis() {
               <div className="an-fulfillment-half">
                 <p className="an-half-label">우대 역량</p>
                 <p className="an-fulfillment-pct an-fulfillment-pct--green">{preferred_pct != null ? `${preferred_pct}%` : "—"}</p>
-                <p className="an-fulfillment-sub">있으면 유리한 역량</p>
+                <p className="an-fulfillment-sub">완전히 반영된 우대 역량 비율</p>
+                {analysisResult?.result?.weighted_preferred_pct != null && <p className="an-fulfillment-sub">부분 반영을 포함한 모델 비율 {analysisResult.result.weighted_preferred_pct}%</p>}
                 <div className="progress-bar">
                   <div className="progress-fill progress-fill--green" style={{ width: `${preferred_pct ?? 0}%` }} />
                 </div>
               </div>
             </div>
+            {(analysisResult?.result?.weighted_required_pct != null || analysisResult?.result?.weighted_preferred_pct != null) && <p className="an-fulfillment-sub">본인 입력과 근거를 바탕으로 학습량을 계산한 모델 지표예요. 검증된 실력이나 취업 확률이 아니에요.</p>}
           </section>
 
           <SkillList key={selectedGoalId ?? "no-goal"} skills={skills} goalId={selectedGoalId} linksReady={pollState === "completed" && !publicationsLoading}
