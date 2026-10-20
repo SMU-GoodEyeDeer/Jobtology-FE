@@ -56,6 +56,17 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => root.unmount()); container.remove(); });
 
 describe("analysis goal eligibility", () => {
+  it("follows the current analysis when rapid edits supersede an older queued job", async () => {
+    mocks.goals = [targeted]; mocks.selectedGoalId = targeted.goal_id;
+    mocks.dashboardApi.get.mockResolvedValueOnce({ state: "RECOMPUTING", recompute_request_id: "old" })
+      .mockResolvedValueOnce({ state: "RECOMPUTING", recompute_request_id: "current" });
+    mocks.analysisApi.poll.mockResolvedValueOnce({ state: "FAILED", error_code: "STALE_PROFILE" })
+      .mockResolvedValueOnce({ state: "COMPLETED", analysis_id: "analysis" });
+    await render();
+    expect(mocks.analysisApi.poll.mock.calls).toEqual([["old"], ["current"]]);
+    expect(mocks.analysisApi.create).not.toHaveBeenCalled();
+    expect(container.textContent).not.toContain("분석 중 오류가 발생했어요");
+  });
   it.each([
     { weighted_required_pct: 0 },
     { weighted_preferred_pct: 50 },

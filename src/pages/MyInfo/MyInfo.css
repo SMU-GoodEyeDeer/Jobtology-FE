@@ -76,6 +76,9 @@
 }
 
 @media (max-width: 900px) { .mi-two-col { flex-direction: column; } .mi-two-col > * { width: 100%; } }
+.mi-two-col:has(.resume-scanner, .spec-editor) { flex-direction: column; }
+.mi-two-col:has(.resume-scanner, .spec-editor) > * { width: 100%; }
+@media (max-width: 600px) { .mi-profile-card, .mi-spec-card { padding: 16px; } }
 
 /* ── Card header ── */
 .mi-card-header {

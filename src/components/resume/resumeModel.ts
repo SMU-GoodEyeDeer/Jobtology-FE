@@ -36,7 +36,7 @@ export function anchorAiSuggestion(suggestion: ResumeSuggestion, sent: string, b
   return { ...suggestion, block_id: block.block_id, start: occurrences[0], end: occurrences[0] + quote.length };
 }
 export function resumeError(cause: unknown): string {
-  const error = cause as { status?: number; detail?: { error?: { code?: string } } };
+  const error = cause as { status?: number; detail?: { error?: { code?: string; request_id?: string } } };
   const code = error.detail?.error?.code;
   const messages: Record<string, string> = {
     FILE_TOO_LARGE: "파일은 10MB 이하로 올려 주세요.", PAGE_LIMIT: "PDF는 20쪽 이하로 나눠서 올려 주세요.",
@@ -47,9 +47,16 @@ export function resumeError(cause: unknown): string {
     SCAN_ALREADY_RUNNING: "이 계정의 다른 이력서를 처리 중이에요. 잠시 후 다시 시도해 주세요.",
     SCANNER_BUSY: "현재 문서 처리 요청이 많아요. 잠시 후 다시 시도해 주세요.",
     FORMAT_UNAVAILABLE: "현재 서버에서 이 형식을 처리할 수 없어요. 지원 형식을 확인해 주세요.",
+    SCANNER_UNAVAILABLE: "현재 문서 처리 서비스를 사용할 수 없어요. 잠시 후 다시 시도해 주세요.",
+    UPLOAD_TIMEOUT: "파일 업로드 시간이 초과됐어요. 연결 상태를 확인하고 다시 올려 주세요.",
+    EMPTY_DOCUMENT: "파일이 비어 있어요. 내용이 있는 문서를 올려 주세요.",
+    UNREADABLE_DOCUMENT: "문서의 텍스트를 읽지 못했어요. 다시 시도하거나 DOCX 등 다른 형식으로 저장해 주세요.",
     AI_UNAVAILABLE: "AI 도움을 연결하지 못했어요. 직접 검토하거나 잠시 후 다시 시도해 주세요.",
   };
-  return code && messages[code] ? messages[code] : error.status === 429 ? "요청 한도에 도달했어요. 잠시 후 다시 시도해 주세요."
+  const message = code && messages[code] ? messages[code] : error.status === 429 ? "요청 한도에 도달했어요. 잠시 후 다시 시도해 주세요."
     : error.status === 401 ? "로그인 상태를 확인하고 다시 시도해 주세요."
     : "문서를 처리하지 못했어요. 다른 형식으로 저장하거나 직접 스펙을 추가해 주세요.";
+  const reference = error.detail?.error?.request_id;
+  return reference && /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(reference)
+    ? `${message} (문의 코드: ${reference})` : message;
 }
