@@ -632,3 +632,4 @@
   .main-content { padding-inline: 20px; }
   .hero-card { padding: 24px; gap: 16px; }
 }
+.hero-card a.hero-btn { text-decoration: none; display: inline-flex; align-items: center; }

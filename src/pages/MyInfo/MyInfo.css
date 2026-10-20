@@ -412,6 +412,20 @@
   gap: 12px;
   margin-bottom: 20px;
 }
+.mi-goal-help { color: #6b7280; font-size: 12px; line-height: 1.7; margin: 0; }
+.mi-goal-empty { padding: 16px; border-radius: 8px; background: #f9fafb; color: #4b5563; font-size: 14px; line-height: 1.7; margin: 0; }
+.mi-goal-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.mi-goal-editor { display: flex; flex-direction: column; gap: 14px; padding: 20px; border: 1px solid #e0e7ff; border-radius: 10px; background: #fafaff; }
+.mi-goal-editor h4 { margin: 0; font-size: 14px; }
+.mi-goal-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.mi-goal-error { color: #b91c1c; font-size: 13px; line-height: 1.7; margin: 0; }
+.mi-goal-error p { margin: 0 0 8px; }
+.mi-goal-notice { color: #166534; font-size: 13px; line-height: 1.7; margin: 0; }
+.mi-goal-analysis-link { color: #4338ca; font-size: 13px; }
+.mi-roadmap-btn.mi-goal-submit { width: auto; padding: 10px 18px; margin: 0; font-size: 13px; }
+.mi-goals-card button:focus-visible, .mi-goal-editor select:focus-visible, .mi-goal-editor input:focus-visible { outline: 2px solid #4f46e5; outline-offset: 3px; }
+#goals { scroll-margin-top: 20px; }
+@media (max-width: 650px) { .mi-goal-fields { grid-template-columns: 1fr; } .mi-goal-item { align-items: flex-start; gap: 10px; flex-wrap: wrap; } .mi-goal-info { flex-wrap: wrap; } .mi-goals-card { padding: 18px; } }
 
 .mi-goal-item {
   display: flex;
