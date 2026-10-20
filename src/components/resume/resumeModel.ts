@@ -48,6 +48,7 @@ export function resumeError(cause: unknown): string {
     SCANNER_BUSY: "현재 문서 처리 요청이 많아요. 잠시 후 다시 시도해 주세요.",
     FORMAT_UNAVAILABLE: "현재 서버에서 이 형식을 처리할 수 없어요. 지원 형식을 확인해 주세요.",
     SCANNER_UNAVAILABLE: "현재 문서 처리 서비스를 사용할 수 없어요. 잠시 후 다시 시도해 주세요.",
+    PARSER_ISOLATION_UNAVAILABLE: "현재 서버의 문서 처리 환경을 사용할 수 없어요. 잠시 후 다시 시도해 주세요.",
     UPLOAD_TIMEOUT: "파일 업로드 시간이 초과됐어요. 연결 상태를 확인하고 다시 올려 주세요.",
     EMPTY_DOCUMENT: "파일이 비어 있어요. 내용이 있는 문서를 올려 주세요.",
     UNREADABLE_DOCUMENT: "문서의 텍스트를 읽지 못했어요. 다시 시도하거나 DOCX 등 다른 형식으로 저장해 주세요.",

@@ -1,0 +1,56 @@
+// @vitest-environment jsdom
+import { act, createElement } from "react";
+import { createRoot } from "react-dom/client";
+import type { Root } from "react-dom/client";
+import { MemoryRouter } from "react-router-dom";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { GoalResponse, RoadmapDetailResponse, WeeklyPlanResponse } from "../../services/types";
+import { proposalsApi, roadmapsApi } from "../../services/api";
+import { Roadmap } from "./Roadmap";
+const goal: GoalResponse = { goal_id: "goal", version: 1, goal_mode: "TARGETED", occupation_id: "BACKEND_DEVELOPER", status: "ACTIVE", target_by: "2026-12-31T00:00:00Z", timezone: "Asia/Seoul", original_time_phrase: "12월까지" };
+const roadmap: RoadmapDetailResponse = { roadmap_id: "roadmap", version: 1, goal_id: "goal", title: "현재 로드맵", status: "ACTIVE", proposal_id: "original-proposal", steps: [] };
+const preferences = { profile_version: 1, available_hours_per_week: 10, availability_source: "DEFAULT", budget_mode: "REGULAR", fastest_path: false, needs_portfolio: false, career_switch: false, max_out_of_pocket_krw: null, weekly_availability: [], unavailable_dates: [] };
+vi.mock("../../components/AppSidebar", () => ({ AppSidebar: () => null }));
+vi.mock("../../context/SessionContext", () => ({ useSession: () => ({ session: { user_id: "user" }, loading: false }) }));
+vi.mock("../../hooks/useGoals", () => ({ useGoals: () => ({ goals: [goal], selectedGoal: goal, selectedGoalId: goal.goal_id, setSelectedGoalId: vi.fn(), selectedGoalName: "개발자", getGoalName: () => "개발자", loading: false }) }));
+vi.mock("../../hooks/useRoadmap", () => ({ useRoadmap: () => ({ roadmaps: [roadmap], activeRoadmap: roadmap, loading: false, error: null, updateStepState: vi.fn(), progressPct: 0, refetch: vi.fn().mockResolvedValue(undefined) }) }));
+vi.mock("./useRoutePreferences", () => ({ useRoutePreferences: () => ({ preferences, loading: false, saving: false, error: null, toggle: vi.fn(), retry: vi.fn(), saveAvailability: vi.fn().mockResolvedValue(true) }) }));
+vi.mock("../../services/api", () => ({ profileApi: { get: vi.fn() }, catalogV2Api: { listPublications: vi.fn().mockResolvedValue([]) }, dashboardApi: { get: vi.fn().mockResolvedValue({ state: "READY", proposal_id: "latest-proposal" }) }, proposalsApi: { get: vi.fn() }, roadmapsApi: { getPlan: vi.fn(), skills: vi.fn(), previewPlan: vi.fn() } }));
+vi.mock("./PlanPhases", () => ({ PlanPhases: () => createElement("div", { "data-plan-phases": true }) }));
+vi.mock("./PlanStepDetail", () => ({ PlanStepDetail: () => null }));
+vi.mock("./PlanWeeks", () => ({ PlanWeeks: () => null }));
+const plan: WeeklyPlanResponse = { version: 0, roadmap_id: "roadmap", start_date: "2026-10-19", target_date: null, weekly_hours: 10, recommended_weekly_hours: 10, rest_weeks: [], is_customized: false, saved_at: null, total_hours: 0, total_weeks: 0, completion_date: "2026-10-19", recommended_completion_date: "2026-10-19", schedule_source: "SOLVER", deadline_exceeded: false, days_past_target: 0, has_dependency_violations: false, warnings: [], steps: [] };
+let root: Root; let container: HTMLDivElement;
+beforeEach(() => {
+  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+  vi.stubGlobal("matchMedia", () => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn(), addListener: vi.fn(), removeListener: vi.fn() }));
+  vi.mocked(roadmapsApi.getPlan).mockReset();
+  vi.mocked(roadmapsApi.skills).mockReset().mockResolvedValue({ roadmap_id: "roadmap", analysis_id: "pinned", release_id: "release", skills: [] });
+  vi.mocked(proposalsApi.get).mockReset().mockRejectedValueOnce(new Error("offline")).mockResolvedValueOnce({ proposal_id: "original-proposal", feasibility: "PARTIAL" });
+  container = document.createElement("div"); document.body.append(container); root = createRoot(container);
+});
+afterEach(async () => { await act(async () => root.unmount()); container.remove(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+describe("roadmap parent reconciliation", () => {
+  it("keeps one revision and intact conditions as a pending plan loads and a proposal error retries", async () => {
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    let finishPlan!: (plan: WeeklyPlanResponse) => void;
+    vi.mocked(roadmapsApi.getPlan).mockImplementationOnce(() => new Promise(resolve => { finishPlan = resolve; }));
+    await act(async () => root.render(createElement(MemoryRouter, { initialEntries: ["/roadmap"] }, createElement(Roadmap))));
+    expect(container.querySelectorAll('[aria-label="최신 추천 경로 비교"]')).toHaveLength(1);
+    await act(async () => finishPlan(plan));
+    expect(container.querySelectorAll(".weekly-plan")).toHaveLength(1);
+    expect(container.textContent).toContain("일부 역량만 포함된 경로일 수 있어요");
+    await act(async () => [...container.querySelectorAll("button")].find(button => button.textContent === "경로 상태 다시 확인")!.click());
+    expect(container.querySelectorAll('[aria-label="최신 추천 경로 비교"]')).toHaveLength(1);
+    expect(container.querySelectorAll(".weekly-plan")).toHaveLength(1);
+    expect(container.querySelectorAll(".rm-section")).toHaveLength(1);
+    const conditions = container.querySelector(".rm-section")!;
+    expect(conditions.querySelector(".rm-section-header")?.textContent).toContain("내 로드맵 조건");
+    expect(conditions.querySelectorAll(".rm-chips button")).toHaveLength(4);
+    expect(conditions.querySelectorAll(".rm-availability")).toHaveLength(1);
+    expect(conditions.querySelector('[aria-label="최신 추천 경로 비교"]')).toBeNull();
+    expect(container.querySelectorAll('[role="note"]')).toHaveLength(1);
+    expect(container.querySelector<HTMLElement>(".page-data-content")?.hidden).toBe(false);
+    expect(errors.mock.calls.some(call => String(call[0]).includes("Encountered two children with the same key"))).toBe(false);
+  });
+});

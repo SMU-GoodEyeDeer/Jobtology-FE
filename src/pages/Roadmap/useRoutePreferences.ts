@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { routePrefsApi } from "../../services/api";
-import type { RoutePreferencesResponse } from "../../services/types";
+import type { RouteAvailability, RoutePreferencesResponse, RoutePreferencesUpdateRequest } from "../../services/types";
 
 export type PreferenceField = "budget_mode" | "fastest_path" | "needs_portfolio" | "career_switch";
 
@@ -12,11 +12,16 @@ export function useRoutePreferences(userId: string | undefined, sessionReady: bo
   const [attempt, setAttempt] = useState(0);
   const generation = useRef(0);
   const savingNow = useRef(false);
+  const preferencesOwner = useRef(userId);
 
   useEffect(() => {
     const current = ++generation.current;
-    setPreferences(null); setError(null); setSaving(false); savingNow.current = false;
-    if (!sessionReady || !userId) { setLoading(false); return; }
+    if (preferencesOwner.current !== userId) {
+      preferencesOwner.current = userId;
+      setPreferences(null);
+    }
+    setError(null); setSaving(false); savingNow.current = false;
+    if (!sessionReady || !userId) { setLoading(!!userId && !sessionReady); return; }
     setLoading(true);
     routePrefsApi.get().then(value => {
       if (current === generation.current) setPreferences(value);
@@ -26,18 +31,16 @@ export function useRoutePreferences(userId: string | undefined, sessionReady: bo
     return () => { generation.current += 1; };
   }, [userId, sessionReady, attempt]);
 
-  async function toggle(field: PreferenceField) {
-    if (!preferences || loading || savingNow.current) return;
+  async function save(change: Partial<Omit<RoutePreferencesUpdateRequest, "expected_profile_version">>): Promise<boolean> {
+    if (!preferences || !sessionReady || !userId || preferencesOwner.current !== userId || loading || savingNow.current) return false;
     const previous = preferences;
     const current = generation.current;
-    const enabled = field === "budget_mode" ? previous.budget_mode !== "LOW_COST" : !previous[field];
-    const change = field === "budget_mode" ? { budget_mode: enabled ? "LOW_COST" as const : "REGULAR" as const } : { [field]: enabled };
     savingNow.current = true; setSaving(true); setError(null);
     setPreferences({ ...previous, ...change });
     try {
       // Use one fresh snapshot and its concurrency version; preserve changes from other pages.
       const latest = await routePrefsApi.get();
-      if (current !== generation.current) return;
+      if (current !== generation.current) return false;
       const updated = await routePrefsApi.update({
         expected_profile_version: latest.profile_version,
         available_hours_per_week: latest.available_hours_per_week,
@@ -46,19 +49,30 @@ export function useRoutePreferences(userId: string | undefined, sessionReady: bo
         fastest_path: latest.fastest_path,
         needs_portfolio: latest.needs_portfolio,
         career_switch: latest.career_switch,
+        weekly_availability: latest.weekly_availability ?? [],
+        unavailable_dates: latest.unavailable_dates ?? [],
         ...(latest.max_out_of_pocket_krw !== null ? { max_out_of_pocket_krw: latest.max_out_of_pocket_krw } : {}),
         ...change,
       });
-      if (current === generation.current) setPreferences(updated);
+      if (current !== generation.current) return false;
+      setPreferences(updated);
+      return true;
     } catch {
       if (current === generation.current) {
         setPreferences(previous);
         setError("로드맵 조건을 저장하지 못해 이전 값으로 되돌렸어요. 다시 불러온 뒤 시도해 주세요.");
       }
+      return false;
     } finally {
       if (current === generation.current) { savingNow.current = false; setSaving(false); }
     }
   }
 
-  return { preferences, loading, saving, error, toggle, retry: () => setAttempt(value => value + 1) };
+  function toggle(field: PreferenceField) {
+    if (!preferences) return Promise.resolve(false);
+    const enabled = field === "budget_mode" ? preferences.budget_mode !== "LOW_COST" : !preferences[field];
+    return save(field === "budget_mode" ? { budget_mode: enabled ? "LOW_COST" : "REGULAR" } : { [field]: enabled });
+  }
+
+  return { preferences: preferencesOwner.current === userId ? preferences : null, loading, saving, error, toggle, saveAvailability: (value: RouteAvailability) => save(value), retry: () => setAttempt(value => value + 1) };
 }

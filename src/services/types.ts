@@ -184,7 +184,16 @@ export interface GoalUpdateRequest {
 // ─── Route Preferences ───────────────────────────────────────────────────────
 export type BudgetMode = "REGULAR" | "LOW_COST";
 
-export interface RoutePreferencesResponse {
+export interface WeeklyAvailability {
+  readonly weekday: number;
+  readonly start_hour: number;
+  readonly end_hour: number;
+}
+export interface RouteAvailability {
+  readonly weekly_availability?: readonly WeeklyAvailability[];
+  readonly unavailable_dates?: readonly string[];
+}
+export interface RoutePreferencesResponse extends RouteAvailability {
   profile_version: number;
   available_hours_per_week: number;
   availability_source: string;
@@ -195,7 +204,7 @@ export interface RoutePreferencesResponse {
   max_out_of_pocket_krw: number | null;
 }
 
-export interface RoutePreferencesUpdateRequest {
+export interface RoutePreferencesUpdateRequest extends RouteAvailability {
   expected_profile_version: number;
   available_hours_per_week: number;
   availability_source: string;
@@ -218,6 +227,7 @@ export interface DashboardNextAction {
 export interface DashboardResponse {
   state?: string;
   analysis_id?: string | null;
+  proposal_id?: string | null;
   recompute_request_id?: string | null;
   recompute_state?: string | null;
   next_actions: DashboardNextAction[];
@@ -244,6 +254,7 @@ export interface RecomputeResponse {
   state: "PENDING" | "RUNNING" | "COMPLETED" | "FAILED";
   analysis_id: string | null;
   error_code?: string | null;
+  next_attempt_at?: string | null;
 }
 
 export interface AnalysisResponse {
@@ -262,6 +273,8 @@ export interface AnalysisResult {
 }
 
 export interface Skill {
+  readonly step_ids?: readonly string[];
+  readonly source_analysis_id?: string | null;
   readonly name: string;
   readonly type: "필수" | "우대";
   readonly demand_pct?: number | null;
@@ -272,7 +285,7 @@ export interface Skill {
   readonly achievement?: string | null;
   readonly requirement_key?: string;
   readonly ncs_base_code?: string | null;
-  readonly status?: "UNMET" | "NEEDS_INPUT" | "PARTIAL";
+  readonly status?: "UNMET" | "NEEDS_INPUT" | "PARTIAL" | "SATISFIED";
   readonly credit?: number;
   readonly base_estimated_hours?: number | null;
   readonly ncs_level?: number | null;
@@ -354,6 +367,51 @@ export interface RoadmapResponse {
 
 export interface RoadmapDetailResponse extends RoadmapResponse {
   steps: RoadmapStep[];
+}
+
+export interface RoadmapRevision {
+  readonly roadmap_id: string;
+  readonly roadmap_version: number;
+  readonly profile_version: number;
+  readonly plan_version: number;
+  readonly proposal_id: string;
+  readonly proposal_hash: string;
+  readonly analysis_id: string;
+  readonly release_id: string | null;
+  readonly feasibility: RouteFeasibility;
+  readonly can_apply: boolean;
+  readonly blocking_reasons: readonly string[];
+  readonly preserved_completed_steps: readonly { readonly step_id: string; readonly step_key: string; readonly title: string }[];
+  readonly retained_in_progress_step_ids: readonly string[];
+  readonly unretained_in_progress_step_ids: readonly string[];
+  readonly added_step_keys: readonly string[];
+  readonly removed_step_keys: readonly string[];
+  readonly revised_step_count: number;
+  readonly resets_future_customization?: boolean;
+  readonly constraint_changes: Readonly<Record<string, readonly [unknown, unknown]>>;
+  readonly schedule_changes: readonly { readonly step_key: string; readonly old_planned_start: string | null; readonly old_planned_end: string | null; readonly new_planned_start: string | null; readonly new_planned_end: string | null }[];
+}
+export interface RoadmapRevisionInput {
+  readonly proposal_id: string;
+  readonly expected_proposal_hash: string;
+  readonly expected_roadmap_version: number;
+  readonly expected_profile_version: number;
+  readonly expected_plan_version: number;
+  readonly title?: string;
+}
+export interface RoadmapRevisionApplied {
+  readonly roadmap_id: string;
+  readonly roadmap_version: number;
+  readonly state: "ACTIVE";
+  readonly previous_roadmap_id: string;
+  readonly preserved_completed_count: number;
+}
+
+export interface RoadmapSkillsResponse {
+  readonly roadmap_id: string;
+  readonly analysis_id: string | null;
+  readonly release_id: string | null;
+  readonly skills: readonly Skill[];
 }
 
 export interface RoadmapListResponse {

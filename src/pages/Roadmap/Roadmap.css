@@ -414,3 +414,25 @@
   background: var(--surface-hover);
   border-color: var(--border);
 }
+
+.rm-availability { margin-top: 16px; padding: 14px 0; border-top: 1px solid var(--border); font-size: 13px; color: var(--text-secondary); }
+.rm-availability summary { cursor: pointer; font-weight: 600; line-height: 1.5; }
+.rm-availability > .rm-card-sub { margin: 8px 0 0; line-height: 1.6; }
+.rm-availability fieldset { margin: 12px 0 0; padding: 0; border: 0; min-width: 0; }
+.rm-availability legend { margin-bottom: 10px; font-weight: 600; }
+.rm-availability-row { display: flex; align-items: end; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.rm-availability-row label { display: grid; gap: 5px; }
+.rm-availability select, .rm-availability input { min-height: 34px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface); color: var(--text); font: inherit; }
+.rm-unavailable-label { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 16px 0 8px; }
+.rm-unavailable-dates { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; margin: 12px 0; padding: 0; }
+.rm-unavailable-dates li { display: flex; align-items: center; gap: 6px; padding: 4px 8px; border: 1px solid var(--border); border-radius: 7px; }
+.rm-unavailable-dates button { border: 0; background: transparent; color: var(--text-secondary); cursor: pointer; font-size: 18px; }
+.rm-availability-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.rm-availability :focus-visible { outline: 2px solid var(--accent-focus); outline-offset: 2px; }
+.rm-revision-comparison { margin-top: 16px; color: var(--text-secondary); font-size: 13px; line-height: 1.75; }
+.rm-revision-comparison details { margin: 12px 0; }
+.rm-revision-comparison summary { cursor: pointer; font-weight: 600; }
+.rm-revision-comparison ul { padding-left: 20px; }
+.rm-revision-comparison dl div { display: grid; grid-template-columns: minmax(80px, auto) minmax(0, 1fr); gap: 12px; padding: 6px 0; }
+.rm-revision-comparison dd { margin: 0; overflow-wrap: anywhere; }
+.rm-revision-warning { padding: 10px 12px; border: 1px solid var(--warning-border); border-radius: 8px; background: var(--warning-bg); color: var(--warning-text); }

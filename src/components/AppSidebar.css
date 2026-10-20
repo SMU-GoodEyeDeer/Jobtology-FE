@@ -214,3 +214,8 @@
     transition: none;
   }
 }
+
+.sidebar-logout-btn:disabled { opacity: .6; cursor: wait; }
+.sidebar-logout-error { position: fixed; z-index: 1000; left: 50%; bottom: 20px; transform: translateX(-50%); width: min(360px, calc(100vw - 32px)); padding: 16px; box-sizing: border-box; border: 1px solid var(--danger-border); border-radius: 12px; background: var(--surface); color: var(--text); font-size: 13px; line-height: 1.65; }
+.sidebar-logout-error p { margin: 0 0 10px; }
+.sidebar-logout-error button { padding: 8px 12px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface-soft); color: var(--text); font: inherit; cursor: pointer; }

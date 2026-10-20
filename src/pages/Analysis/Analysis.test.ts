@@ -54,7 +54,7 @@ beforeEach(() => {
   mocks.analysisApi.get.mockResolvedValue({ analysis_id: "analysis", goal_id: targeted.goal_id, result: { skills: [] } });
   container = document.createElement("div"); document.body.append(container); root = createRoot(container);
 });
-afterEach(async () => { await act(async () => root.unmount()); container.remove(); });
+afterEach(async () => { await act(async () => root.unmount()); container.remove(); vi.useRealTimers(); });
 
 describe("analysis goal eligibility", () => {
   it("follows the current analysis when rapid edits supersede an older queued job", async () => {
@@ -127,6 +127,41 @@ describe("analysis goal eligibility", () => {
     expect(first[1]).toEqual(expect.any(String));
     await act(async () => [...container.querySelectorAll("button")].find(button => button.textContent === "다시 시도")!.click());
     expect(mocks.analysisApi.create.mock.calls[1]).toEqual(first);
+  });
+
+  it("shows an analysis-specific retry hint when fresh recomputations are rate limited", async () => {
+    mocks.goals = [targeted]; mocks.selectedGoalId = targeted.goal_id;
+    mocks.dashboardApi.get.mockResolvedValue({ state: "READY", analysis_id: "analysis" });
+    await render();
+    mocks.analysisApi.create.mockRejectedValueOnce({ status: 429, retryAfterSeconds: 125 });
+    await act(async () => container.querySelector<HTMLButtonElement>(".an-reanalyze-btn")!.click());
+    expect(container.textContent).toContain("약 3분 후 다시 시도해 주세요");
+    expect(container.textContent).toContain("저장된 분석은 계속 확인할 수 있어요");
+  });
+
+  it("keeps known future queue deferrals pending beyond the ordinary polling budget and preserves the stored analysis", async () => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date("2026-10-20T12:00:00Z"));
+    mocks.goals = [targeted]; mocks.selectedGoalId = targeted.goal_id;
+    mocks.dashboardApi.get.mockResolvedValue({ state: "READY", analysis_id: "analysis" });
+    mocks.analysisApi.get.mockResolvedValue({ analysis_id: "analysis", goal_id: targeted.goal_id, result: { required_pct: 42, skills: [] } });
+    await render();
+    mocks.analysisApi.poll.mockResolvedValue({ state: "PENDING", next_attempt_at: "2026-10-20T13:00:00Z" });
+    await act(async () => container.querySelector<HTMLButtonElement>(".an-reanalyze-btn")!.click());
+    await act(async () => vi.advanceTimersByTimeAsync(20 * 60_000));
+    expect(mocks.analysisApi.poll.mock.calls.length).toBeGreaterThan(10);
+    expect(mocks.analysisApi.poll.mock.calls.length).toBeLessThan(100);
+    expect(container.textContent).toContain("분석 요청이 대기 중이에요");
+    expect(container.textContent).toContain("이후 실행을 다시 시도해요");
+    expect(container.textContent).not.toContain("분석 중 오류가 발생했어요");
+    const fulfillment = container.querySelector(".an-fulfillment-pct")!;
+    expect(fulfillment.textContent).toBe("42%");
+    expect(fulfillment.closest("[hidden]")).toBeNull();
+    expect(container.querySelector<HTMLButtonElement>(".an-reanalyze-btn")?.disabled).toBe(true);
+    mocks.analysisApi.poll.mockResolvedValue({ state: "COMPLETED", analysis_id: "analysis" });
+    vi.setSystemTime(new Date("2026-10-20T13:00:01Z"));
+    await act(async () => vi.advanceTimersByTimeAsync(60_000));
+    expect(container.textContent).not.toContain("분석 요청이 대기 중이에요");
+    expect(container.querySelector<HTMLButtonElement>(".an-reanalyze-btn")?.disabled).toBe(false);
   });
 
   it("handles the typed goal requirement before the generic 409 stored-analysis fallback", async () => {

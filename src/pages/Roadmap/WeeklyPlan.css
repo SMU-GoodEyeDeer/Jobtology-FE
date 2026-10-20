@@ -211,7 +211,7 @@
 .rm-heading { min-width: 0; }
 .rm-heading-sub { min-height: 18px; line-height: 18px; margin: 6px 0 0; color: var(--muted); font-size: 13px; }
 .roadmap-page .main-content { gap: 12px; }
-.roadmap-page .rm-section { background: transparent; border: 0; padding: 0; gap: 10px; flex-direction: row; align-items: center; }
+.roadmap-page .rm-section { background: transparent; border: 0; padding: 0; gap: 10px; flex-direction: column; align-items: stretch; }
 .roadmap-page .rm-section-header { flex-shrink: 0; }
 .roadmap-page .rm-section-header .rm-section-title { font-size: 13px; color: var(--muted); }
 .roadmap-page .rm-chips { gap: 6px; }
@@ -226,7 +226,7 @@
   .roadmap-page .main-title { font-size: 18px; }
   .roadmap-page .goal-button { min-width: 140px; }
   .roadmap-page .main-content { padding-inline: 12px; }
-  .roadmap-page .rm-section { flex-direction: column; align-items: flex-start; }
+  .roadmap-page .rm-section { flex-direction: column; align-items: stretch; }
   .wp-toolbar-actions { width: 100%; justify-content: flex-end; }
   .wp-gantt-card { padding: 12px; }
   .wp-detail-header, .wp-detail-body, .wp-detail-footer { padding-inline: 12px; }

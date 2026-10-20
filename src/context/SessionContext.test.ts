@@ -197,12 +197,84 @@ describe("Google account session", () => {
     fetchMock.mockResolvedValueOnce(response(session)).mockRejectedValueOnce(new Error("offline"));
     await mount();
 
-    await act(async () => { await state.logout(); });
+    await act(async () => { await expect(state.logout()).rejects.toThrow("offline"); });
 
-    expect(state.session).toBeNull();
-    expect(getCsrfToken()).toBeNull();
+    expect(state.session).toEqual(session);
+    expect(getCsrfToken()).toBe(session.csrf_token);
     expect(state.error).toContain("로그아웃을 완료하지 못했어요");
     expect(fetchMock).toHaveBeenCalledTimes(2);
+    fetchMock.mockResolvedValueOnce(response(null, 204));
+    await act(async () => { await state.logout(); });
+    expect(fetchMock.mock.calls[2]).toEqual(["/api/v1/auth/logout", expect.objectContaining({ headers: expect.objectContaining({ "X-CSRF-Token": session.csrf_token }) })]);
+    expect(state.session).toBeNull();
+    expect(getCsrfToken()).toBeNull();
+  });
+
+  it("treats an expired server session as a completed logout", async () => {
+    fetchMock.mockResolvedValueOnce(response(session)).mockResolvedValueOnce(response({}, 401));
+    await mount();
+    await act(async () => { await state.logout(); });
+    expect(state.session).toBeNull();
+    expect(getCsrfToken()).toBeNull();
+    expect(state.error).toBeNull();
+  });
+
+  it("serializes logout attempts and prevents refresh or account deletion from claiming a pending logout", async () => {
+    let failLogout!: (error: Error) => void;
+    fetchMock.mockResolvedValueOnce(response(session));
+    await mount();
+    fetchMock.mockImplementationOnce(() => new Promise((_, reject) => { failLogout = reject; }));
+    let pending!: Promise<void>;
+    let logoutError: unknown;
+    await act(async () => {
+      const first = state.logout();
+      expect(state.logout()).toBe(first);
+      pending = first.catch(error => { logoutError = error; });
+      await expect(state.deleteAccount()).rejects.toThrow("Logout is in progress");
+      await state.refresh();
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    await act(async () => { failLogout(new Error("offline")); await pending; });
+    expect(logoutError).toBeInstanceOf(Error);
+    expect(state.session).toEqual(session);
+    expect(getCsrfToken()).toBe(session.csrf_token);
+    fetchMock.mockResolvedValueOnce(response(null, 204));
+    await act(async () => { await state.deleteAccount(); });
+    expect(fetchMock.mock.calls[2][0]).toBe("/api/v1/me/account");
+  });
+
+  it("rejects logout while deletion owns the credentials", async () => {
+    let failDeletion!: (error: Error) => void;
+    fetchMock.mockResolvedValueOnce(response(session));
+    await mount();
+    fetchMock.mockImplementationOnce(() => new Promise((_, reject) => { failDeletion = reject; }));
+    let pending!: Promise<void>;
+    await act(async () => {
+      pending = state.deleteAccount().catch(() => {});
+      await expect(state.logout()).rejects.toThrow("Account deletion is in progress");
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    await act(async () => { failDeletion(new Error("offline")); await pending; });
+    expect(state.session).toEqual(session);
+    expect(getCsrfToken()).toBe(session.csrf_token);
+  });
+
+  it("ignores a refresh failure after failed logout and preserves an authenticated session on later transient refresh failures", async () => {
+    let failRefresh!: (error: Error) => void;
+    fetchMock.mockResolvedValueOnce(response(session));
+    await mount();
+    fetchMock.mockImplementationOnce(() => new Promise((_, reject) => { failRefresh = reject; })).mockRejectedValueOnce(new Error("logout offline"));
+    let refresh!: Promise<void>;
+    await act(async () => { refresh = state.refresh(); });
+    await act(async () => { await expect(state.logout()).rejects.toThrow("logout offline"); });
+    await act(async () => { failRefresh(new Error("refresh offline")); await refresh; });
+    expect(state.session).toEqual(session);
+    expect(state.error).toContain("로그아웃을 완료하지 못했어요");
+    expect(getCsrfToken()).toBe(session.csrf_token);
+    fetchMock.mockRejectedValueOnce(new Error("temporary failure"));
+    await act(async () => { await state.refresh(); });
+    expect(state.session).toEqual(session);
+    expect(getCsrfToken()).toBe(session.csrf_token);
   });
 
   it("ignores an older session response that arrives after logout", async () => {

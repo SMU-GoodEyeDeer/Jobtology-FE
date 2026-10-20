@@ -13,6 +13,8 @@ import { PARTIAL_ROUTE_NOTICE, usePartialRoute } from "./usePartialRoute";
 import { useSession } from "../../context/SessionContext";
 import { RoadmapPlan } from "./RoadmapPlan";
 import { LegacyRoadmap } from "./LegacyRoadmap";
+import { RouteAvailabilityEditor } from "./RouteAvailabilityEditor";
+import { RoadmapRevisionPanel } from "./RoadmapRevisionPanel";
 import { RoadmapExtras } from "./RoadmapExtras";
 import { useRoutePreferences } from "./useRoutePreferences";
 import type { StepState, Neo4jPublicationResponse } from "../../services/types";
@@ -34,7 +36,7 @@ export function Roadmap() {
   const [goalOpen, setGoalOpen] = useState(false);
   const goalRef = useRef<HTMLDivElement>(null);
 
-  const { goals, selectedGoalId, setSelectedGoalId, selectedGoalName, getGoalName, loading: goalsLoading } = useGoals();
+  const { goals, selectedGoal, selectedGoalId, setSelectedGoalId, selectedGoalName, getGoalName, loading: goalsLoading } = useGoals();
   const { roadmaps, activeRoadmap, loading, error, updateStepState, progressPct, refetch } = useRoadmap(selectedGoalId, !goalsLoading);
   const [readyPlanId, setReadyPlanId] = useState<string | null>(null);
   const [publicationsLoading, setPublicationsLoading] = useState(true);
@@ -79,7 +81,7 @@ export function Roadmap() {
     }
   }
 
-  const { partial: isPartialRoute, loading: proposalLoading } = usePartialRoute(activeRoadmap?.proposal_id ?? null);
+  const { partial: isPartialRoute, loading: proposalLoading, error: proposalError, retry: retryProposal } = usePartialRoute(activeRoadmap?.proposal_id ?? null);
   const completedSteps = activeRoadmap?.steps.filter((s) => s.state === "COMPLETED").length ?? 0;
   const totalSteps = activeRoadmap?.steps.length ?? 0;
 
@@ -150,15 +152,18 @@ export function Roadmap() {
               ); })}
             </div>
             {prefs.preferences && <p className="rm-card-sub">추천 경로 계산 기준 주 {prefs.preferences.available_hours_per_week}시간 · 개별 주차 플랜의 시간은 ‘플랜 수정’에서 따로 조정해요.</p>}
+            {prefs.preferences && <RouteAvailabilityEditor key={session?.user_id} preferences={prefs.preferences} timezone={selectedGoal?.timezone ?? "Asia/Seoul"} busy={prefs.saving || prefs.loading} onSave={prefs.saveAvailability} />}
             <p className="rm-card-sub">비용 미반영 · 기본 비용 0원으로 계산</p>
             {prefs.error && <div className="rm-card-sub" role="alert"><p>{prefs.error}</p><button className="rm-bottom-btn" disabled={prefs.loading || prefs.saving} onClick={prefs.retry}>조건 다시 불러오기</button></div>}
           </section>
 
+          {proposalError && <div className="rm-card" role="alert"><p>{proposalError}</p><button className="rm-bottom-btn" onClick={retryProposal}>경로 상태 다시 확인</button></div>}
           {isPartialRoute && <p className="rm-card-sub" role="note">{PARTIAL_ROUTE_NOTICE}</p>}
+          {activeRoadmap && !error && <RoadmapRevisionPanel key={`revision:${activeRoadmap.roadmap_id}`} roadmap={activeRoadmap} onApplied={refetch} />}
           {error ? (
             <div className="rm-card" role="alert"><p>로드맵을 불러오지 못했어요.</p><button className="rm-bottom-btn" onClick={() => void refetch()}>다시 시도</button></div>
           ) : activeRoadmap ? (
-            <RoadmapPlan key={activeRoadmap.roadmap_id} roadmapId={activeRoadmap.roadmap_id} goalId={activeRoadmap.goal_id} onComplete={handleStepComplete} onReady={setReadyPlanId}>
+            <RoadmapPlan key={`plan:${activeRoadmap.roadmap_id}`} roadmapId={activeRoadmap.roadmap_id} goalId={activeRoadmap.goal_id} onComplete={handleStepComplete} onReady={setReadyPlanId}>
               <LegacyRoadmap roadmap={activeRoadmap} onComplete={handleStepComplete} />
             </RoadmapPlan>
           ) : (

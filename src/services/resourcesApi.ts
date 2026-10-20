@@ -67,6 +67,7 @@ export interface OccupationAssociation {
   readonly posting: PostingItem | null;
 }
 export interface OccupationContextResponse {
+  readonly role_context?: { readonly role_id: string; readonly version: "posting-context-v1"; readonly basis: "APPLICATION_CONTEXT_SELECTION"; readonly onet_occupations: readonly { readonly code: string; readonly name: string }[] };
   readonly contract_version: "jobtology-inferred-occupation-context-v1";
   readonly basis: "METADATA_INFERRED";
   readonly assertion_kind: "MODEL_INFERRED";
