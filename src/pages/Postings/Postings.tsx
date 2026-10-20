@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AppSidebar } from "../../components/AppSidebar";
@@ -6,6 +6,7 @@ import { resourcesApi } from "../../services/resourcesApi";
 import type { PostingsResponse } from "../../services/resourcesApi";
 import { localToday } from "../../services/skillDetail";
 import { PostingDetail } from "./PostingDetail";
+import { PostingsPagination } from "./PostingsPagination";
 import "../Home/Home.css";
 import "./Postings.css";
 
@@ -17,22 +18,41 @@ export function Postings() {
   const region = params.get("region") || "";
   const openOn = params.get("open_on") || "";
   const rawOffset = Number(params.get("offset") || "0");
-  const offset = Number.isSafeInteger(rawOffset) && rawOffset >= 0 ? rawOffset : 0;
+  const offset = Number.isSafeInteger(rawOffset) && rawOffset >= 0 ? Math.floor(rawOffset / PAGE_SIZE) * PAGE_SIZE : 0;
   const postingId = params.get("posting");
   const [draft, setDraft] = useState({ q, category, region, openOn });
   const [attempt, setAttempt] = useState(0);
   const [result, setResult] = useState<{ key: string; data?: PostingsResponse; error?: string } | null>(null);
+  const listHeading = useRef<HTMLHeadingElement>(null);
+  const pageChanged = useRef(false);
   const key = JSON.stringify([q, category, region, openOn, offset, attempt]);
   useEffect(() => { setDraft({ q, category, region, openOn }); }, [q, category, region, openOn]);
   useEffect(() => {
     let active = true;
     resourcesApi.postings({ q, ncs_category: category, region, open_on: openOn, offset, limit: PAGE_SIZE }).then(
-      data => { if (active) setResult({ key, data }); },
+      data => {
+        if (!active) return;
+        const lastOffset = Math.max(0, Math.ceil(data.total / PAGE_SIZE) - 1) * PAGE_SIZE;
+        if (offset > lastOffset) {
+          setParams(previous => {
+            const next = new URLSearchParams(previous);
+            if (lastOffset) next.set("offset", String(lastOffset)); else next.delete("offset");
+            next.delete("posting");
+            return next;
+          }, { replace: true });
+        } else setResult({ key, data });
+      },
       () => { if (active) setResult({ key, error: "채용공고를 불러오지 못했어요. 필터를 확인하거나 다시 시도해 주세요." }); },
     );
     return () => { active = false; };
   }, [key, q, category, region, openOn, offset]);
   const current = result?.key === key ? result : null;
+  useEffect(() => {
+    if (!current?.data || !pageChanged.current) return;
+    pageChanged.current = false;
+    listHeading.current?.focus({ preventScroll: true });
+    listHeading.current?.scrollIntoView?.({ block: "start", behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
+  }, [current]);
   function search(event: FormEvent) {
     event.preventDefault();
     applyFilters(draft.openOn);
@@ -45,6 +65,16 @@ export function Postings() {
   function update(field: string, value: string | null) {
     const next = new URLSearchParams(params); if (value) next.set(field, value); else next.delete(field); setParams(next);
   }
+  function changePage(page: number) {
+    const nextOffset = (page - 1) * PAGE_SIZE;
+    if (nextOffset === offset) return;
+    const next = new URLSearchParams(params);
+    if (nextOffset) next.set("offset", String(nextOffset)); else next.delete("offset");
+    next.delete("posting");
+    pageChanged.current = true;
+    setParams(next);
+  }
+  const page = Math.floor(offset / PAGE_SIZE) + 1;
   return <div className="home-layout postings-page">
     <AppSidebar />
     <div className="main-area">
@@ -65,14 +95,15 @@ export function Postings() {
             {!current ? <p className="postings-state" role="status">공고를 불러오는 중이에요…</p>
               : current.error ? <div className="postings-state" role="alert"><p>{current.error}</p><button onClick={() => setAttempt(value => value + 1)}>다시 시도</button></div>
               : current.data && <>
-                <div className="postings-list-heading"><h2>검색 결과 <span>{current.data.total.toLocaleString()}건</span></h2><small>{offset + (current.data.items.length ? 1 : 0)}–{offset + current.data.items.length}</small></div>
+                <div className="postings-list-heading"><h2 ref={listHeading} tabIndex={-1}>검색 결과 <span>{current.data.total.toLocaleString()}건</span></h2><small>{offset + (current.data.items.length ? 1 : 0)}–{offset + current.data.items.length}</small></div>
+                <PostingsPagination total={current.data.total} page={page} pageSize={PAGE_SIZE} position="top" onChange={changePage} />
                 {current.data.items.length ? current.data.items.map(item => <button className={`posting-card${postingId === item.posting_id ? " posting-card--selected" : ""}`} key={item.posting_id} aria-pressed={postingId === item.posting_id} onClick={() => update("posting", item.posting_id)}>
                   <span className="posting-card-org">{item.organization_name || "기관명 미제공"}</span>
                   <strong>{item.title || "제목 미제공 공고"}</strong>
                   <span>{[item.regions.join(" · "), item.employment_types.join(" · ")].filter(Boolean).join(" / ") || "지역·고용 형태 미제공"}</span>
                   <small>{item.closing_date ? `접수 마감일 ${item.closing_date}` : "접수 마감일 미제공"}</small>
                 </button>) : <p className="postings-state">조건에 맞는 수집 공고가 없어요. 다른 검색어나 날짜로 찾아보세요.</p>}
-                <nav className="postings-pagination" aria-label="공고 페이지"><button disabled={offset === 0} onClick={() => update("offset", String(Math.max(0, offset - PAGE_SIZE)))}>이전</button><span>{Math.floor(offset / PAGE_SIZE) + 1}페이지</span><button disabled={offset + current.data.items.length >= current.data.total} onClick={() => update("offset", String(offset + PAGE_SIZE))}>다음</button></nav>
+                <PostingsPagination total={current.data.total} page={page} pageSize={PAGE_SIZE} position="bottom" onChange={changePage} />
                 {current.data.sources.map(source => <p className="postings-source" key={`${source.source_id}:${source.run_id}`}>{source.source_id}{source.data_as_of ? ` · 수집 기준 ${source.data_as_of.slice(0, 10)}` : " · 수집 기준일 미제공"}</p>)}
               </>}
           </section>

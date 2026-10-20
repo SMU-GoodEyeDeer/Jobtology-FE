@@ -23,8 +23,22 @@
 .posting-card:hover, .posting-card--selected { background: var(--accent-tint); }
 .posting-card--selected { box-shadow: inset 3px 0 var(--accent-focus); }
 .postings-state { padding: 40px 16px; text-align: center; font-size: 14px; color: var(--muted); line-height: 1.7; }
-.postings-pagination { display: flex; align-items: center; justify-content: center; gap: 20px; margin: 20px 0; font-size: 12px; }
+.postings-pagination { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 14px 0; font-size: 12px; }
+.postings-page-count { margin: 0; color: var(--text-secondary); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.postings-page-count strong { color: var(--accent); }
+.postings-page-count span { color: var(--muted); }
+.postings-page-controls, .postings-page-numbers, .postings-page-slot { display: flex; align-items: center; gap: 4px; }
+.postings-page-controls { max-width: 100%; min-width: 0; justify-content: center; }
+.postings-page-controls > button { flex: none; }
+.postings-page-numbers { min-width: 0; flex-wrap: wrap; justify-content: center; }
+.postings-page-gap { padding: 0 3px; color: var(--muted); }
+.postings-page-jump { display: flex; align-items: center; gap: 6px; color: var(--muted); }
+.postings-page-jump input { width: 68px; height: 34px; padding: 6px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface); color: var(--text); font: inherit; text-align: center; }
 .postings-pagination button, .postings-state button, .postings-detail-panel button { border: 1px solid var(--border); border-radius: 7px; padding: 8px 12px; background: var(--surface); cursor: pointer; color: var(--text-secondary); }
+.postings-pagination button { display: inline-flex; justify-content: center; align-items: center; gap: 4px; min-width: 34px; min-height: 34px; padding: 6px 9px; font-variant-numeric: tabular-nums; transition: background .15s, color .15s, border-color .15s; }
+.postings-pagination button:hover:not(:disabled) { background: var(--accent-tint); border-color: var(--accent-border); }
+.postings-pagination button[aria-current="page"] { background: var(--accent-solid); border-color: var(--accent-solid); color: var(--on-accent); font-weight: 700; }
+.postings-pagination button[aria-current="page"]:hover { background: var(--accent-hover); color: var(--on-accent); }
 .postings-pagination button:disabled { opacity: .4; cursor: default; }
 .postings-detail-panel { position: sticky; top: 0; }
 .postings-close { display: block; margin-left: auto; }
@@ -37,4 +51,13 @@
 .postings-source { font-size: 11px; color: var(--tertiary); overflow-wrap: anywhere; }
 .postings-page :focus-visible { outline: 2px solid var(--accent-focus); outline-offset: 3px; }
 @media(max-width: 1100px) { .postings-content { padding: 20px; } .postings-grid--selected { grid-template-columns: minmax(0, 1fr); } .postings-detail-panel { position: static; grid-row: 1; } .postings-header-caption { display: none; } }
-@media(max-width: 600px) { .postings-content { padding: 12px; } .postings-filters { padding: 14px; gap: 10px; } .postings-list, .postings-detail-panel { padding: 14px; } }
+@media(max-width: 600px) {
+  .postings-content { padding: 12px; } .postings-filters { padding: 14px; gap: 10px; } .postings-list, .postings-detail-panel { padding: 14px; }
+  .postings-pagination { justify-content: center; gap: 10px; }
+  .postings-page-count { flex-basis: 100%; text-align: center; }
+  .postings-page-controls, .postings-page-numbers, .postings-page-slot { gap: 3px; }
+  .postings-pagination button { min-width: 28px; padding: 6px 4px; font-size: 11px; }
+  .postings-page-direction { display: none; }
+  .postings-page-gap { padding: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .postings-pagination button { transition: none; } }
