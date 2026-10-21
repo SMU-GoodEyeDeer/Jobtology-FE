@@ -57,11 +57,11 @@ export function anchorAiSuggestion(suggestion: ResumeSuggestion, sent: string, b
   if (!quote.length || occurrences.length !== 1) return null;
   return { ...suggestion, block_id: block.block_id, start: occurrences[0], end: occurrences[0] + quote.length };
 }
-export function resumeError(cause: unknown): string {
+export function resumeError(cause: unknown, mode: "scan" | "ai" = "scan"): string {
   const error = cause as { status?: number; detail?: { error?: { code?: string; request_id?: string } } };
   const code = error.detail?.error?.code;
   const messages: Record<string, string> = {
-    FILE_TOO_LARGE: "파일은 10MB 이하로 올려 주세요.", PAGE_LIMIT: "이력서는 3쪽 이하로 나눠서 올려 주세요.",
+    FILE_TOO_LARGE: "파일은 10MB 이하로 올려 주세요.", PAGE_LIMIT: `이력서는 ${mode === "ai" ? 3 : 20}쪽 이하로 나눠서 올려 주세요.`,
     AI_PDF_REQUIRED: "AI 분석은 3쪽 이하 PDF만 지원해요. PDF로 저장한 뒤 올려 주세요.",
     AI_CONSENT_REQUIRED: "추출한 문단을 AI에 보내는 데 동의한 뒤 분석해 주세요.",
     AI_DOCUMENT_LIMIT: "AI 분석은 최대 64문단·12,000자까지 지원해요. 필요한 경력만 남겨서 올려 주세요.",

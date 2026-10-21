@@ -122,6 +122,7 @@ export interface ResumeStatus {
   ai_available: boolean;
   ai_provider: string | null;
   ai_formats?: ResumeFormat[];
+  ai_max_pdf_pages?: number;
   ai_max_paragraphs?: number;
   ai_max_characters?: number;
   ai_concurrency?: number;

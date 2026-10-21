@@ -40,11 +40,12 @@ export function SpecDetailsSummary({ item }: { readonly item: CapabilityDetailRe
   }
   const visible = rows.filter(row => row.value !== null);
   const source = safeSourceUrl(text(details.url));
-  if (!visible.length && !source && !details.document_evidence) return null;
+  const importedFields = Object.entries(details.imported_fields ?? {});
+  if (!visible.length && !source && !details.document_evidence && !importedFields.length) return null;
   return <div className="spec-details-summary" aria-label="등록한 스펙 세부 정보">
     {!!visible.length && <dl>{visible.map(row => <div key={row.label}><dt>{row.label}</dt><dd>{row.value}</dd></div>)}</dl>}
     {source && <a href={source} target="_blank" rel="noopener noreferrer">자료 보기 ↗</a>}
     {details.document_evidence && <details><summary>이력서 원문 근거 · 본인 확인</summary><blockquote className="spec-evidence">{details.document_evidence.quote}</blockquote><p className="spec-help">원본 파일은 보관하지 않아요. 이 인용은 실력이나 자격을 검증한 기록이 아니에요.</p></details>}
-    {!!Object.keys(details.imported_fields ?? {}).length && <details><summary>원문에서 읽은 필드</summary><dl>{Object.entries(details.imported_fields ?? {}).map(([key, value]) => <div key={key}><dt>{RESUME_FIELDS[key] ?? key}</dt><dd>{value}</dd></div>)}</dl></details>}
+    {!!importedFields.length && <details><summary>원문에서 읽은 필드</summary><dl>{importedFields.map(([key, value]) => <div key={key}><dt>{RESUME_FIELDS[key] ?? key}</dt><dd>{value}</dd></div>)}</dl></details>}
   </div>;
 }

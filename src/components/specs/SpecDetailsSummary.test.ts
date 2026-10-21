@@ -7,6 +7,12 @@ import { SpecDetailsSummary } from "./SpecDetailsSummary";
 const item: CapabilityDetailResponse = { capability_id: "spec", raw_text: "등록한 기록", category: "skill", lifecycle: "ACTIVE", entity_id: null, proficiency: "FAMILIAR", verification: "SELF_REPORTED", details: {}, matching: { status: "UNUSED", credit: 0, competencies: [], message: "" } };
 function summary(changes: Partial<CapabilityDetailResponse>) { return renderToStaticMarkup(createElement(SpecDetailsSummary, { item: { ...item, ...changes } })); }
 describe("saved structured spec details", () => {
+  it("shows imported fields even without other details, source links or a document quote", () => {
+    const html = summary({ details: { imported_fields: { ended_on: "2023.02", school: "서울대학교" } } });
+    expect(html).toContain("원문에서 읽은 필드");
+    expect(html).toContain("2023.02"); expect(html).toContain("서울대학교");
+    expect(summary({ details: { imported_fields: {} } })).toBe("");
+  });
   it("shows a test score including zero, maximum, unit and issuing details", () => {
     const html = summary({ category: "test", details: { score: 0, score_max: 990, score_unit: "점", issuer: "ETS", credential_code: "TOEIC", issued_on: "2026-10-01", expires_on: "2028-10-01" } });
     for (const value of ["점수", "0 / 990 점", "주관 기관", "ETS", "시험 코드", "TOEIC", "응시일", "2026-10-01", "만료일", "2028-10-01"]) expect(html).toContain(value);

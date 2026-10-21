@@ -19,12 +19,21 @@ async function upload(filename = "resume.docx") {
 beforeEach(async () => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   vi.clearAllMocks();
-  api.status.mockResolvedValue({ formats: ["docx", "pdf"], max_bytes: 10 * 1024 * 1024, max_pdf_pages: 3, parse_timeout_seconds: 60, ai_available: true, ai_provider: "OpenAI" });
+  api.status.mockResolvedValue({ formats: ["docx", "pdf"], max_bytes: 10 * 1024 * 1024, max_pdf_pages: 20, ai_max_pdf_pages: 3, parse_timeout_seconds: 60, ai_available: true, ai_provider: "OpenAI" });
   api.scan.mockResolvedValue(structuredClone(result)); api.interpret.mockResolvedValue({ suggestions: [], rejected_count: 0 });
   container = document.createElement("div"); document.body.append(container); root = createRoot(container);
   await act(async () => root.render(createElement(ResumeScanner, { onReview: review, onClose: close, existingCompetencyIds: [], occupationId: "BACKEND" })));
 });
 afterEach(async () => { await act(async () => root.unmount()); container.remove(); });
+it("shows the page limit for the selected scan or AI upload mode", async () => {
+  const error = { detail: { error: { code: "PAGE_LIMIT" } } };
+  api.scan.mockRejectedValueOnce(error); api.analyze.mockRejectedValueOnce(error);
+  expect(container.textContent).toContain("PDF 최대 20쪽");
+  await upload("resume.pdf"); expect(container.querySelector('[role="alert"]')?.textContent).toContain("20쪽");
+  await act(async () => container.querySelector<HTMLInputElement>('.resume-bulk-consent input')!.click());
+  await upload("resume.pdf"); expect(container.querySelector('[role="alert"]')?.textContent).toContain("3쪽");
+  expect(container.textContent).not.toContain("PDF 최대 20쪽");
+});
 it("scans without AI, highlights source and opens a draft with no inferred level", async () => {
   await upload(); expect(api.scan).toHaveBeenCalledWith(expect.any(File), "docx", "BACKEND", expect.any(AbortSignal));
   expect(api.interpret).not.toHaveBeenCalled();

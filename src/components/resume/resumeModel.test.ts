@@ -6,6 +6,12 @@ const block: ResumeBlock = { block_id: "a".repeat(24), text: "😀 Python Python
 const suggestion: ResumeSuggestion = { suggestion_id: "rule-1", block_id: block.block_id, title: "Python", category: "skill", quote: "Python", start: 9, end: 15, method: "KEYWORD", competencies: [], score: null, score_max: null };
 const scan: ResumeScan = { document_sha256: "c".repeat(64), parser_revision: "jobtology-resume-v1-7541e87", blocks: [block], suggestions: [suggestion], warnings: [], skipped_pages: [] };
 describe("resume source evidence", () => {
+  it("keeps the scan limit at twenty pages and uses three pages only for AI errors", () => {
+    const cause = { detail: { error: { code: "PAGE_LIMIT" } } };
+    expect(resumeError(cause)).toBe("이력서는 20쪽 이하로 나눠서 올려 주세요.");
+    expect(resumeError(cause, "scan")).toBe(resumeError(cause));
+    expect(resumeError(cause, "ai")).toBe("이력서는 3쪽 이하로 나눠서 올려 주세요.");
+  });
   it("shows parser errors with the same request reference as backend logs", () => {
     const request_id = "12345678-abcd-4321-abcd-123456789abc";
     expect(resumeError({ status: 422, detail: { error: { code: "UNREADABLE_DOCUMENT", request_id } } }))
