@@ -30,7 +30,8 @@ export interface ProfileUpdateRequest {
   expected_graduation_on?: string | null;
 }
 
-export type SpecCategory = "skill" | "certification" | "test" | "project" | "experience";
+export type SpecCategory = "skill" | "certification" | "test" | "project" | "experience" | "education" | "other";
+export type ResumeFieldName = "school" | "degree" | "major" | "organization" | "role" | "started_on" | "ended_on" | "issuer" | "credential_code" | "issued_on" | "expires_on" | "score" | "score_max" | "score_unit" | "url";
 export type SpecProficiency = "FAMILIAR" | "GUIDED" | "INDEPENDENT" | "PRODUCTION";
 export interface DocumentEvidence {
   document_sha256: string;
@@ -59,6 +60,10 @@ export interface SpecDetails {
   score_unit?: string | null;
   organization?: string | null;
   role?: string | null;
+  school?: string | null;
+  degree?: string | null;
+  major?: string | null;
+  imported_fields?: Partial<Record<ResumeFieldName, string>>;
   url?: string | null;
 }
 export interface MatchedCompetency { entity_id: string; label: string; requirement_keys: string[] }
@@ -82,7 +87,7 @@ export interface CapabilityDetailResponse {
 export interface CapabilityWrite {
   category: SpecCategory;
   raw_text: string;
-  proficiency: SpecProficiency;
+  proficiency: SpecProficiency | null;
   details: SpecDetails;
 }
 export interface CapabilityMutationRequest extends CapabilityWrite {
@@ -116,9 +121,13 @@ export interface ResumeStatus {
   parse_timeout_seconds: number;
   ai_available: boolean;
   ai_provider: string | null;
+  ai_formats?: ResumeFormat[];
+  ai_max_paragraphs?: number;
+  ai_max_characters?: number;
+  ai_concurrency?: number;
   retention: "REQUEST_ONLY";
 }
-export interface ResumeBlock { block_id: string; text: string; text_hash: string; page: number | null }
+export interface ResumeBlock { block_id: string; text: string; text_hash: string; page: number | null; source_node_id?: string | null; source_start?: number }
 export interface ResumeSuggestion {
   suggestion_id: string;
   category: SpecCategory;
@@ -131,6 +140,7 @@ export interface ResumeSuggestion {
   method: "KEYWORD" | "AI_ASSISTED";
   score: number | null;
   score_max: number | null;
+  fields?: Partial<Record<ResumeFieldName, string>>;
 }
 export interface ResumeScan {
   document_sha256: string;
@@ -139,7 +149,14 @@ export interface ResumeScan {
   suggestions: ResumeSuggestion[];
   warnings: string[];
   skipped_pages: number[];
+  page_count?: number | null;
+  preview_html?: string | null;
 }
+export type ResumeAnalysisEvent =
+  | { type: "scan"; scan: ResumeScan }
+  | { type: "paragraph"; block_id: string; completed: number; total: number; suggestions: ResumeSuggestion[]; error_code: string | null; rejected_count: number }
+  | { type: "done"; completed: number; total: number; failed: number; rejected_count: number; omitted_count: number; timed_out: boolean }
+  | { type: "error"; error: { code: string; request_id?: string } };
 
 // ─── Occupations ─────────────────────────────────────────────────────────────
 export interface OccupationResponse {
