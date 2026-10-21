@@ -1,0 +1,5 @@
+.brand-logo { display: inline-flex; align-items: center; gap: .28em; color: var(--brand-ink, var(--text)); white-space: nowrap; }
+.brand-icon { display: block; width: 1.15em; height: 1.15em; flex: none; color: var(--brand-accent, #7961c9); }
+.brand-wordmark { color: var(--brand-ink, var(--text)); font: 600 1em/1.15 Georgia, "Times New Roman", serif; letter-spacing: -.048em; white-space: nowrap; }
+.brand-period { color: var(--brand-accent, #7961c9); }
+:root[data-theme="dark"] { --brand-accent: #b9a2fa; }

@@ -14,16 +14,18 @@ describe('Onboarding page', () => {
   it('renders the hero section', () => {
     const html = renderToStaticMarkup(createElement(MemoryRouter, null, createElement(Onboarding)))
 
-    expect(html).toContain('목표 직무에 필요한 역량과 학습 경로')
+    expect(html).toContain('나의 다음을,')
+    expect(html).toContain('연결하다.')
     expect(html).toContain('Google로 시작하기')
   })
 
-  it('renders the feature cards', () => {
+  it('offers an interactive example graph without claiming personal results', () => {
     const html = renderToStaticMarkup(createElement(MemoryRouter, null, createElement(Onboarding)))
 
-    expect(html).toContain('내 상황에 맞는 경로')
-    expect(html).toContain('데이터 기반 역량 분석')
-    expect(html).toContain('경험에 따른 계획 조정')
+    expect(html).toContain('미리 볼 목표 직무')
+    expect(html).toContain('나의 경험 연결 보기')
+    expect(html).toContain('예시 경로')
+    expect(html).not.toContain('충족률')
   })
 
   it('links Google login through the same API origin', () => {

@@ -1,7 +1,7 @@
 import { motion } from "motion/react";
 import type { Transition } from "motion/react";
 import type { ReactNode } from "react";
-import logoMark from "../../assets/logo-mark.svg";
+import { BrandIcon, BrandWordmark } from "../../components/BrandLogo";
 import type { ProgressStep } from "./progress";
 import { OUTRO_FADE_S } from "./timings";
 
@@ -68,15 +68,13 @@ export function ProgressTrail({ steps, current }: { steps: readonly ProgressStep
   );
 }
 
-/// Logo mark with the square boundary feathered away (blurred halo copy +
-/// CSS mask); shared by the `/` splash, intro, and outro so all three stay
-/// pixel-identical.
+/// Shared graph mark for the splash, intro, and outro.
 export function BrandMark() {
   return (
     <div className="ob-intro-mark" aria-hidden="true">
       <div className="ob-intro-tint" />
-      <img className="ob-intro-halo" src={logoMark} alt="" />
-      <img className="ob-intro-logo" src={logoMark} alt="" />
+      <BrandIcon className="ob-intro-halo" />
+      <BrandIcon className="ob-intro-logo" />
     </div>
   );
 }
@@ -94,7 +92,7 @@ export function Outro({ reduceMotion = false }: { reduceMotion?: boolean }) {
     >
       <div className="ob-intro-stack">
         <BrandMark />
-        <span className="ob-intro-word">Jobtology</span>
+        <BrandWordmark className="ob-intro-word" />
       </div>
       <p className="ob-outro-loading">
         <span className="ob-outro-text">로딩 중</span>
