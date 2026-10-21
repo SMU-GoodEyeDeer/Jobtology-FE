@@ -13,6 +13,7 @@ import userIcon from "../assets/User.svg";
 import { useSession } from "../context/SessionContext";
 import { usePanelResize } from "../hooks/usePanelResize";
 import { ThemeToggle } from "./ThemeToggle";
+import { BrandLogo } from "./BrandLogo";
 
 const NAV_ITEMS = [
   { icon: homeIcon, label: "홈", path: "/home" },
@@ -74,17 +75,7 @@ export function AppSidebar({ children, showLogout = true }: { children?: ReactNo
   return (
     <aside className={`sidebar${collapsed ? " sidebar--collapsed" : ""}${resizing ? " sidebar--resizing" : ""}`} style={{ "--sidebar-width": `${size}px` } as CSSProperties}>
       <div className="sidebar-logo">
-        <svg className="sidebar-logo-icon" viewBox="192 182 640 640" fill="none" role="img" aria-label="로고">
-          <path d="M256 448 288 720M480 560 704 672" stroke="var(--muted)" strokeWidth="32" />
-          <path d="M288 720 480 560 736 304" stroke="var(--accent)" strokeWidth="48" strokeLinejoin="round" />
-          <circle cx="256" cy="448" r="52" fill="var(--muted)" />
-          <circle cx="704" cy="672" r="52" fill="var(--muted)" />
-          <circle cx="288" cy="720" r="64" fill="var(--accent-strong)" />
-          <circle cx="480" cy="560" r="64" fill="var(--accent-strong)" />
-          <circle cx="736" cy="304" r="84" fill="var(--accent)" />
-          <circle cx="736" cy="304" r="36" fill="var(--surface)" />
-        </svg>
-        <span className="sidebar-logo-text">Jobtology</span>
+        <BrandLogo className="sidebar-brand" />
         <button
           type="button"
           className="sidebar-toggle"
