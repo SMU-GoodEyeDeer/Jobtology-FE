@@ -39,15 +39,13 @@ export function Onboarding() {
     <div className="onboarding">
       <div className="onboarding-theme"><ThemeToggle compact /></div>
       <div className="hero">
-        <span className="badge">● 채용공고 5,000건 · AI그래프 기반</span>
         <h1>
           진로 설계, 뭐부터
           <br />
           해야 할지 <span className="highlight">막막하다면</span>
         </h1>
         <p className="subtitle">
-          채용공고 데이터를 근거로, 내 상황에 맞는 목표 직무까지의 경로를
-          제시하는 AI 커리어 내비게이션이에요!
+          목표 직무에 필요한 역량과 학습 경로를 찾아보세요.
         </p>
         {error ? (
           <>
@@ -56,8 +54,7 @@ export function Onboarding() {
           </>
         ) : (
           <>
-            <a className="cta-btn" href={GOOGLE_LOGIN_URL}>1분 만에 내 경로 찾기</a>
-            <p className="caption">Google 계정으로 로그인하고 시작해요.</p>
+            <a className="cta-btn" href={GOOGLE_LOGIN_URL}>Google로 시작하기</a>
           </>
         )}
       </div>
@@ -65,20 +62,20 @@ export function Onboarding() {
       <div className="cards">
         <div className="card">
           <img src={UsersIcon} alt="" width={22} height={22} />
-          <p className="card-title">사람마다 다른 경로</p>
+          <p className="card-title">내 상황에 맞는 경로</p>
           <p className="card-desc">
-            희망직업·상황·역량이 다르면 경로도 달라져요
+            목표·역량·학습 시간 반영
           </p>
         </div>
         <div className="card">
           <img src={CheckCircleIcon} alt="" width={22} height={22} />
-          <p className="card-title">모든 단계에 근거</p>
-          <p className="card-desc">공고가 요구하는 확실한 데이터를 알려줘요</p>
+          <p className="card-title">데이터 기반 역량 분석</p>
+          <p className="card-desc">채용공고와 NCS 역량 참고</p>
         </div>
         <div className="card">
           <img src={RefreshCcwIcon} alt="" width={22} height={22} />
-          <p className="card-title">한 번 받고 끝이 아니에요</p>
-          <p className="card-desc">역량이 쌓이면 경로가 다시 계산돼요</p>
+          <p className="card-title">경험에 따른 계획 조정</p>
+          <p className="card-desc">스펙 변경 후 다시 분석</p>
         </div>
       </div>
     </div>

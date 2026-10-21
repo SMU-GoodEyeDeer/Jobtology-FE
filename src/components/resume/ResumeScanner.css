@@ -1,14 +1,13 @@
 .resume-scanner { container: resume / inline-size; margin: 18px 0; padding: 20px; border: 1px solid var(--accent-border); border-radius: 14px; background: var(--surface-soft); font-size: 13px; min-width: 0; }
 .resume-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
 .resume-heading h3 { margin: 0; font-size: 17px; color: var(--text); }
-.resume-heading p { margin: 8px 0; color: var(--muted); line-height: 1.7; font-size: 12px; }
 .resume-upload { padding: 16px; border: 1px dashed var(--accent-border); border-radius: 10px; background: var(--surface); }
 .resume-upload label, .resume-ai > label { display: grid; gap: 10px; font-weight: 600; font-size: 12px; }
 .resume-upload input { width: 100%; min-width: 0; max-width: 100%; font: inherit; }
 .resume-upload input::file-selector-button { padding: 9px 12px; border: 1px solid var(--border); border-radius: 6px; margin-right: 10px; background: var(--surface-soft); color: var(--text-secondary); cursor: pointer; }
 .resume-progress { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 16px 0; color: var(--accent-strong); }
 .resume-warnings { margin: 16px 0; padding: 12px 12px 12px 28px; background: var(--warning-bg); color: var(--warning-text); border-radius: 8px; font-size: 12px; line-height: 1.8; }
-.resume-workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.resume-workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; margin-top: 20px; }
 .resume-workspace h4, .resume-selected h4 { margin: 0 0 8px; font-size: 13px; }
 .resume-source, .resume-suggestions { min-width: 0; padding: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
 .resume-source-scroll, .resume-suggestions { max-height: 560px; overflow-y: auto; scrollbar-width: thin; scrollbar-gutter: stable; }
@@ -31,6 +30,7 @@
 .resume-ai textarea { box-sizing: border-box; width: 100%; border: 1px solid var(--border); border-radius: 6px; padding: 10px; font: inherit; font-weight: 400; line-height: 1.8; resize: vertical; }
 .resume-ai .spec-check { display: flex; align-items: center; gap: 8px; margin: 12px 0; line-height: 1.7; font-weight: 400; }
 .resume-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+.resume-scanner > .resume-tabs { margin-top: 16px; }
 .resume-tabs button { border: 1px solid var(--border); border-radius: 7px; padding: 8px 12px; background: var(--surface); color: var(--text-secondary); font: inherit; font-size: 12px; }
 .resume-tabs button[aria-pressed="true"] { background: var(--accent-solid); border-color: var(--accent-solid); color: var(--on-accent); }
 .spec-import-evidence { padding: 12px; background: var(--surface); border: 1px solid var(--accent-border); border-radius: 8px; margin-bottom: 16px; font-size: 12px; }
@@ -41,7 +41,7 @@
 .resume-ai textarea { transition: border-color .18s, box-shadow .18s; }
 @container resume (max-width: 640px) {
   .resume-heading { flex-wrap: wrap; }
-  .resume-workspace { display: block; }
+  .resume-workspace { display: block; margin-top: 0; }
   .resume-workspace--source .resume-suggestions, .resume-workspace--suggestions .resume-source { display: none; }
   .resume-source-scroll, .resume-suggestions { max-height: 430px; }
 }
@@ -49,7 +49,6 @@
 .resume-privacy { margin: 10px 0 20px; background: var(--surface); }
 .spec-dialog .resume-scanner { margin: 0; padding: 0; border: 0; background: none; }
 .spec-dialog .resume-heading h3 { font-size: 15px; }
-.spec-dialog .resume-heading p { margin-bottom: 0; }
 .spec-dialog .resume-upload { padding: 24px; border-color: var(--accent-border); background: var(--surface-soft); border-radius: 14px; }
 .spec-dialog .resume-source, .spec-dialog .resume-suggestions { padding: 20px; border-radius: 14px; }
 .spec-dialog .resume-candidate { padding: 16px; }
@@ -64,6 +63,9 @@
 .resume-upload .resume-bulk-consent input { width: 16px; min-width: 16px; height: 16px; margin: 3px 0 0; accent-color: var(--accent-solid); }
 .resume-progress progress { width: 140px; max-width: 100%; height: 7px; accent-color: var(--accent-solid); }
 .resume-document-frame { display: block; width: 100%; height: 510px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+.resume-preview-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin: 12px 0; color: var(--muted); font-size: 11px; }
+.resume-preview-toolbar label { display: flex; align-items: center; gap: 8px; }
+.resume-preview-toolbar select { padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); font: inherit; }
 .resume-fields { display: grid; gap: 6px; margin: 12px 0; font-size: 12px; line-height: 1.6; }
 .resume-fields > div { display: grid; grid-template-columns: minmax(65px, auto) minmax(0, 1fr); column-gap: 12px; }
 .resume-fields dt { color: var(--muted); }

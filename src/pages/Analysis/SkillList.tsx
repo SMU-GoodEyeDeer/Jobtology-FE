@@ -82,8 +82,7 @@ export function SkillList({ skills, goalId, emptyMessage, linksReady = true }: S
   return <div className={`sd-layout${(selected || panelMounted) && !overlay ? " sd-layout--selected" : ""}`}>
     <section className="sd-list" aria-labelledby="skill-list-heading">
       <div className="sd-list-heading">
-        <div><h2 id="skill-list-heading">부족한 역량 <span>{skills.length}</span></h2>
-          <p>역량을 누르면 무엇을 해야 하는지 풀어서 보여드려요</p><NcsLevel compact /></div>
+        <div><h2 id="skill-list-heading">부족한 역량 <span>{skills.length}</span></h2><NcsLevel compact /></div>
         <div className="sd-filters" role="group" aria-label="역량 유형">
           <motion.span className="sd-filter-indicator" aria-hidden="true" initial={false}
             animate={{ x: ["전체", "필수", "우대"].indexOf(filter) * 68 }}

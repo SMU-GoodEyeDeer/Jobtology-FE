@@ -90,10 +90,8 @@ export function Home() {
           {/* Hero card */}
           <section className="hero-card">
             <div className="hero-left">
-              <span className="hero-badge">MY CAREER NAVIGATOR</span>
               <h1 className="hero-name">안녕하세요{session ? ", " + (session.display_name?.trim() || "사용자") + "님" : "!"}</h1>
               <p className="hero-role">{selectedGoalName}</p>
-              <p className="hero-sub">오늘도 목표를 향해 성장하고 있어요.</p>
               <Link className="hero-btn" to="/myinfo#goals">{selectedGoal?.occupation_id ? "목표 수정" : "목표 설정하기"} →</Link>
             </div>
             <div className="hero-right">
@@ -127,7 +125,6 @@ export function Home() {
                 </div>
                 <div>
                   <p className="info-card-title">다음 할 일</p>
-                  <p className="info-card-sub">AI가 추천하는 다음 액션</p>
                 </div>
               </div>
               <ul className="check-list">
@@ -155,7 +152,6 @@ export function Home() {
                 </div>
                 <div>
                   <p className="info-card-title">내 목표</p>
-                  <p className="info-card-sub">설정된 커리어 목표</p>
                 </div>
               </div>
               <ul className="activity-list">

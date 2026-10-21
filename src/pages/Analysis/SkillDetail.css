@@ -66,7 +66,6 @@
 .sd-panel { min-width: 0; height: max(480px, calc(100dvh - 330px)); max-height: 800px; border: 1px solid var(--sd-border); border-radius: 16px; background: var(--sd-surface); display: flex; flex-direction: column; overflow: hidden; }
 .sd-panel:not(.sd-panel--overlay) { position: sticky; top: 16px; max-height: min(800px, calc(100dvh - 128px)); }
 .sd-panel-header { position: relative; padding: 24px 24px 20px; border-bottom: 1px solid var(--sd-border); flex-shrink: 0; }
-.sd-eyebrow { margin: 0 0 12px; color: var(--sd-muted); font-size: 12px; }
 .sd-panel h2 { margin: 0 32px 12px 0; font-size: 22px; line-height: 1.5; word-break: keep-all; overflow-wrap: anywhere; }
 .sd-panel h2:focus { outline: none; }
 .sd-panel h2:focus-visible { outline: 2px solid var(--sd-primary); outline-offset: 3px; border-radius: 4px; }

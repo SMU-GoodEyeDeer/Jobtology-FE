@@ -27,9 +27,9 @@ export function PostingDetail({ postingId, posting }: { readonly postingId: stri
     ["NCS 분야", item.ncs_categories.map(category => category.name && category.code ? `${category.name} (${category.code})` : category.name || category.code).filter(Boolean).join(" · ")],
   ];
   return <article className="posting-detail" aria-label="채용공고 상세">
-    <p className="postings-eyebrow">수집된 채용공고</p><h2>{item.title || "제목 미제공 공고"}</h2>
+    <h2>{item.title || "제목 미제공 공고"}</h2>
     <dl>{fields.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || "제공되지 않음"}</dd></div>)}</dl>
-    <p className="postings-note">수집 당시의 정보예요. 현재 접수 여부, 상세 업무와 지원 자격은 원문에서 확인해 주세요.</p>
+    <p className="postings-note">현재 접수 여부·업무·지원 자격은 원문을 확인해 주세요.</p>
     {sources.map(source => <p className="postings-source" key={`${source.source_id}:${source.run_id}`}>{postingSourceName(source.source_id)}{source.data_as_of ? ` · 데이터 반영 ${source.data_as_of.slice(0, 10)}` : " · 데이터 반영일 미제공"}{source.run_id && <span className="posting-run-id"> · 수집 실행 {source.run_id}</span>}</p>)}
     {!sources.length && <p className="postings-source">이 공고의 수집 기준 정보가 제공되지 않았어요.</p>}
     {sourceUrl ? <a className="postings-primary" href={sourceUrl} target="_blank" rel="noopener noreferrer">공고 원문 보기 ↗</a> : <p className="postings-note">원문 링크가 제공되지 않았어요.</p>}

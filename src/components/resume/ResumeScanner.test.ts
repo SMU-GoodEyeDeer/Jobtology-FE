@@ -37,6 +37,9 @@ it("shows the page limit for the selected scan or AI upload mode", async () => {
 it("scans without AI, highlights source and opens a draft with no inferred level", async () => {
   await upload(); expect(api.scan).toHaveBeenCalledWith(expect.any(File), "docx", "BACKEND", expect.any(AbortSignal));
   expect(api.interpret).not.toHaveBeenCalled();
+  expect(container.querySelector(".resume-warnings")).toBeNull();
+  expect(container.querySelector<HTMLDetailsElement>(".resume-privacy")?.open).toBe(false);
+  expect(container.querySelector(".resume-privacy")?.textContent).toContain("원본과 다를 수 있어요");
   await click("원문 근거 보기"); expect(container.querySelector("mark")?.textContent).toBe(text);
   await click("검토하고 추가");
   expect(review.mock.calls[0][0]).toMatchObject({ proficiency: "", source: "DOCUMENT_IMPORT", category: "project", evidence: text });
@@ -53,8 +56,10 @@ it("requires explicit consent before transmitting only the reviewed passage", as
 });
 it("renders hostile document content as text and explains partially unreadable PDFs", async () => {
   const hostile = '<img src=x onerror="alert(1)"><script>window.bad=true</script>';
-  api.scan.mockResolvedValue({ ...result, suggestions: [], blocks: [{ ...result.blocks[0], text: hostile }], warnings: ["OCR_REQUIRED"], skipped_pages: [2] });
+  api.scan.mockResolvedValue({ ...result, suggestions: [], blocks: [{ ...result.blocks[0], text: hostile }], warnings: ["EXTRACTED_TEXT_REVIEW", "OCR_REQUIRED"], skipped_pages: [2] });
   await upload(); expect(container.textContent).toContain(hostile); expect(container.querySelector("img,script")).toBeNull();
+  expect(container.querySelector(".resume-warnings")?.textContent).toContain("OCR 미지원");
+  expect(container.querySelector(".resume-warnings")?.textContent).not.toContain("원본과 다를 수 있어요");
   expect(container.textContent).toContain("읽지 못한 페이지: 2"); await click("이 문단으로 직접 스펙 추가"); expect(review.mock.calls[0][0].selected).toEqual([]);
 });
 it("ignores a late scan response after cancellation", async () => {

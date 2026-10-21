@@ -65,7 +65,7 @@ export function PlanStepDetail({ plan, step, skill, busy, onComplete, onClose }:
           <ol>{criteria.map((criterion, index) => <li key={`${index}-${criterion}`}><span aria-hidden="true">{index + 1}.</span><div>{criterion}</div></li>)}</ol>
         </> : <>
           <h3>학습 안내</h3>
-          <p className="wp-task-guidance">이 단계에 저장된 완료 기준이 없어요. 아래 안내를 참고해 학습 내용을 정리한 뒤 완료로 표시해 주세요.</p>
+          <p className="wp-task-guidance">이 단계에 저장된 완료 기준이 없어요. 아래 기록을 권장해요.</p>
           <ol>
             <li><span aria-hidden="true">1.</span><div>관련 역량의 핵심 개념과 용어를 정리해요.</div></li>
             <li><span aria-hidden="true">2.</span><div>권장 학습 {step.hours}시간을 진행하고 적용한 결과물이나 학습 기록을 남겨요.</div></li>

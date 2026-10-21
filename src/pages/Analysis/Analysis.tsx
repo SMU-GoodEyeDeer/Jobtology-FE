@@ -245,7 +245,7 @@ export function Analysis() {
           {goalsError && <section className="an-error-banner" role="alert">{goalsError}<button className="an-retry-btn" onClick={() => void refreshGoals().catch(() => {})}>목표 목록 다시 불러오기</button></section>}
           {showGoalSetup && <section className="an-goal-setup" aria-labelledby="an-goal-setup-title">
             <h3 id="an-goal-setup-title">분석할 목표 직무를 설정해 주세요</h3>
-            <p>역량 분석에는 직무가 정해진 활성 목표가 필요해요. 목표를 추가하거나 탐색 중인 목표의 직무를 정한 뒤 활성화해 주세요.</p>
+            <p>직무가 정해진 목표를 추가하거나 활성화해 주세요.</p>
             <div className="an-goal-setup-actions"><Link className="an-goto-roadmap-btn" to="/myinfo#goals">목표 설정하기 →</Link>
               {activeTargetedGoal && activeTargetedGoal.goal_id !== selectedGoalId && <button className="an-retry-btn" onClick={() => setSelectedGoalId(activeTargetedGoal.goal_id)}>활성 목표 선택</button>}
               <button className="an-retry-btn" onClick={() => void refreshGoals().catch(() => {})}>목표 목록 새로고침</button>
@@ -258,7 +258,7 @@ export function Analysis() {
           {/* 분석 상태 배너 */}
           {(pollState === "pending" || pollState === "running") && !queueHint ? (
             <div className="an-loading-banner">
-              역량 분석 중이에요... 잠시만 기다려주세요.
+              역량 분석 중이에요…
             </div>
           ) : pollState === "failed" ? (
             <div className="an-error-banner">
@@ -274,7 +274,7 @@ export function Analysis() {
               <div className="an-fulfillment-half">
                 <p className="an-half-label">필수 역량</p>
                 <p className="an-fulfillment-pct">{required_pct != null ? `${required_pct}%` : "—"}</p>
-                <p className="an-fulfillment-sub">완전히 반영된 필수 역량 비율</p>
+                <p className="an-fulfillment-sub">충족한 역량 비율</p>
                 {analysisResult?.result?.weighted_required_pct != null && <p className="an-fulfillment-sub">부분 반영을 포함한 모델 비율 {analysisResult.result.weighted_required_pct}%</p>}
                 <div className="progress-bar">
                   <div className="progress-fill progress-fill--blue" style={{ width: `${required_pct ?? 0}%` }} />
@@ -284,14 +284,14 @@ export function Analysis() {
               <div className="an-fulfillment-half">
                 <p className="an-half-label">우대 역량</p>
                 <p className="an-fulfillment-pct an-fulfillment-pct--green">{preferred_pct != null ? `${preferred_pct}%` : "—"}</p>
-                <p className="an-fulfillment-sub">완전히 반영된 우대 역량 비율</p>
+                <p className="an-fulfillment-sub">충족한 역량 비율</p>
                 {analysisResult?.result?.weighted_preferred_pct != null && <p className="an-fulfillment-sub">부분 반영을 포함한 모델 비율 {analysisResult.result.weighted_preferred_pct}%</p>}
                 <div className="progress-bar">
                   <div className="progress-fill progress-fill--green" style={{ width: `${preferred_pct ?? 0}%` }} />
                 </div>
               </div>
             </div>
-            {(analysisResult?.result?.weighted_required_pct != null || analysisResult?.result?.weighted_preferred_pct != null) && <p className="an-fulfillment-sub">본인 입력과 근거를 바탕으로 학습량을 계산한 모델 지표예요. 검증된 실력이나 취업 확률이 아니에요.</p>}
+            {(analysisResult?.result?.weighted_required_pct != null || analysisResult?.result?.weighted_preferred_pct != null) && <p className="an-fulfillment-sub">본인 입력과 근거 기반 모델 지표 · 검증된 실력이나 취업 확률이 아니에요.</p>}
           </section>
 
           {analyzableGoalId && selectedGoal?.occupation_id && <AnalysisPostingContext occupationId={selectedGoal.occupation_id} />}

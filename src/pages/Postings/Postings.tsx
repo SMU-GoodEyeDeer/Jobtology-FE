@@ -88,7 +88,7 @@ export function Postings() {
   return <div className="home-layout postings-page">
     <AppSidebar />
     <div className="main-area">
-      <header className="main-header"><h1 className="main-title">채용공고</h1><span className="postings-header-caption">직무와 역량의 실제 근거를 살펴보세요</span></header>
+      <header className="main-header"><h1 className="main-title">채용공고</h1></header>
       <main className="postings-content">
         <form className="postings-filters" onSubmit={search} aria-label="채용공고 검색">
           <label className="postings-search">공고·기관 검색<input value={draft.q} onChange={event => setDraft({ ...draft, q: event.target.value })} placeholder="공고명 또는 기관명" maxLength={200} /></label>
@@ -99,8 +99,8 @@ export function Postings() {
           <button className="postings-secondary" type="button" onClick={() => applyFilters(localToday())}>오늘 기준</button>
           <button className="postings-reset" type="button" onClick={() => setParams({})}>초기화</button>
         </form>
-        {occupation && <section className="occupation-context-banner" aria-label="직무 추론 연결 공고"><h2>직무 추론 연결 공고</h2><p>직무 코드 {occupation}와 연결된 공고예요. 검색을 누르면 직무 연결 보기를 끝내고 입력한 원문 필터로 검색해요.</p>{current?.context && <ContextSummary data={current.context} />}<button className="postings-secondary" onClick={() => setParams({})}>일반 공고 검색으로 전환</button></section>}
-        <p className="postings-note">{occupation ? "직무 추론 연결에는 과거 자료나 최신 여부가 확인되지 않은 공고가 포함될 수 있어요. 각 연결의 상태를 확인해 주세요." : "잡코리아 공고를 먼저 보여드려요. 날짜 필터는 수집된 접수 기간 기준이며, 실제 모집 여부는 공고 원문을 확인해 주세요."}</p>
+        {occupation && <section className="occupation-context-banner" aria-label="직무 추론 연결 공고"><h2>직무 추론 연결 공고</h2><p>직무 {occupation} 연결 공고 · 검색 시 일반 공고 검색으로 전환돼요.</p>{current?.context && <ContextSummary data={current.context} />}<button className="postings-secondary" onClick={() => setParams({})}>일반 공고 검색으로 전환</button></section>}
+        <p className="postings-note">{occupation ? "과거·미확인 연결이 포함될 수 있어요. 연결 상태를 확인해 주세요." : "잡코리아 우선 · 수집된 접수 기간 기준. 현재 모집 여부는 공고 원문을 확인해 주세요."}</p>
         <div className={`postings-grid${postingId ? " postings-grid--selected" : ""}`}>
           <section className="postings-list" aria-label="채용공고 목록" aria-busy={!current}>
             {!current ? <p className="postings-state" role="status">공고를 불러오는 중이에요…</p>

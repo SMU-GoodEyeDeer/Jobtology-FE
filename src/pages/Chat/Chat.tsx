@@ -38,7 +38,7 @@ function makeInitialMessages(goalName: string): Message[] {
   return [
     {
       role: "ai",
-      text: `안녕하세요! **${goalName}**를 목표로 하시는군요. 채용공고 데이터를 분석해서 지금 무엇부터 하면 좋을지 알려드릴게요. 아래 질문을 눌러보거나 직접 물어보세요.`,
+      text: `**${goalName}** 준비에 필요한 역량과 학습 경로를 물어보세요.`,
       chips: [`${goalName} 보기`],
     },
   ];
@@ -369,9 +369,6 @@ export function Chat() {
 
         <div className="chat-action-bar">
           <button className="chat-action-btn" onClick={() => navigate("/roadmap")}>이 추천으로 내 로드맵 만들기</button>
-          <p className="chat-action-desc">
-            그래프에서 찾은 경로를 순서대로 정리해드려요 · AI 상담 기반으로 표시돼요
-          </p>
         </div>
       </div>
     </div>

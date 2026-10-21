@@ -105,7 +105,7 @@ export function Roadmap() {
       <div className="main-area">
         <header className="main-header">
           <div className="rm-heading"><h2 className="main-title">내 로드맵</h2>
-            <p className="rm-heading-sub">{activeRoadmap ? `${activeRoadmap.title} · ${completedSteps}/${totalSteps}단계 완료` : "목표에 맞는 학습 계획을 확인하세요"}</p>
+            {activeRoadmap && <p className="rm-heading-sub">{activeRoadmap.title} · {completedSteps}/{totalSteps}단계 완료</p>}
           </div>
           <div className="goal-wrapper" ref={goalRef}>
             <button className="goal-button" aria-expanded={goalOpen} aria-controls="goal-dropdown" onClick={() => setGoalOpen((v) => !v)}>
@@ -151,7 +151,7 @@ export function Roadmap() {
                 </button>
               ); })}
             </div>
-            {prefs.preferences && <p className="rm-card-sub">추천 경로 계산 기준 주 {prefs.preferences.available_hours_per_week}시간 · 개별 주차 플랜의 시간은 ‘플랜 수정’에서 따로 조정해요.</p>}
+            {prefs.preferences && <p className="rm-card-sub">경로 계산: 주 {prefs.preferences.available_hours_per_week}시간 · 주차별 시간은 ‘플랜 수정’에서 조정</p>}
             {prefs.preferences && <RouteAvailabilityEditor key={session?.user_id} preferences={prefs.preferences} timezone={selectedGoal?.timezone ?? "Asia/Seoul"} busy={prefs.saving || prefs.loading} onSave={prefs.saveAvailability} />}
             <p className="rm-card-sub">비용 미반영 · 기본 비용 0원으로 계산</p>
             {prefs.error && <div className="rm-card-sub" role="alert"><p>{prefs.error}</p><button className="rm-bottom-btn" disabled={prefs.loading || prefs.saving} onClick={prefs.retry}>조건 다시 불러오기</button></div>}

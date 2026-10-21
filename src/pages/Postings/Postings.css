@@ -1,5 +1,4 @@
 .postings-content { padding: 28px 32px 48px; overflow-y: auto; }
-.postings-header-caption { color: var(--muted); font-size: 13px; margin-left: auto; }
 .postings-filters { display: flex; align-items: end; flex-wrap: wrap; gap: 12px; padding: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; }
 .postings-filters label { display: grid; gap: 8px; font-size: 12px; font-weight: 600; color: var(--text-secondary); flex: 1 1 120px; }
 .postings-filters label.postings-search { flex: 2 1 220px; }
@@ -44,7 +43,6 @@
 .postings-pagination button:disabled { opacity: .4; cursor: default; }
 .postings-detail-panel { position: sticky; top: 0; }
 .postings-close { display: block; margin-left: auto; }
-.postings-eyebrow { color: var(--accent); font-size: 12px; font-weight: 600; margin-top: 18px; }
 .posting-detail h2 { font-size: 21px; line-height: 1.55; margin: 8px 0 24px; color: var(--text); overflow-wrap: anywhere; }
 .posting-detail dl { margin: 0; }
 .posting-detail dl div { display: grid; grid-template-columns: 85px 1fr; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--surface-soft); font-size: 13px; line-height: 1.7; }
@@ -52,7 +50,7 @@
 .posting-detail dd { margin: 0; color: var(--text-secondary); overflow-wrap: anywhere; }
 .postings-source { margin: 12px 0 0; padding-bottom: 12px; font-size: 11px; line-height: 1.6; color: var(--tertiary); overflow-wrap: anywhere; }
 .postings-page :focus-visible { outline: 2px solid var(--accent-focus); outline-offset: 3px; }
-@media(max-width: 1100px) { .postings-content { padding: 20px; } .postings-grid--selected { grid-template-columns: minmax(0, 1fr); } .postings-detail-panel { position: static; grid-row: 1; } .postings-header-caption { display: none; } }
+@media(max-width: 1100px) { .postings-content { padding: 20px; } .postings-grid--selected { grid-template-columns: minmax(0, 1fr); } .postings-detail-panel { position: static; grid-row: 1; } }
 @media(max-width: 600px) {
   .postings-content { padding: 12px; } .postings-filters { padding: 14px; gap: 10px; } .postings-list, .postings-detail-panel { padding: 14px; }
   .postings-pagination { justify-content: center; gap: 10px; }

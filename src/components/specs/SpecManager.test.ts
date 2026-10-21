@@ -89,7 +89,7 @@ describe("shared spec CRUD and canonical selection", () => {
     expect(api.skillsApi.search).toHaveBeenCalledWith({ q: "", occupation_id: "BACKEND", limit: 20 });
     expect(container.textContent).toContain("Mathematics");
     expect(container.textContent).toContain("O*NET® 31.0 · USDOL/ETA · CC BY 4.0");
-    expect(container.textContent).toContain("공식 번역이 아니에요");
+    expect(container.textContent).toContain("Jobtology 한국어 번역(비공식)");
     await change("역량 검색", "Python");
     await act(async () => { await new Promise(resolve => setTimeout(resolve, 210)); });
     expect(api.skillsApi.search).toHaveBeenLastCalledWith({ q: "Python", occupation_id: "BACKEND", limit: 20 });

@@ -40,7 +40,7 @@ export function RouteAvailabilityEditor({ preferences, timezone, busy, onSave }:
     else setError("시간을 저장하지 못했어요. 입력한 내용은 유지했어요. 다시 시도해 주세요.");
   }
   return <details className="rm-availability"><summary>학습 가능한 요일·시간과 쉬는 날짜</summary>
-    <p className="rm-card-sub">목표 시간대 {timezone} 기준이에요. 요일·시간을 비워 두면 주당 학습 시간 안에서 자유롭게 배치해요. 변경 내용은 새 경로를 계산할 때 반영돼요.</p>
+    <p className="rm-card-sub">{timezone} 기준 · 미설정 시 주당 학습 시간에 맞춰 배치 · 새 경로 계산부터 반영</p>
     <form onSubmit={event => void save(event)} aria-label="학습 가능 시간 설정"><fieldset disabled={busy}>
       <legend>반복되는 학습 시간</legend>
       {windows.map((window, index) => <div className="rm-availability-row" key={index}>

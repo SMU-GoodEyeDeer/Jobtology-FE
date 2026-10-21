@@ -22,11 +22,6 @@
   margin: 0;
 }
 
-.rm-section-sub {
-  font-size: 12px;
-  color: var(--tertiary);
-  margin: 0;
-}
 
 /* ── 조건 칩 ── */
 .rm-chips {

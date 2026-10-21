@@ -67,7 +67,6 @@ export function SkillDetailPanel({ skill, roadmap, overlay, onClose }: PanelProp
     transition={{ duration: reducedMotion ? 0 : .2, ease: [.22, 1, .36, 1] }}
     role={overlay ? "dialog" : "complementary"} aria-modal={overlay || undefined} aria-labelledby="skill-panel-heading">
     <header className="sd-panel-header">
-      <p className="sd-eyebrow">선택한 역량</p>
       <button className="sd-close" type="button" aria-label="패널 닫기" onClick={onClose}>×</button>
       <h2 id="skill-panel-heading" ref={heading} tabIndex={-1}>{skill.name}</h2>
       <div className="sd-badges"><SkillBadge type={skill.type} />
