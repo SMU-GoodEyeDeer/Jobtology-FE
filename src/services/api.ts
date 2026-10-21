@@ -1,4 +1,5 @@
 import type {
+  ResumeAnalysisEvent,
   SessionResponse,
   ProfileDetailResponse,
   ProfileUpdateRequest,
@@ -37,6 +38,7 @@ import type {
   WeeklyPlanResponse,
   ResumeStatus, ResumeScan, ResumeFormat, ResumeSuggestion,
 } from "./types";
+import { readResumeEvents } from "./resumeStream";
 
 const BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "/api").replace(/\/$/, "");
 
@@ -260,6 +262,16 @@ export const resumeApi = {
     return response.json() as Promise<ResumeScan>;
   },
   interpret: (text: string, occupationId?: string | null) => post<{ suggestions: ResumeSuggestion[]; rejected_count: number }>("/v1/me/resume/interpret", { text, occupation_id: occupationId ?? null }),
+  analyze: async (file: File, occupationId: string | null | undefined, onEvent: (event: ResumeAnalysisEvent) => void, signal: AbortSignal): Promise<void> => {
+    const query = new URLSearchParams({ format: "pdf", ai_consent: "true" });
+    if (occupationId) query.set("occupation_id", occupationId);
+    const headers: Record<string, string> = { "Content-Type": "application/octet-stream", Accept: "application/x-ndjson" };
+    if (_csrfToken) headers["X-CSRF-Token"] = _csrfToken;
+    const response = await fetch(`${BASE_URL}/v1/me/resume/analyze?${query}`, { method: "POST", credentials: "include", headers, body: file, signal });
+    if (!response.ok) throw Object.assign(new Error("이력서 분석을 시작하지 못했어요."), { status: response.status, detail: await response.json().catch(() => null) });
+    if (!response.body) throw new Error("이력서 분석 응답을 읽지 못했어요.");
+    await readResumeEvents(response.body, onEvent, signal);
+  },
 };
 
 // ─── AI Chat ─────────────────────────────────────────────────────────────────

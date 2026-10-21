@@ -3,6 +3,10 @@ import { specDraft, specPayload, suggestedCategory } from "./specModel";
 import type { CapabilityDetailResponse, ChatCapabilityCandidate } from "../../services/types";
 
 describe("structured spec payloads", () => {
+  it.each(["education", "other"] as const)("keeps %s as an information record with no competency credit", category => {
+    expect(specPayload({ ...specDraft(), title: "기록", category, proficiency: "", selected: [{ entity_id: "ncs:unit", label: "역량", requirement_keys: [] }] }))
+      .toMatchObject({ category, proficiency: null, details: { competency_ids: [] } });
+  });
   it("prefills only validated category recommendations from the chat review action", () => {
     const candidate: ChatCapabilityCandidate = { entity_id: "ncs:unit:2001020301", label: "API 구현", evidence_quote: "API를 직접 구현했어요", category: "project" };
     expect(specDraft(null, candidate).category).toBe("project");

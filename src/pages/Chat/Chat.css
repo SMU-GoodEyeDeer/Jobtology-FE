@@ -665,6 +665,9 @@
 
 .legend-item:hover, .legend-item[data-active="true"] { color: var(--accent-strong); background: var(--accent-tint); }
 .legend-item:focus-visible { outline: 2px solid var(--accent-focus); outline-offset: 2px; }
+.legend-item[data-empty="true"] { color: var(--tertiary); cursor: help; }
+.legend-count { font-variant-numeric: tabular-nums; font-size: 10px; min-width: 15px; text-align: center; border-radius: 4px; background: var(--surface-soft); padding: 1px 3px; }
+.graph-legend-notice { margin: 0; padding: 0 20px 10px; color: var(--muted); font-size: 11px; line-height: 1.6; }
 @media (prefers-reduced-motion: reduce) {
   .graph-node, .graph-node circle, .graph-edge, .legend-item { transition: none; }
 }

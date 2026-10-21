@@ -55,8 +55,18 @@
 .spec-dialog .resume-candidate { padding: 16px; }
 .spec-dialog .resume-workspace { gap: 22px; }
 .spec-dialog .resume-source-scroll, .spec-dialog .resume-suggestions { max-height: 480px; }
-@container resume (min-width: 641px) { .spec-dialog .resume-tabs { display: none; } }
+@container resume (min-width: 641px) { .spec-dialog .resume-scanner > .resume-tabs { display: none; } }
 @media (max-width: 640px) {
   .spec-dialog .resume-upload, .spec-dialog .resume-source, .spec-dialog .resume-suggestions { padding: 16px; }
   .spec-dialog .resume-card-actions button { white-space: normal; }
 }
+.resume-upload .resume-bulk-consent { display: flex; align-items: flex-start; gap: 10px; line-height: 1.7; font-weight: 600; color: var(--text); }
+.resume-upload .resume-bulk-consent input { width: 16px; min-width: 16px; height: 16px; margin: 3px 0 0; accent-color: var(--accent-solid); }
+.resume-progress progress { width: 140px; max-width: 100%; height: 7px; accent-color: var(--accent-solid); }
+.resume-document-frame { display: block; width: 100%; height: 510px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+.resume-fields { display: grid; gap: 6px; margin: 12px 0; font-size: 12px; line-height: 1.6; }
+.resume-fields > div { display: grid; grid-template-columns: minmax(65px, auto) minmax(0, 1fr); column-gap: 12px; }
+.resume-fields dt { color: var(--muted); }
+.resume-fields dd { margin: 0; color: var(--text-secondary); overflow-wrap: anywhere; white-space: pre-wrap; }
+@container resume (max-width: 640px) { .resume-document-frame { height: 410px; } }
+@media (prefers-reduced-motion: reduce) { .resume-candidate, .resume-progress { animation: none; } }

@@ -3,6 +3,7 @@ import type { CapabilityDetailResponse, CapabilityWrite, ChatCapabilityCandidate
 export const SPEC_CATEGORIES: { value: SpecCategory; label: string }[] = [
   { value: "skill", label: "기술·역량" }, { value: "certification", label: "자격증" },
   { value: "test", label: "시험·어학 점수" }, { value: "project", label: "프로젝트" }, { value: "experience", label: "업무 경험" },
+  { value: "education", label: "학력" }, { value: "other", label: "기타 기록" },
 ];
 export const PROFICIENCIES: { value: SpecProficiency; label: string; credit: number }[] = [
   { value: "FAMILIAR", label: "기초를 이해해요", credit: .25 },
@@ -34,6 +35,10 @@ export interface SpecDraft {
   score_unit: string;
   organization: string;
   role: string;
+  school: string;
+  degree: string;
+  major: string;
+  imported_fields?: SpecDetails["imported_fields"];
   url: string;
 }
 export function specDraft(item?: CapabilityDetailResponse | null, candidate?: ChatCapabilityCandidate | null): SpecDraft {
@@ -47,17 +52,20 @@ export function specDraft(item?: CapabilityDetailResponse | null, candidate?: Ch
     issuer: details?.issuer ?? "", credential_code: details?.credential_code ?? "", issued_on: details?.issued_on ?? "", expires_on: details?.expires_on ?? "",
     score: details?.score == null ? "" : String(details.score), score_max: details?.score_max == null ? "" : String(details.score_max), score_unit: details?.score_unit ?? "",
     organization: details?.organization ?? "", role: details?.role ?? "", url: details?.url ?? "",
+    school: details?.school ?? "", degree: details?.degree ?? "", major: details?.major ?? "", imported_fields: details?.imported_fields,
   };
 }
 export function specPayload(draft: SpecDraft): CapabilityWrite {
-  if (!draft.proficiency) throw new Error("직접 수행한 수준을 선택해 주세요.");
+  const information = draft.category === "education" || draft.category === "other";
+  if (!information && !draft.proficiency) throw new Error("직접 수행한 수준을 선택해 주세요.");
   if (!draft.title.trim()) throw new Error("스펙 제목을 입력해 주세요.");
   if (draft.category === "certification" && !draft.issuer.trim()) throw new Error("자격증 발급 기관을 입력해 주세요.");
   if (draft.category === "test" && !draft.score.trim()) throw new Error("시험·어학 점수를 입력해 주세요.");
   if (draft.selected.length > 12) throw new Error("연결할 역량은 최대 12개까지 선택할 수 있어요.");
   const optional = (value: string) => value.trim() || null;
-  const details: SpecDetails = { competency_ids: draft.selected.map(item => item.entity_id), evidence: draft.evidence.trim(), source: draft.source, ongoing: false };
+  const details: SpecDetails = { competency_ids: information ? [] : draft.selected.map(item => item.entity_id), evidence: draft.evidence.trim(), source: draft.source, ongoing: false };
   if (draft.document_evidence) details.document_evidence = draft.document_evidence;
+  if (draft.imported_fields && Object.keys(draft.imported_fields).length) details.imported_fields = draft.imported_fields;
   if (draft.url.trim()) {
     try { if (!["http:", "https:"].includes(new URL(draft.url.trim()).protocol)) throw new Error(); }
     catch { throw new Error("자료 링크는 http 또는 https 주소로 입력해 주세요."); }
@@ -73,10 +81,12 @@ export function specPayload(draft: SpecDraft): CapabilityWrite {
     if (score !== null && (!Number.isFinite(score) || score < 0) || max !== null && (!Number.isFinite(max) || max <= 0) || score !== null && max !== null && score > max) throw new Error("점수는 0 이상, 만점은 0보다 크게 입력하고 점수가 만점을 넘지 않는지 확인해 주세요.");
     Object.assign(details, { score, score_max: max, score_unit: optional(draft.score_unit) });
   }
-  if (draft.category === "project" || draft.category === "experience") {
+  if (draft.category === "project" || draft.category === "experience" || draft.category === "education") {
     if (!draft.ongoing && draft.started_on && draft.ended_on && draft.ended_on < draft.started_on) throw new Error("종료일은 시작일보다 빠를 수 없어요.");
-    Object.assign(details, { started_on: optional(draft.started_on), ended_on: draft.ongoing ? null : optional(draft.ended_on), ongoing: draft.ongoing, role: optional(draft.role) });
+    Object.assign(details, { started_on: optional(draft.started_on), ended_on: draft.ongoing ? null : optional(draft.ended_on), ongoing: draft.ongoing });
+    if (draft.category !== "education") details.role = optional(draft.role);
     if (draft.category === "experience") details.organization = optional(draft.organization);
   }
-  return { category: draft.category, raw_text: draft.title.trim(), proficiency: draft.proficiency, details };
+  if (draft.category === "education") Object.assign(details, { school: optional(draft.school), degree: optional(draft.degree), major: optional(draft.major) });
+  return { category: draft.category, raw_text: draft.title.trim(), proficiency: information ? null : draft.proficiency || null, details };
 }
