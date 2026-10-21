@@ -25,8 +25,14 @@ const graph: RoleEvidenceGraph = {
     { ...base, id: "postings:20010203", kind: "posting_evidence", label: "공고 50건", ncs_category: "20010203" },
     { ...base, id: "unit", kind: "ncs_competency", label: "API 구현", requirement_key: "BACKEND_DEVELOPER:2001020301", ncs_base_code: "2001020301" },
     { ...base, id: "qualification", kind: "qualification", label: "실제 자격", qualification_code: "C290" },
+    { ...base, id: "onet", kind: "onet_occupation", label: "Software Developers", occupation_code: "15-1252.00", basis: "APPLICATION_CONTEXT_SELECTION" },
+    { ...base, id: "onet-skill", kind: "onet_skill", label: "Critical Thinking" },
+    { ...base, id: "technology", kind: "technology", label: "Python" },
   ],
-  edges: [{ source: "role", target: "occupation", kind: "MAPPED_TO", weight: null }, { source: "role", target: "postings:20010203", kind: "EVIDENCED_BY", weight: null }, { source: "role", target: "unit", kind: "HAS_COMPETENCY", weight: null }, { source: "role", target: "qualification", kind: "QUALIFIED_BY", weight: null }],
+  edges: [{ source: "role", target: "occupation", kind: "MAPPED_TO", weight: null }, { source: "role", target: "postings:20010203", kind: "EVIDENCED_BY", weight: null }, { source: "role", target: "unit", kind: "HAS_COMPETENCY", weight: null }, { source: "role", target: "qualification", kind: "QUALIFIED_BY", weight: null },
+    { source: "role", target: "onet", kind: "CONTEXT_FOR", weight: null, basis: "APPLICATION_CONTEXT_SELECTION" },
+    { source: "onet", target: "onet-skill", kind: "ESSENTIAL_SKILL", weight: null },
+    { source: "onet", target: "technology", kind: "HOT_TECHNOLOGY", weight: null }],
 };
 function Location() { const location = useLocation(); return createElement("output", { "data-location": true }, location.pathname + location.search); }
 let root: Root; let container: HTMLDivElement;
@@ -37,12 +43,55 @@ beforeEach(() => {
   exam.mockClear(); container = document.createElement("div"); document.body.append(container); root = createRoot(container);
 });
 afterEach(async () => { await act(async () => root.unmount()); container.remove(); vi.unstubAllGlobals(); });
-async function render(nodes: readonly EvidenceNode[] = graph.nodes) {
-  await act(async () => root.render(createElement(MemoryRouter, { initialEntries: ["/chat"] }, createElement(EvidenceGraph, { graph: { ...graph, nodes }, status: "ready", ownedSkills: new Set<string>(), onOpenRoadmap: vi.fn() }), createElement(Location))));
+async function render(nodes: readonly EvidenceNode[] = graph.nodes, warnings: readonly string[] = []) {
+  await act(async () => root.render(createElement(MemoryRouter, { initialEntries: ["/chat"] }, createElement(EvidenceGraph, { graph: { ...graph, nodes, warnings }, status: "ready", ownedSkills: new Set<string>(), onOpenRoadmap: vi.fn() }), createElement(Location))));
 }
 async function select(label: string) { await act(async () => container.querySelector(`[aria-label="${label} 상세정보"]`)!.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }))); }
 function button(label: string) { return Array.from(container.querySelectorAll("button")).find(item => item.textContent === label)!; }
 describe("evidence graph resource actions", () => {
+  it("discloses unavailable posting counts while keeping catalog nodes available", async () => {
+    await render(graph.nodes, ['POSTING_CONTEXT_UNAVAILABLE']);
+    expect(container.querySelector('[role="status"]')?.textContent).toContain('공고 연결 집계를 확인하지 못했어요');
+    expect(container.querySelector('[aria-label="Software Developers 상세정보"]')).not.toBeNull();
+  });
+  it("renders distinct NCS, O*NET skill and technology legend counts and highlights on hover/focus", async () => {
+    await render();
+    const legend = (name: string) => container.querySelector<HTMLButtonElement>(`[aria-label="${name} 노드 강조"]`)!;
+    expect(legend("NCS 능력단위").textContent).toContain("1");
+    expect(legend("O*NET 핵심 역량").textContent).toContain("1");
+    expect(legend("기술 스택").textContent).toContain("1");
+    await act(async () => legend("NCS 능력단위").dispatchEvent(new Event("pointerover", { bubbles: true })));
+    expect(container.querySelector('.graph-node--highlighted[data-legend="ncs_competency"]')).not.toBeNull();
+    expect(container.querySelector('.graph-node--dimmed[data-legend="technology"]')).not.toBeNull();
+    await act(async () => legend("NCS 능력단위").dispatchEvent(new Event("pointerout", { bubbles: true })));
+    expect(container.querySelector('.graph-node--dimmed')).toBeNull();
+    await act(async () => legend("O*NET 직업").focus());
+    expect(container.querySelector('.graph-node--highlighted[data-legend="onet_occupation"]')).not.toBeNull();
+    await act(async () => legend("O*NET 직업").dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true })));
+    expect(container.querySelector('.graph-node--dimmed')).toBeNull();
+  });
+  it("explains empty categories and excluded historical NCS associations", async () => {
+    await render();
+    const empty = container.querySelector<HTMLButtonElement>('[aria-label="보유 역량 노드 강조"]')!;
+    expect(empty.textContent).toContain("0"); expect(empty.getAttribute('aria-disabled')).toBe('true');
+    await act(async () => empty.focus());
+    expect(container.querySelector('[role="status"]')?.textContent).toContain('보유 역량 노드가 없어요');
+    expect(container.querySelector('.graph-node--dimmed')).toBeNull();
+    expect(container.textContent).toContain('NCS 연결 7건은 제외');
+  });
+  it("keeps O*NET reference context explicit and opens postings by its own occupation code", async () => {
+    await render(); await select("Software Developers");
+    const dialog = container.querySelector('[role="dialog"]')!;
+    expect(dialog.textContent).toContain('직무 탐색용 참고 연결');
+    expect(dialog.textContent).toContain('NCS와의 동등성');
+    await act(async () => button("연결된 채용공고 보기").click());
+    expect(container.querySelector("output")!.textContent).toBe('/postings?occupation=15-1252.00');
+  });
+  it("loads O*NET posting aggregates with the general occupation identity", async () => {
+    await render(graph.nodes.map(node => node.kind === 'posting_evidence' ? { ...node, occupation_code:'15-1252.00', ncs_category:null } : node));
+    await select("공고 50건");
+    expect(resourcesApi.occupationContext).toHaveBeenCalledWith('15-1252.00',3);
+  });
   it("opens an aggregate posting node with real samples then navigates to the chosen detail", async () => {
     await render(); await select("공고 50건");
     expect(resourcesApi.occupationContext).toHaveBeenCalledWith("20010203", 3);

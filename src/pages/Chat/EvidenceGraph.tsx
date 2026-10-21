@@ -48,8 +48,9 @@ const LEGEND: readonly { readonly visual: Visual; readonly label: string }[] = [
   { visual: "onet_occupation", label: "O*NET 직업" },
   { visual: "posting_evidence", label: "직무 추론 공고" },
   { visual: "qualification", label: "Q-Net 자격" },
-  { visual: "onet_skill", label: "핵심 역량" },
-  { visual: "technology", label: "필요 역량" },
+  { visual: "ncs_competency", label: "NCS 능력단위" },
+  { visual: "onet_skill", label: "O*NET 핵심 역량" },
+  { visual: "technology", label: "기술 스택" },
   { visual: "have", label: "보유 역량" },
 ];
 
@@ -67,7 +68,7 @@ function shorten(label: string, max: number): string {
 }
 
 function legendVisual(kind: EvidenceNodeKind, owned: boolean): Visual {
-  return owned ? "have" : kind === "ncs_competency" ? "technology" : kind;
+  return owned ? "have" : kind;
 }
 
 interface Props {
@@ -138,6 +139,15 @@ export function EvidenceGraph({ graph, status, ownedSkills, onOpenRoadmap }: Pro
   }, [graph, ownedSkills]);
 
   const activeLegend = hoveredLegend ?? focusedLegend;
+  const legendCounts = useMemo(() => {
+    const counts = new Map<Visual, number>();
+    for (const node of model?.graph.nodes ?? []) {
+      const visual = legendVisual(node.kind, model?.ownedIds.has(node.id) ?? false);
+      counts.set(visual, (counts.get(visual) ?? 0) + 1);
+    }
+    return counts;
+  }, [model]);
+  const excludedAssociations = graph?.nodes.reduce((total, node) => total + (node.excluded_associations ?? 0), 0) ?? 0;
   const highlightedIds = useMemo(() => {
     const ids = new Set(model?.graph.nodes.filter(node => legendVisual(node.kind, model.ownedIds.has(node.id)) === activeLegend).map(node => node.id));
     if (activeLegend === "have" && ids.size > 0) ids.add(ME_ID);
@@ -266,7 +276,7 @@ export function EvidenceGraph({ graph, status, ownedSkills, onOpenRoadmap }: Pro
       <div className="graph-panel-header">
         <div>
           <p className="graph-title">추천 근거 그래프</p>
-          <p className="graph-sub">지식그래프 · 노드를 클릭하여 상세정보를 확인하세요</p>
+          <p className="graph-sub">관계별 표본 · 노드를 눌러 상세 확인</p>
         </div>
         <div className="graph-controls" role="group" aria-label="그래프 보기 조절">
           <button className="graph-zoom-btn" aria-label="그래프 축소" disabled={!sim || camera.zoom <= MIN_ZOOM} onClick={() => zoom(1 / 1.2)}>−</button>
@@ -344,12 +354,12 @@ export function EvidenceGraph({ graph, status, ownedSkills, onOpenRoadmap }: Pro
             <p className="node-popup-desc" style={{ whiteSpace: "pre-line" }}>{selected.detail}</p>
           )}
           <GraphEvidenceMetadata node={selected} edges={graph?.edges.filter(edge => edge.source === selected.id || edge.target === selected.id) ?? []} />
-          {selected.kind === "posting_evidence" ? <PostingEvidence key={selected.id} occupation={selected.ncs_category} />
+          {selected.kind === "posting_evidence" ? <PostingEvidence key={selected.id} occupation={selected.occupation_code ?? selected.ncs_category} />
             : selected.kind === "qualification" ? (selected.qualification_code
               ? <QualificationCard qualification={{ code: selected.qualification_code, name: selected.label }} />
               : <p className="node-popup-desc">시험 일정과 연결할 자격 코드가 제공되지 않았어요.</p>)
             : <>
-              {selected.kind === "ncs_occupation" && selected.ncs_category && <button className="node-popup-btn" onClick={() => navigate(postingsHref({ occupation: selected.ncs_category! }))}>연결된 채용공고 보기</button>}
+              {(selected.kind === "ncs_occupation" || selected.kind === "onet_occupation") && (selected.occupation_code || selected.ncs_category) && <button className="node-popup-btn" onClick={() => navigate(postingsHref({ occupation: selected.occupation_code ?? selected.ncs_category! }))}>연결된 채용공고 보기</button>}
               <button className="node-popup-btn" onClick={() => selected.requirement_key || selected.ncs_base_code
                 ? navigate(roadmapSkillHref(selected.requirement_key, selected.ncs_base_code)) : onOpenRoadmap()}>로드맵에서 보기</button>
               <button className="node-popup-link" onClick={() => navigate(analysisSkillHref(selected.requirement_key, selected.ncs_base_code))}>역량분석에서 보기 →</button>
@@ -365,13 +375,19 @@ export function EvidenceGraph({ graph, status, ownedSkills, onOpenRoadmap }: Pro
         {LEGEND.map(({ visual, label }) => (
           <button key={visual} type="button" className="legend-item" data-active={activeLegend === visual}
             aria-label={`${label} 노드 강조`}
+            aria-disabled={!legendCounts.get(visual)} data-empty={!legendCounts.get(visual)}
+            title={legendCounts.get(visual) ? `${label} ${legendCounts.get(visual)}개 강조` : `현재 그래프에는 ${label} 노드가 없어요.`}
             onPointerEnter={() => setHoveredLegend(visual)} onPointerLeave={() => setHoveredLegend(null)}
             onFocus={() => setFocusedLegend(visual)} onBlur={() => setFocusedLegend(null)}>
             <span className="legend-dot" style={{ background: COLORS[visual] }} />
             {label}
+            <span className="legend-count" aria-hidden="true">{legendCounts.get(visual) ?? 0}</span>
           </button>
         ))}
       </div>
+      {activeLegend && !legendCounts.get(activeLegend) && <p className="graph-legend-notice" role="status">현재 그래프에는 {LEGEND.find(item => item.visual === activeLegend)?.label} 노드가 없어요.{activeLegend === 'have' && ' 보유 역량은 현재 표시한 표본에 포함된 충족 역량만 보여 줘요.'}</p>}
+      {!!excludedAssociations && <p className="graph-legend-notice">원문·분류 기준이 바뀌거나 확인되지 않은 NCS 연결 {excludedAssociations.toLocaleString()}건은 제외했어요. NCS 직무를 눌러 출처를 확인할 수 있어요.</p>}
+      {graph?.warnings?.includes('POSTING_CONTEXT_UNAVAILABLE') && <p className="graph-legend-notice" role="status">공고 연결 집계를 확인하지 못했어요. 표시된 직업·역량은 탐색할 수 있고, 공고는 채용공고 페이지에서 확인해 주세요.</p>}
     </>
   );
 }

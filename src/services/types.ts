@@ -536,7 +536,7 @@ export interface EvidenceSource {
   readonly confidence_state: "UNASSESSED";
 }
 export interface EvidenceMetadata {
-  readonly basis?: "METADATA_INFERRED" | "REFERENCE";
+  readonly basis?: "METADATA_INFERRED" | "REFERENCE" | "APPLICATION_CONTEXT_SELECTION";
   readonly evidence_sources?: readonly EvidenceSource[];
   readonly review_statuses?: readonly string[];
   readonly stages?: readonly string[];
@@ -544,6 +544,7 @@ export interface EvidenceMetadata {
 export interface EvidenceNode extends EvidenceMetadata {
   readonly excluded_associations?: number;
   readonly ncs_category?: string | null;
+  readonly occupation_code?: string | null;
   readonly ncs_base_code?: string | null;
   readonly requirement_key?: string | null;
   readonly qualification_code?: string | null;
@@ -564,6 +565,7 @@ export interface EvidenceEdge extends EvidenceMetadata {
 }
 
 export interface RoleEvidenceGraph {
+  readonly warnings?: readonly string[];
   readonly occupation_id: string;
   readonly name: string;
   readonly nodes: readonly EvidenceNode[];
