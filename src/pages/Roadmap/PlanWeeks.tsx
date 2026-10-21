@@ -50,8 +50,8 @@ export function PlanWeeks({ plan, draft, changedIds, busy, onChange, onSelect }:
           <button aria-label="1시간 줄이기" disabled={busy || draft.weekly_hours <= 1} onClick={() => onChange({ ...draft, weekly_hours: draft.weekly_hours - 1 })}>−</button>
           <b aria-live="polite">{draft.weekly_hours}시간</b>
           <button aria-label="1시간 늘리기" disabled={busy || draft.weekly_hours >= 60} onClick={() => onChange({ ...draft, weekly_hours: draft.weekly_hours + 1 })}>+</button>
-        </div><span>총 <b>{plan.total_hours}시간</b> · {plan.total_weeks}주</span><small id="wp-drag-help">핸들을 끌거나 선택 후 ↑↓ 키로 학습 우선순위를 바꿔요<br />선행 단계는 먼저 끝내고, 독립적인 단계는 함께 진행해요<br />주차 번호를 누르면 쉬는 주가 돼요</small>
-      </div> : <header className="wp-gantt-heading"><h2>주차 플랜</h2><p>막대를 누르면 단계 상세가 열려요 · ? 버튼으로 배치 이유를 확인해요</p></header>}
+        </div><span>총 <b>{plan.total_hours}시간</b> · {plan.total_weeks}주</span><small id="wp-drag-help">순서: 핸들 드래그·↑↓ 키 · 쉬는 주: 주차 번호 선택</small>
+      </div> : <header className="wp-gantt-heading"><h2>주차 플랜</h2></header>}
       <div className="wp-gantt-scroll"><div ref={containerRef} {...containerProps} className="wp-gantt" style={{ minWidth: (draft ? 420 : 330) + weekCount * 25 }}>
         <div className="wp-gantt-headers">
           <div className="wp-gantt-months" style={columns}><span className="wp-gantt-label" />{months.map(m => <span key={m.start} style={{ gridColumn: `${m.start + 1} / ${m.end + 2}` }}>{m.label}</span>)}</div>

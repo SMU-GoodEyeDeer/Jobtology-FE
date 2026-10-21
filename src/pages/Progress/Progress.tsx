@@ -189,7 +189,6 @@ export function Progress() {
             <div className="pg-summary-header">
               <div>
                 <p className="pg-section-title">지금까지 해온 것 정리</p>
-                <p className="pg-summary-sub">완료한 단계를 용도에 맞게 문장으로 정리했어요.</p>
               </div>
               <button className="pg-copy-btn" onClick={handleCopy}>복사</button>
             </div>
@@ -209,11 +208,6 @@ export function Progress() {
                 <li key={i} className="pg-summary-item">· {line}</li>
               ))}
             </ul>
-            <p className="pg-summary-footer">
-              {activeTab === "이력서·포트폴리오"
-                ? "이력서·포트폴리오에 붙여 넣을 수 있는 항목형 정리에요."
-                : "자기소개서에 활용할 수 있는 문장형 정리에요."}
-            </p>
           </section>
 
           <div className="an-bottom-actions">

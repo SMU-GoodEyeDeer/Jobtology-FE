@@ -226,10 +226,10 @@ export function GoalManagement({ goals, loading, error, refresh, onProfileVersio
   try { if (editor) dateRange = goalDateRange(editor.timezone.trim()); } catch { /* Show field validation on save. */ }
   return <section className="mi-goals-card" id="goals" aria-labelledby="mi-goals-title" aria-busy={pending || loading}>
     <div className="mi-card-header"><h3 className="mi-card-title" id="mi-goals-title">내 목표</h3><button className="mi-save-btn" disabled={blocked || !!error} onClick={() => openEditor(null)}>목표 추가</button></div>
-    <p className="mi-goal-help">활성 목표는 한 번에 하나예요. 직무나 목표일을 바꾸려면 기존 목표의 ‘수정’을 눌러 주세요.</p>
+    <p className="mi-goal-help">활성 목표는 한 번에 하나예요.</p>
     {loading && <p role="status">목표를 불러오는 중이에요.</p>}
     {error && <div className="mi-goal-error" role="alert"><p>{error}</p><button className="mi-save-btn" disabled={blocked} onClick={() => void refresh().catch(() => {})}>목표 목록 다시 불러오기</button></div>}
-    {!loading && !error && !goals.length && <p className="mi-goal-empty">아직 목표가 없어요. 목표를 추가하면 나중에도 직무와 목표일을 바꿀 수 있어요.</p>}
+    {!loading && !error && !goals.length && <p className="mi-goal-empty">아직 목표가 없어요. 목표를 추가해 주세요.</p>}
     {goals.map(goal => <div key={goal.goal_id} className="mi-goal-item">
       <div className="mi-goal-info"><div><span className="mi-goal-name">{getName(goal.occupation_id)}</span><p className="mi-goal-help">목표일 {shownDate(goal)} · {goal.timezone}</p></div><span className={`mi-goal-badge mi-goal-badge--${goal.status.toLowerCase()}`}>{statusLabels[goal.status]}</span></div>
       <div className="mi-goal-actions"><button className="mi-goal-archive-btn" disabled={blocked || !!error} onClick={() => openEditor(goal)} aria-label={`${getName(goal.occupation_id)} 목표 수정`}>수정</button>
@@ -249,14 +249,14 @@ export function GoalManagement({ goals, loading, error, refresh, onProfileVersio
     {editor && <form className="mi-goal-editor" onSubmit={event => void saveEditor(event)}>
       <h4>{editor.goal ? "목표 수정" : "새 목표"}</h4>
       {!editor.goal && active && <p className="mi-goal-help">현재 활성 목표를 유지하고 새 목표는 임시저장해요.</p>}
-      {editor.goal && <p className="mi-goal-help">직무를 변경하면 이전 로드맵은 학습 기록과 함께 보관돼요. 목표일만 바꾸면 기존 학습 기록을 유지해요. 직무가 정해진 활성 목표를 저장하면 새 분석을 시작해요.</p>}
+      {editor.goal && <p className="mi-goal-help">직무 변경 시 이전 로드맵·학습 기록을 보관하고, 목표일만 변경하면 유지해요. 직무가 있는 활성 목표는 저장 후 다시 분석해요.</p>}
       {editor.goal?.status !== "ACTIVE" && editor.goal && <p className="mi-goal-help">이 목표를 수정해도 자동으로 활성화되지는 않아요. 저장 후 ‘활성화’를 눌러 주세요.</p>}
       {editor.occupation === DISCOVERY && <p className="mi-goal-help">탐색 목표는 저장 후 직무를 선택하면 역량 분석을 시작할 수 있어요.</p>}
       <label className="mi-field"><span className="mi-label">목표 직무</span><select className="mi-input" required value={editor.occupation} disabled={blocked || occupationsLoading} onChange={event => setEditor({ ...editor, occupation: event.target.value })}><option value="" disabled>직무를 선택해 주세요</option><option value={DISCOVERY}>아직 탐색 중이에요</option>{occupations.map(occupation => <option key={occupation.occupation_id} value={occupation.occupation_id}>{occupation.name}</option>)}</select></label>
       {occupationsError && <div className="mi-goal-error" role="alert"><p>{occupationsError}</p><button className="mi-save-btn" type="button" disabled={blocked} onClick={() => void refreshOccupations().catch(() => {})}>직무 목록 다시 불러오기</button></div>}
       <div className="mi-goal-fields"><label className="mi-field"><span className="mi-label">목표일</span><input className="mi-input" type="date" required value={editor.date} min={editor.goal?.status === "ARCHIVED" ? undefined : dateRange?.min} max={editor.goal?.status === "ARCHIVED" ? undefined : dateRange?.max} disabled={blocked} onChange={event => setEditor({ ...editor, date: event.target.value })} /></label>
       <label className="mi-field"><span className="mi-label">시간대</span><input className="mi-input" required maxLength={100} placeholder="Asia/Seoul" list="mi-goal-timezones" value={editor.timezone} disabled={blocked} onChange={event => setEditor({ ...editor, timezone: event.target.value })} /><datalist id="mi-goal-timezones"><option value="Asia/Seoul" /><option value="UTC" /><option value="America/New_York" /><option value="Europe/London" /></datalist></label></div>
-      <p className="mi-goal-help">목표일은 선택한 시간대의 하루가 끝나는 시각을 기준으로 저장해요. 활성·임시 목표는 현재 시각부터 366일 이내로 선택해 주세요. 보관된 목표는 과거 목표일을 유지할 수 있어요.</p>
+      <p className="mi-goal-help">선택한 시간대의 하루 끝 기준 · 활성·임시 목표는 366일 이내 · 보관 목표는 과거 날짜 유지 가능</p>
       <div className="mi-goal-actions"><button className="mi-save-btn" type="button" disabled={blocked} onClick={() => { setEditor(null); setWriteFailure(null); }}>취소</button><button className="mi-roadmap-btn mi-goal-submit" type="submit" disabled={blocked || occupationsLoading}>{pending ? "저장 중..." : !editor.goal && active ? "목표 임시저장" : "목표 저장"}</button></div>
     </form>}
     {writeFailure && <p className="mi-goal-error" role="alert">{writeFailure}</p>}

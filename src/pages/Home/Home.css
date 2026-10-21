@@ -205,13 +205,6 @@
   gap: 6px;
 }
 
-.hero-badge {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  color: var(--on-strong-muted);
-  text-transform: uppercase;
-}
 
 .hero-name {
   font-size: 26px;
@@ -227,11 +220,6 @@
   margin: 0;
 }
 
-.hero-sub {
-  font-size: 13px;
-  color: var(--on-strong-muted);
-  margin: 4px 0 16px;
-}
 
 .hero-btn {
   display: inline-flex;
@@ -312,12 +300,6 @@
   font-weight: 700;
 }
 
-.action-card-sub {
-  font-size: 13px;
-  color: var(--muted);
-  line-height: 1.6;
-  margin: 0;
-}
 
 .action-btn {
   margin-top: 4px;
@@ -449,11 +431,6 @@
   margin: 0 0 2px;
 }
 
-.info-card-sub {
-  font-size: 12px;
-  color: var(--tertiary);
-  margin: 0;
-}
 
 /* Check list */
 .check-list {

@@ -212,7 +212,7 @@ export function MyInfo() {
           <GoalManagement goals={goals} loading={goalsLoading} error={goalsError} refresh={refreshGoals} onProfileVersionChange={setProfileVersion} />
           {mutationNotice && <section className="mi-mutation-notice" aria-label="저장 결과">
             <p role="status">{mutationNotice}</p>
-            <p className="mi-persistence-help">직무와 연결되는 역량은 경로 계산에 반영돼요. 다시 분석해 변경 결과를 확인할 수 있어요. 기존 진행 중인 로드맵은 자동으로 교체하지 않아요.</p>
+            <p className="mi-persistence-help">변경 후 다시 분석해 주세요. 진행 중인 로드맵은 자동으로 바뀌지 않아요.</p>
             <div className="mi-persistence-actions">{goals.some(isAnalyzableGoal) ? <button className="mi-save-btn" disabled={mutationPending} onClick={() => void handleReanalyze()}>{reanalyzing ? "분석 요청 중..." : "변경 내용으로 다시 분석"}</button> : <Link to="/myinfo#goals">분석할 목표 설정하기</Link>}<Link to="/analysis">분석 화면 열기 →</Link></div>
             {analysisError && <p className="mi-persistence-error" role="alert">{analysisError} <Link to="/myinfo#goals">목표 확인</Link></p>}
           </section>}

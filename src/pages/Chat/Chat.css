@@ -713,11 +713,6 @@
   border-color: var(--border);
 }
 
-.chat-action-desc {
-  font-size: 12px;
-  color: var(--tertiary);
-  margin: 0;
-}
 
 /* ── Route card (내 경로 추천해줘 응답) ── */
 .route-card {

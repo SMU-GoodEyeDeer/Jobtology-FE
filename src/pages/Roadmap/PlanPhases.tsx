@@ -31,7 +31,7 @@ export function PlanPhases({ plan, selectedId, onSelect }: Props) {
     setExpanded(previous => { const next = new Set(previous); if (next.has(phase)) next.delete(phase); else next.add(phase); return next; });
   }
   return <section className="wp-phases wp-card" aria-label="단계 묶음">
-    <header className="wp-phases-heading"><h2>단계 묶음</h2><p>NCS 수준으로 묶었어요 · 묶음 안의 번호와 학습 우선순위는 달라요</p><NcsLevel compact />
+    <header className="wp-phases-heading"><h2>단계 묶음</h2><p>NCS 수준별 묶음 · 학습 우선순위와 별도</p><NcsLevel compact />
       <div className="wp-phase-progress">{phases.map(p => <div key={p.phase} style={{ flex: p.hours }}>
         <div className="wp-progress-track"><span style={{ width: `${p.done / p.steps.length * 100}%` }} /></div>
         <small><b>{phaseLabels[p.phase]}</b> · {p.span}</small>

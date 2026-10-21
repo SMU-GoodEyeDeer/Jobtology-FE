@@ -14,23 +14,23 @@ describe('Onboarding page', () => {
   it('renders the hero section', () => {
     const html = renderToStaticMarkup(createElement(MemoryRouter, null, createElement(Onboarding)))
 
-    expect(html).toContain('채용공고 5,000건')
-    expect(html).toContain('1분 만에 내 경로 찾기')
+    expect(html).toContain('목표 직무에 필요한 역량과 학습 경로')
+    expect(html).toContain('Google로 시작하기')
   })
 
   it('renders the feature cards', () => {
     const html = renderToStaticMarkup(createElement(MemoryRouter, null, createElement(Onboarding)))
 
-    expect(html).toContain('사람마다 다른 경로')
-    expect(html).toContain('모든 단계에 근거')
-    expect(html).toContain('한 번 받고 끝이 아니에요')
+    expect(html).toContain('내 상황에 맞는 경로')
+    expect(html).toContain('데이터 기반 역량 분석')
+    expect(html).toContain('경험에 따른 계획 조정')
   })
 
   it('links Google login through the same API origin', () => {
     const html = renderToStaticMarkup(createElement(MemoryRouter, null, createElement(Onboarding)))
 
     expect(html).toContain('href="/api/v1/auth/google/login"')
-    expect(html).toContain('Google 계정으로 로그인하고 시작해요.')
+    expect(html).toContain('Google로 시작하기')
   })
 
   it('offers a retry when checking the session fails', () => {

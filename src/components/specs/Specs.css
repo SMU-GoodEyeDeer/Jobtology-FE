@@ -24,7 +24,6 @@
 .spec-dialog::backdrop { background: #0f172a80; backdrop-filter: blur(5px); }
 .spec-dialog-heading { display: flex; flex: none; justify-content: space-between; align-items: flex-start; gap: 20px; padding: 26px 32px 23px; border-bottom: 1px solid var(--border-soft); background: linear-gradient(120deg, var(--surface-soft), var(--surface) 65%); }
 .spec-dialog-heading h2 { margin: 0; font-size: 24px; letter-spacing: -.6px; outline: none; }
-.spec-dialog-heading p { margin: 8px 0 0; font-size: 13px; color: var(--muted); line-height: 1.7; }
 .spec-dialog-close { display: inline-flex; flex: none; align-items: center; justify-content: center; gap: 8px; min-width: 38px; min-height: 38px; padding: 9px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text-secondary); font-size: 12px; }
 .spec-dialog-close:hover:not(:disabled) { background: var(--accent-tint); border-color: var(--accent-border); }
 .spec-dialog-content { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 28px 32px; scrollbar-gutter: stable; }
@@ -114,7 +113,6 @@
   .spec-dialog { width: 100%; height: 100dvh; border: 0; border-radius: 0; }
   .spec-dialog-heading { padding: max(20px, env(safe-area-inset-top)) 20px 18px; gap: 12px; }
   .spec-dialog-heading h2 { font-size: 21px; }
-  .spec-dialog-heading p { font-size: 12px; }
   .spec-dialog-back-label { display: none; }
   .spec-dialog-content { padding: 20px; }
   .spec-section-heading h3 { font-size: 14px; }

@@ -340,11 +340,6 @@
   justify-content: space-between;
 }
 
-.pg-summary-sub {
-  font-size: 12px;
-  color: var(--tertiary);
-  margin: 4px 0 0;
-}
 
 .pg-copy-btn {
   padding: 6px 14px;
@@ -401,11 +396,6 @@
   line-height: 1.6;
 }
 
-.pg-summary-footer {
-  font-size: 12px;
-  color: var(--tertiary);
-  margin: 0;
-}
 
 /* ── Step list in expanded view ── */
 .pg-fulfillment-step {
