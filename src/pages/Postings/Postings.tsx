@@ -4,6 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { AppSidebar } from "../../components/AppSidebar";
 import { postingDeadlineLabel, postingSourceName, resourcesApi } from "../../services/resourcesApi";
 import type { OccupationContextResponse, PostingsResponse } from "../../services/resourcesApi";
+import { clearPostingsCache, peekPostingsCache, readPostingsCache } from "../../services/postingsCache";
 import { localToday } from "../../services/skillDetail";
 import { AssociationProvenance, AssociationStatus, ContextSummary } from "./OccupationContext";
 import { PostingDetail } from "./PostingDetail";
@@ -13,6 +14,7 @@ import "./Postings.css";
 import "./OccupationContext.css";
 
 const PAGE_SIZE = 20;
+interface PostingPage { data: PostingsResponse; context?: OccupationContextResponse }
 export function Postings() {
   const [params, setParams] = useSearchParams();
   const occupation = params.get("occupation") || "";
@@ -28,15 +30,16 @@ export function Postings() {
   const [result, setResult] = useState<{ key: string; data?: PostingsResponse; context?: OccupationContextResponse; error?: string } | null>(null);
   const listHeading = useRef<HTMLHeadingElement>(null);
   const pageChanged = useRef(false);
-  const key = JSON.stringify([occupation, q, category, region, openOn, offset, attempt]);
+  const cacheKey = JSON.stringify(["postings-page", occupation, q, category, region, openOn, offset, PAGE_SIZE]);
+  const key = JSON.stringify([cacheKey, attempt]);
   useEffect(() => { setDraft({ q, category, region, openOn }); }, [q, category, region, openOn]);
   useEffect(() => {
     let active = true;
-    const load = occupation
+    const load = readPostingsCache<PostingPage>(cacheKey, () => occupation
       ? resourcesApi.occupationContext(occupation, PAGE_SIZE, offset).then(context => ({
         data: { sources: [], items: context.items.flatMap(item => item.posting ? [item.posting] : []), total: context.total, limit: context.limit, offset: context.offset } as PostingsResponse, context,
       }))
-      : resourcesApi.postings({ q, ncs_category: category, region, open_on: openOn, offset, limit: PAGE_SIZE }).then(data => ({ data, context: undefined }));
+      : resourcesApi.postings({ q, ncs_category: category, region, open_on: openOn, offset, limit: PAGE_SIZE }).then(data => ({ data, context: undefined })));
     load.then(
       ({ data, context }) => {
         if (!active) return;
@@ -54,7 +57,8 @@ export function Postings() {
     );
     return () => { active = false; };
   }, [key, occupation, q, category, region, openOn, offset]);
-  const current = result?.key === key ? result : null;
+  const saved = peekPostingsCache<PostingPage>(cacheKey);
+  const current = result?.key === key ? result : saved && offset <= Math.max(0, Math.ceil(saved.data.total / PAGE_SIZE) - 1) * PAGE_SIZE ? { key, ...saved, error: undefined } : null;
   useEffect(() => {
     if (!current?.data || !pageChanged.current) return;
     pageChanged.current = false;
@@ -98,6 +102,7 @@ export function Postings() {
           <button className="postings-primary" type="submit">검색</button>
           <button className="postings-secondary" type="button" onClick={() => applyFilters(localToday())}>오늘 기준</button>
           <button className="postings-reset" type="button" onClick={() => setParams({})}>초기화</button>
+          <button className="postings-secondary" type="button" disabled={!current} onClick={() => { clearPostingsCache(); setAttempt(value => value + 1); }}>새로고침</button>
         </form>
         {occupation && <section className="occupation-context-banner" aria-label="직무 추론 연결 공고"><h2>직무 추론 연결 공고</h2><p>직무 {occupation} 연결 공고 · 검색 시 일반 공고 검색으로 전환돼요.</p>{current?.context && <ContextSummary data={current.context} />}<button className="postings-secondary" onClick={() => setParams({})}>일반 공고 검색으로 전환</button></section>}
         <p className="postings-note">{occupation ? "과거·미확인 연결이 포함될 수 있어요. 연결 상태를 확인해 주세요." : "잡코리아 우선 · 수집된 접수 기간 기준. 현재 모집 여부는 공고 원문을 확인해 주세요."}</p>
@@ -120,7 +125,7 @@ export function Postings() {
                 {current.data.sources.map(source => <p className="postings-source" key={`${source.source_id}:${source.run_id}`}>{postingSourceName(source.source_id)}{source.data_as_of ? ` · 데이터 반영 ${source.data_as_of.slice(0, 10)}` : " · 데이터 반영일 미제공"}</p>)}
               </>}
           </section>
-          {postingId && <section className="postings-detail-panel" aria-label="선택한 공고"><button className="postings-close" onClick={() => update("posting", null)}>상세 닫기 ×</button>{occupation && !current ? <p role="status">공고 정보를 불러오는 중이에요…</p> : <PostingDetail key={postingId} postingId={postingId} posting={selectedPosting} />}{!!selectedAssociations.length && <AssociationProvenance items={selectedAssociations} />}</section>}
+          {postingId && <section className="postings-detail-panel" aria-label="선택한 공고"><button className="postings-close" onClick={() => update("posting", null)}>상세 닫기 ×</button>{occupation && !current ? <p role="status">공고 정보를 불러오는 중이에요…</p> : <PostingDetail key={`${postingId}:${attempt}`} postingId={postingId} posting={selectedPosting} />}{!!selectedAssociations.length && <AssociationProvenance items={selectedAssociations} />}</section>}
         </div>
       </main>
     </div>

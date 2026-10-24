@@ -3,15 +3,19 @@ import { Link } from "react-router-dom";
 import { AppSidebar } from "../../components/AppSidebar";
 import { useGoals } from "../../hooks/useGoals";
 import { usePanelResize } from "../../hooks/usePanelResize";
+import { useSession } from "../../context/SessionContext";
 import { chatApi, roleEvidenceGraphApi } from "../../services/api";
 import type { ChatMessagePayload, RoleEvidenceGraph } from "../../services/types";
 import { basisLabels, chatWorkspaceApi, edgeIdentity, emptyGraph, mergeWorkspace, nodeLabels,
   type ToolEvent, type WorkspaceAnswer, type WorkspaceGraph as Graph, type WorkspaceKind } from "../../services/chatWorkspace";
 import { ReplyText } from "./ReplyText";
 import { WorkspaceInspector } from "./WorkspaceInspector";
+import { WorkspaceLoading } from "./WorkspaceLoading";
+import { cachedWorkspace, cacheWorkspace, clearWorkspaceCache, scopeWorkspaceCache } from "../../services/workspaceCache";
 import "./Chat.css";
 
-const WorkspaceGraph = lazy(() => import("./WorkspaceGraph").then(module => ({ default: module.WorkspaceGraph })));
+const loadWorkspaceGraph = () => import("./WorkspaceGraph").then(module => ({ default: module.WorkspaceGraph }));
+const WorkspaceGraph = lazy(loadWorkspaceGraph);
 
 interface Turn { role: "user" | "assistant"; text: string; answer?: WorkspaceAnswer; streaming?: boolean; incomplete?: boolean; tools?: ToolEvent[] }
 function roleGraph(value: RoleEvidenceGraph): Graph {
@@ -31,11 +35,13 @@ const warningLabels: Record<string, string> = {
 };
 export function Chat() {
   const { goals, selectedGoalId, selectedGoal, selectedGoalName, setSelectedGoalId, getGoalName, loading: goalsLoading, error: goalsError } = useGoals();
-  const [graph, setGraph] = useState<Graph>(emptyGraph), initialGraph = useRef<Graph>(emptyGraph());
-  const [loading, setLoading] = useState(true), [error, setError] = useState<string | null>(null);
+  const { session } = useSession(), account = session?.user_id ?? null, profileVersion = session?.profile_version;
+  const cached = cachedWorkspace(account, selectedGoalId, profileVersion);
+  const [graph, setGraph] = useState<Graph>(() => cached?.graph ?? emptyGraph()), initialGraph = useRef<Graph>(cached?.graph ?? emptyGraph());
+  const [loading, setLoading] = useState(!cached), [error, setError] = useState<string | null>(null), [reload, setReload] = useState(0);
   const [warnings, setWarnings] = useState<string[]>([]), [available, setAvailable] = useState(false);
   const [turns, setTurns] = useState<Turn[]>([]), [input, setInput] = useState("");
-  const [busy, setBusy] = useState(false), [progress, setProgress] = useState("");
+  const [busy, setBusy] = useState(false), [progress, setProgress] = useState(""), [finalizing, setFinalizing] = useState(false);
   const [chatOpen, setChatOpen] = useState(() => !window.matchMedia("(max-width:640px)").matches), [selected, setSelected] = useState<string | null>(null);
   const [highlighted, setHighlighted] = useState<Set<string>>(new Set()), [highlightedEdges, setHighlightedEdges] = useState<Set<string>>(new Set());
   const [focus, setFocus] = useState({ ids: [] as string[], revision: 0 }), [reset, setReset] = useState(0);
@@ -49,14 +55,19 @@ export function Chat() {
   const resize = usePanelResize({ storageKey: "jobtology.chat.floatingWidth", initial: 400, min: 320, max: 560, direction: -1 });
 
   useEffect(() => { chatApi.status().then(r => setAvailable(r.available)).catch(() => setAvailable(false)); }, []);
+  useEffect(() => { void loadWorkspaceGraph().catch(() => {}); }, []);
   useEffect(() => {
     if (goalsLoading) return;
     const current = ++epoch.current, controller = new AbortController();
-    initialGraph.current = emptyGraph();
+    const cacheGeneration = scopeWorkspaceCache(account, profileVersion);
+    const saved = cachedWorkspace(account, selectedGoalId, profileVersion);
+    initialGraph.current = saved?.graph ?? emptyGraph();
     turnController.current?.abort(); searchController.current?.abort();
-    setGraph(emptyGraph()); setTurns([]); setSelected(null); setHighlighted(new Set()); setHighlightedEdges(new Set());
-    setInput(""); setBusy(false); setSearching(false); setError(null); setLoading(true); setWarnings([]); setPage(null); setMore(false); setKinds([]);
+    setGraph(initialGraph.current); setTurns([]); setSelected(null); setHighlighted(new Set()); setHighlightedEdges(new Set());
+    setInput(""); setBusy(false); setFinalizing(false); setSearching(false); setError(null); setLoading(!saved); setWarnings(saved?.warnings ?? []); setPage(null); setMore(false); setKinds([]);
     setFocus(previous => ({ ids: [], revision: previous.revision + 1 }));
+    const cleanup = () => { epoch.current += 1; controller.abort(); turnController.current?.abort(); searchController.current?.abort(); };
+    if (saved) return cleanup;
     Promise.allSettled([chatWorkspaceApi.context(selectedGoalId, controller.signal),
       selectedGoal?.occupation_id ? roleEvidenceGraphApi.get(selectedGoal.occupation_id, controller.signal) : Promise.resolve(null),
     ]).then(async ([personal, catalog]) => {
@@ -64,7 +75,10 @@ export function Chat() {
       const merged = mergeWorkspace(personal.status === "fulfilled" ? personal.value.graph : emptyGraph(),
         catalog.status === "fulfilled" && catalog.value ? roleGraph(catalog.value) : emptyGraph());
       initialGraph.current = merged; setGraph(merged); setLoading(false);
-      if (personal.status === "fulfilled") setWarnings([...personal.value.warnings, ...(merged.warnings ?? [])]);
+      const initialWarnings = personal.status === "fulfilled" ? [...personal.value.warnings, ...(merged.warnings ?? [])] : [];
+      const cacheable = personal.status === "fulfilled" && catalog.status === "fulfilled";
+      if (cacheable) cacheWorkspace(account, selectedGoalId, cacheGeneration, { graph: merged, warnings: initialWarnings });
+      if (personal.status === "fulfilled") setWarnings(initialWarnings);
       else setError("내 정보를 불러오지 못했어요. 다시 시도해 주세요.");
       if (personal.status === "fulfilled" && catalog.status === "rejected") setError("참고 그래프 일부를 불러오지 못했어요. 검색으로 다시 탐색할 수 있어요.");
       const group = merged.nodes.find(n => n.id.startsWith("postings:onet:")) ?? merged.nodes.find(n => n.kind === "posting_evidence" && n.id.startsWith("postings:"));
@@ -73,22 +87,28 @@ export function Chat() {
           const postings = await chatWorkspaceApi.expand(group.id, 0, controller.signal);
           if (current !== epoch.current || controller.signal.aborted) return;
           initialGraph.current = mergeWorkspace(initialGraph.current, postings);
+          if (cacheable) cacheWorkspace(account, selectedGoalId, cacheGeneration, { graph: initialGraph.current,
+            warnings: [...new Set([...initialWarnings, ...(postings.warnings ?? [])])] });
           setGraph(previous => mergeWorkspace(previous, postings));
           setWarnings(previous => [...new Set([...previous, ...(postings.warnings ?? [])])]);
         } catch {
-          if (current === epoch.current && !controller.signal.aborted) setWarnings(previous => [...new Set([...previous, "POSTING_CONTEXT_UNAVAILABLE"])]);
+          if (current === epoch.current && !controller.signal.aborted) {
+            setWarnings(previous => [...new Set([...previous, "POSTING_CONTEXT_UNAVAILABLE"])]);
+            if (cacheable) cacheWorkspace(account, selectedGoalId, cacheGeneration, { graph: initialGraph.current,
+              warnings: [...new Set([...initialWarnings, "POSTING_CONTEXT_UNAVAILABLE"])] });
+          }
         }
       }
     });
-    return () => { epoch.current += 1; controller.abort(); turnController.current?.abort(); searchController.current?.abort(); };
-  }, [selectedGoalId, selectedGoal?.occupation_id, goalsLoading]);
+    return cleanup;
+  }, [account, profileVersion, selectedGoalId, selectedGoal?.occupation_id, goalsLoading, reload]);
   useEffect(() => { if (followAnswer.current) end.current?.scrollIntoView?.({ behavior: "instant", block: "nearest" }); }, [turns, progress]);
   function interruptAnswer() {
     setTurns(previous => previous.map(turn => turn.streaming ? { ...turn, streaming: false, incomplete: true,
       tools: turn.tools?.map(tool => tool.status === "started" ? { ...tool, status: "failed" } : tool) } : turn));
   }
   function stopAnswer() {
-    turnController.current?.abort(); setBusy(false); setProgress(""); interruptAnswer();
+    turnController.current?.abort(); setBusy(false); setFinalizing(false); setProgress(""); interruptAnswer();
   }
   function selectNode(id: string | null) {
     setSelected(id);
@@ -111,21 +131,21 @@ export function Chat() {
     const next = [...turns, { role: "user" as const, text: input.trim().slice(0, 2000) }];
     const history: ChatMessagePayload[] = next.filter(t => !t.incomplete && !t.streaming).slice(-20).map(t => ({ role: t.role, text: t.text.slice(0, 2000) }));
     followAnswer.current = true;
-    setTurns([...next, { role: "assistant", text: "", streaming: true }].slice(-40) as Turn[]); setInput(""); setBusy(true); setError(null); setProgress("내 정보와 연결 근거를 확인하고 있어요.");
+    setTurns([...next, { role: "assistant", text: "", streaming: true }].slice(-40) as Turn[]); setInput(""); setBusy(true); setFinalizing(false); setError(null); setProgress("질문에 필요한 자료를 찾고 있어요.");
     let pendingAnswer: WorkspaceAnswer | null = null, completed = false;
     try {
       await chatWorkspaceApi.stream(history, selectedGoalId, selected ? [selected] : [], event => {
         if (epoch.current !== current || controller.signal.aborted) return;
-        if (event.type === "progress") setProgress(event.message);
+        if (event.type === "progress") { setProgress(event.message); setFinalizing(event.stage === "finalizing"); }
         if (event.type === "tool") setTurns(previous => previous.map((turn, index) => index === previous.length - 1 && turn.streaming
           ? { ...turn, tools: turn.tools?.some(tool => tool.call_id === event.call_id)
             ? turn.tools.map(tool => tool.call_id === event.call_id ? event : tool) : [...(turn.tools ?? []), event] } : turn));
         if (event.type === "answer_delta") {
-          setProgress("");
+          setProgress("답변 작성 중…");
           setTurns(previous => previous.map((turn, index) => index === previous.length - 1 && turn.streaming ? { ...turn, text: turn.text + event.delta } : turn));
         }
         if (event.type === "evidence") { setGraph(previous => mergeWorkspace(previous, event.data.graph)); setWarnings(event.data.warnings); }
-        if (event.type === "answer") pendingAnswer = event.data;
+        if (event.type === "answer") { pendingAnswer = event.data; setFinalizing(true); setProgress("그래프 연결을 정리하고 있어요."); }
         if (event.type === "done") completed = true;
       }, controller.signal);
       if (epoch.current !== current || controller.signal.aborted) return;
@@ -136,7 +156,7 @@ export function Chat() {
       showEvidence(answer); setWarnings(answer.warnings);
       if (answer.suggestions.length) setSuggestions(answer.suggestions);
     } catch (cause) { if (epoch.current === current && !controller.signal.aborted) { setError((cause as Error).message); interruptAnswer(); } }
-    finally { if (epoch.current === current && !controller.signal.aborted) { setBusy(false); setProgress(""); } }
+    finally { if (epoch.current === current && !controller.signal.aborted) { setBusy(false); setFinalizing(false); setProgress(""); } }
   }
   async function search(q?: string, node?: string, offset = 0) {
     if ((!node && !q?.trim()) || searching || loading) return;
@@ -173,13 +193,15 @@ export function Chat() {
         <button disabled={loading || searching || query.trim().length < 2}>{searching ? "검색 중…" : "검색"}</button></form>
         <button aria-expanded={filtersOpen} onClick={() => setFiltersOpen(v => !v)}>유형 {kinds.length ? `· ${kinds.length}` : ""}</button>
         <button onClick={resetGraph}>초기화</button>
+        <button onClick={() => { clearWorkspaceCache(); setReload(value => value + 1); }} disabled={loading || busy} aria-label="연결 지도 새로고침" title="연결 지도 새로고침">↻</button>
         {more && page && <button disabled={searching} onClick={() => void search(page.q, page.node, page.offset + 24)}>더 불러오기</button>}
       </div>
       {filtersOpen && <div className="workspace-filters" role="group" aria-label="표시할 노드 유형">
         {(Object.entries(nodeLabels) as [WorkspaceKind, string][]).map(([kind, label]) => <label key={kind}><input type="checkbox" checked={kinds.includes(kind)} onChange={() => setKinds(previous => previous.includes(kind) ? previous.filter(k => k !== kind) : [...previous, kind])} />{label}</label>)}
         <button onClick={() => setKinds([])}>전체 유형</button></div>}
-      {loading ? <p className="workspace-loading" role="status">연결 지도를 불러오는 중…</p> : <Suspense fallback={<p className="workspace-loading">그래프를 준비하는 중…</p>}><WorkspaceGraph key={selectedGoalId ?? "account"} graph={graph} selected={selected} onSelect={selectNode}
+      {loading ? <WorkspaceLoading /> : <Suspense fallback={<WorkspaceLoading label="그래프를 준비하고 있어요" />}><WorkspaceGraph key={selectedGoalId ?? "account"} graph={graph} selected={selected} onSelect={selectNode}
         highlighted={highlighted} highlightedEdges={highlightedEdges} kinds={kinds} focus={focus} reset={reset} /></Suspense>}
+      {busy && finalizing && <div className="workspace-graph-progress" aria-hidden="true"><span className="workspace-spinner" />그래프 연결 정리 중</div>}
       {selectedNode && <WorkspaceInspector node={selectedNode} graph={graph} goalId={selectedGoalId} onClose={() => { setSelected(null); requestAnimationFrame(() => document.querySelector<HTMLElement>(".workspace-node-list summary")?.focus()); }} busy={searching}
         onExpand={() => void search(undefined, selectedNode.id)} onAsk={() => { setChatOpen(true); setInput(`${selectedNode.label}에 대해 설명해줘`); requestAnimationFrame(() => inputRef.current?.focus()); }} />}
       <button ref={launcher} className="workspace-chat-launcher" aria-label="AI 대화 열기" aria-expanded={chatOpen} onClick={() => { setSelected(null); setChatOpen(true); requestAnimationFrame(() => inputRef.current?.focus()); }} hidden={chatOpen}>대화하기 <span>↗</span></button>
@@ -197,8 +219,9 @@ export function Chat() {
               <button onClick={() => showEvidence(turn.answer!)}>연결 근거 보기 ↗</button>
               <div className="workspace-citations">{turn.answer.sources.map(source => <button key={source.id} onClick={() => showEvidence(turn.answer!, source.id)} title={basisLabels[source.basis]}>{source.title}</button>)}</div>
             </div>}</article>)}
-          {busy && progress && <p className="workspace-chat-progress" role="status">{progress}</p>}<div ref={end} />
+          <div ref={end} />
         </div>
+        {busy && <p className="workspace-chat-progress" role="status"><span className="workspace-spinner" aria-hidden="true" />{progress || "답변을 준비하고 있어요."}</p>}
         <div className="chat-suggestions">{suggestions.map(s => <button key={s} onClick={() => { setInput(s); inputRef.current?.focus(); }}>{s}</button>)}</div>
         <form className="workspace-chat-input" onSubmit={e => void send(e)}><label className="sr-only" htmlFor="workspace-question">질문</label>
           <textarea id="workspace-question" ref={inputRef} value={input} onChange={e => setInput(e.target.value)} maxLength={2000} placeholder={available ? "궁금한 내용을 물어보세요" : "AI 연결을 사용할 수 없어요"}

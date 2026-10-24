@@ -25,6 +25,12 @@ async function render(kinds: WorkspaceKind[] = [], ids: string[] = [], revision 
   await act(async () => root.render(createElement(WorkspaceGraph, { graph: data, selected: null, onSelect: vi.fn(), highlighted: new Set<string>(), highlightedEdges, kinds, focus: { ids, revision }, reset: 0 })));
 }
 describe("native graph view behavior", () => {
+  it("keeps the first layout covered until node positions are ready", async () => {
+    await render();
+    expect(host.querySelector(".workspace-loading")?.textContent).toContain("그래프를 준비하고 있어요");
+    await act(async () => native.props.nvlCallbacks.onLayoutDone());
+    expect(host.querySelector(".workspace-loading")).toBeNull();
+  });
   it.each<[EvidenceBasis, string]>([
     ["METADATA_INFERRED", "과거 추론 연결"], ["REFERENCE", "과거 참고 자료"],
     ["REVIEWED_REQUIREMENT", "과거 검토된 요구 역량"], ["USER_REPORTED", "과거 본인 입력"],
@@ -47,6 +53,7 @@ describe("native graph view behavior", () => {
     expect(native.props.nvlOptions.layout).toBe("free");
     expect(native.props.nvlOptions.disableTelemetry).toBe(true);
     expect(native.props.positions).toHaveLength(2);
+    expect(host.querySelector(".workspace-loading")).toBeNull();
     expect(native.fit).toHaveBeenLastCalledWith(["a"], expect.objectContaining({ animated: false, maxZoom: 1.2 }));
   });
   it("citation focus wins over a simultaneous filter reset", async () => {

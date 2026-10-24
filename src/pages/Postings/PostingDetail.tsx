@@ -1,19 +1,22 @@
 import { useEffect, useState } from "react";
 import { formatPostingDateTime, postingDeadlineLabel, postingSourceName, resourcesApi, safeSourceUrl } from "../../services/resourcesApi";
 import type { PostingItem, PostingResponse } from "../../services/resourcesApi";
+import { peekPostingsCache, readPostingsCache } from "../../services/postingsCache";
 
 export function PostingDetail({ postingId, posting }: { readonly postingId: string; readonly posting?: PostingItem }) {
   const [result, setResult] = useState<{ id: string; data?: PostingResponse; error?: string } | null>(null);
   const [attempt, setAttempt] = useState(0);
+  const cacheKey = JSON.stringify(["posting-detail", postingId]);
   useEffect(() => {
     if (posting) return;
     let active = true;
-    resourcesApi.posting(postingId).then(data => { if (active) setResult({ id: postingId, data }); }, error => {
+    readPostingsCache(cacheKey, () => resourcesApi.posting(postingId)).then(data => { if (active) setResult({ id: postingId, data }); }, error => {
       if (active) setResult({ id: postingId, error: (error as { status?: number }).status === 404 ? "이 공고는 현재 수집 데이터에서 찾을 수 없어요." : "공고 상세를 불러오지 못했어요." });
     });
     return () => { active = false; };
   }, [postingId, attempt, posting]);
-  const current = posting ? { id: postingId, data: { item: posting, sources: [] }, error: undefined } : result?.id === postingId ? result : null;
+  const saved = peekPostingsCache<PostingResponse>(cacheKey);
+  const current = posting ? { id: postingId, data: { item: posting, sources: [] }, error: undefined } : result?.id === postingId ? result : saved ? { id: postingId, data: saved, error: undefined } : null;
   if (!current) return <p role="status">공고 상세를 불러오는 중이에요…</p>;
   if (current.error || !current.data) return <div role="alert"><p>{current.error}</p><button type="button" onClick={() => { setResult(null); setAttempt(value => value + 1); }}>다시 시도</button></div>;
   const { item } = current.data;

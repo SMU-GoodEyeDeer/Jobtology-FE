@@ -6,6 +6,7 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PostingItem, PostingResponse, PostingsResponse } from "../../services/resourcesApi";
 import { resourcesApi } from "../../services/resourcesApi";
+import { clearPostingsCache } from "../../services/postingsCache";
 import { occupationContext } from "../../testFixtures/occupationContext";
 import { AssociationProvenance } from "./OccupationContext";
 import { Postings } from "./Postings";
@@ -22,6 +23,7 @@ const list: PostingsResponse = { items: [posting], sources: [{ source_id: "job_a
 const detail: PostingResponse = { item: posting, sources: list.sources };
 let root: Root; let container: HTMLDivElement;
 beforeEach(() => {
+  clearPostingsCache();
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   vi.mocked(resourcesApi.postings).mockReset().mockResolvedValue(list);
   vi.mocked(resourcesApi.posting).mockReset().mockResolvedValue(detail);
@@ -30,12 +32,63 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => root.unmount()); container.remove(); });
 async function renderPage(query = "") { await act(async () => root.render(createElement(MemoryRouter, { initialEntries: [`/postings${query}`] }, createElement(Postings)))); }
+async function revisit(query = "") { await act(async () => root.unmount()); root = createRoot(container); await renderPage(query); }
 function button(label: string) { return Array.from(container.querySelectorAll("button")).find(item => item.textContent === label || item.getAttribute("aria-label") === `${label} 페이지`)!; }
 function changeInput(input: HTMLInputElement, value: string) {
   Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, value);
   input.dispatchEvent(new Event("input", { bubbles: true }));
 }
 describe("real posting browser", () => {
+  it("reuses a page and its open detail when returning quickly", async () => {
+    const query = "?q=개발&posting=urn%3Aposting%3Aa%2Fb";
+    await renderPage(query); await revisit(query);
+    expect(resourcesApi.postings).toHaveBeenCalledTimes(1);
+    expect(resourcesApi.posting).toHaveBeenCalledTimes(1);
+    expect(container.querySelector(".posting-detail")?.textContent).toContain(posting.title!);
+    expect(container.querySelector('[role="status"]')).toBeNull();
+  });
+  it("keeps different searches and occupation results separate", async () => {
+    vi.mocked(resourcesApi.postings).mockResolvedValueOnce({ ...list, items: [{ ...posting, title: "검색 A" }] })
+      .mockResolvedValueOnce({ ...list, items: [{ ...posting, title: "검색 B" }] });
+    await renderPage("?q=A"); await revisit("?q=B");
+    expect(container.textContent).toContain("검색 B");
+    await revisit("?occupation=20010203");
+    expect(resourcesApi.occupationContext).toHaveBeenCalledTimes(1);
+    await revisit("?q=A");
+    expect(resourcesApi.postings).toHaveBeenCalledTimes(2);
+    expect(container.textContent).toContain("검색 A");
+    expect(container.querySelector(".occupation-context-banner")).toBeNull();
+    await revisit("?occupation=20010203");
+    expect(resourcesApi.occupationContext).toHaveBeenCalledTimes(1);
+    expect(container.querySelector(".occupation-context-banner")).not.toBeNull();
+  });
+  it("shares a pending page request across a quick return", async () => {
+    let finish!: (value: PostingsResponse) => void;
+    vi.mocked(resourcesApi.postings).mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
+    await renderPage(); await revisit();
+    expect(resourcesApi.postings).toHaveBeenCalledTimes(1);
+    await act(async () => finish(list));
+    expect(container.querySelector(".posting-card")?.textContent).toContain(posting.title!);
+  });
+  it("fetches an expired page again", async () => {
+    const clock = vi.spyOn(Date, "now").mockReturnValue(100_000);
+    try {
+      await renderPage(); clock.mockReturnValue(145_001); await revisit();
+      expect(resourcesApi.postings).toHaveBeenCalledTimes(2);
+    } finally { clock.mockRestore(); }
+  });
+  it("refreshes both the selected detail and current filtered page", async () => {
+    await renderPage("?q=개발&region=서울&offset=20&posting=urn%3Aposting%3Aa%2Fb");
+    const closed = { ...posting, source_status: "CLOSED" };
+    vi.mocked(resourcesApi.postings).mockResolvedValue({ ...list, items: [closed] });
+    vi.mocked(resourcesApi.posting).mockResolvedValue({ ...detail, item: closed });
+    await act(async () => button("새로고침").click());
+    expect(resourcesApi.postings).toHaveBeenCalledTimes(2);
+    expect(resourcesApi.postings).toHaveBeenLastCalledWith(expect.objectContaining({ q: "개발", region: "서울", offset: 20 }));
+    expect(resourcesApi.posting).toHaveBeenCalledTimes(2);
+    expect(container.querySelector(".posting-detail")?.textContent).toContain("모집 종료");
+    expect(container.querySelector('[aria-current="page"]')?.textContent).toBe("2");
+  });
   it("labels inference provenance fields in Korean and omits missing values", async () => {
     const association = occupationContext(posting).items[0];
     await act(async () => root.render(createElement(AssociationProvenance, { items: [{ ...association,
@@ -112,8 +165,10 @@ describe("real posting browser", () => {
     await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="100페이지"]')!.click());
     expect(resourcesApi.postings).toHaveBeenLastCalledWith(expect.objectContaining({ offset: 1980 }));
     expect(container.querySelector<HTMLButtonElement>('[aria-label="다음 페이지"]')?.disabled).toBe(true);
+    const requests = vi.mocked(resourcesApi.postings).mock.calls.length;
     await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="1페이지"]')!.click());
-    expect(resourcesApi.postings).toHaveBeenLastCalledWith(expect.objectContaining({ offset: 0 }));
+    expect(resourcesApi.postings).toHaveBeenCalledTimes(requests);
+    expect(container.querySelector('[aria-current="page"]')?.textContent).toBe("1");
   });
   it("rejects direct page entries outside the result range or between pages", async () => {
     await renderPage();

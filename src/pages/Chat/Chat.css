@@ -25,7 +25,17 @@
 .workspace-node-label { display:block; position:absolute; top:100%; left:50%; width:140px; transform:translate(-50%,6px) scale(var(--node-label-scale,1)); transform-origin:center top; text-align:center; color:var(--text); font-weight:500; font-family:inherit; font-size:12px; line-height:1.45; text-shadow:0 1px 3px var(--surface),0 -1px 3px var(--surface),1px 0 3px var(--surface); pointer-events:none; overflow-wrap:anywhere; }
 .workspace-node-label[data-dimmed="true"] { color:var(--muted); opacity:.55; }
 .workspace-stage:has(.workspace-chat-float:not([hidden])) .workspace-canvas { right:calc(var(--floating-width) + 44px); }
-.workspace-empty, .workspace-loading { position:absolute; top:40%; left:15%; right:15%; text-align:center; color:var(--muted); font-size:14px; }
+.workspace-empty { position:absolute; top:40%; left:15%; right:15%; text-align:center; color:var(--muted); font-size:14px; }
+.workspace-loading { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:10px; color:var(--text-secondary); font-size:13px; text-align:center; pointer-events:none; }
+.workspace-stage>.workspace-loading { inset:75px 22px 125px; }
+.workspace-canvas>.workspace-loading { z-index:10; background:var(--canvas); }
+.workspace-stage:has(.workspace-chat-float:not([hidden]))>.workspace-loading { right:calc(var(--floating-width) + 44px); }
+.workspace-loading-map { width:min(320px,90%); height:min(180px,25dvh); overflow:visible; }
+.workspace-loading-links path { stroke:var(--accent-border); stroke-width:1.5; fill:none; }
+.workspace-loading-nodes { fill:var(--accent-solid); }
+.workspace-loading-nodes circle { animation:workspace-pulse 1.5s ease-in-out infinite alternate; }
+.workspace-loading-nodes circle:nth-child(even) { fill:var(--muted); animation-delay:.4s; }
+.workspace-loading-orbit { fill:none; stroke:var(--accent-border); stroke-width:2; stroke-dasharray:8 12; transform-origin:160px 90px; animation:workspace-spin 14s linear infinite; }
 .workspace-render-error { position:absolute; top:35%; left:24px; max-width:280px; font-size:13px; color:var(--muted); }
 .workspace-camera { position:absolute; left:22px; bottom:100px; display:flex; gap:4px; z-index:3; box-shadow:0 3px 10px #101b3210; border-radius:10px; }
 .workspace-legend { position:absolute; left:22px; bottom:55px; display:flex; flex-wrap:wrap; gap:5px; max-width:min(750px,calc(100% - 50px)); z-index:3; }
@@ -56,7 +66,9 @@
 .workspace-answer-evidence>button { border:0; background:none; padding:0; color:var(--accent); font-size:11px; font-weight:600; }
 .workspace-citations { display:flex; flex-wrap:wrap; gap:5px; margin-top:8px; }
 .workspace-citations button { border:1px solid var(--border); border-radius:6px; padding:4px 7px; background:var(--surface-soft); color:var(--text-secondary); font-size:10px; text-align:left; }
-.workspace-chat-progress { color:var(--muted); font-size:12px; animation:workspace-pulse 1.6s ease-in-out infinite alternate; }
+.workspace-chat-progress { flex-shrink:0; display:flex; align-items:center; gap:8px; margin:0; padding:10px 18px; color:var(--text-secondary); font-size:11px; border-top:1px solid var(--border); }
+.workspace-spinner { display:inline-block; flex-shrink:0; width:12px; height:12px; border:2px solid var(--accent-border); border-top-color:var(--accent-solid); border-radius:50%; animation:workspace-spin .9s linear infinite; }
+.workspace-graph-progress { position:absolute; z-index:4; top:82px; left:22px; display:flex; align-items:center; gap:8px; padding:10px 12px; max-width:calc(100% - 44px); background:var(--surface); color:var(--text-secondary); border:1px solid var(--border); border-radius:10px; font-size:12px; box-shadow:0 3px 12px #101b3210; }
 .workspace-tool-log { margin:0 0 14px; padding:8px 10px; border:1px solid var(--border); border-radius:9px; color:var(--muted); font-size:11px; }
 .workspace-tool-log summary { cursor:pointer; }
 .workspace-tool-log ul { list-style:none; padding:0; margin:8px 0 0; }
@@ -107,21 +119,27 @@
 .workspace-add-goal { position:absolute; z-index:5; top:40px; left:235px; color:var(--accent); font-size:12px; }
 @keyframes workspace-enter { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
 @keyframes workspace-pulse { from { opacity:.55; } to { opacity:1; } }
+@keyframes workspace-spin { to { transform:rotate(360deg); } }
 @media(max-width:1000px) {
   .workspace-chat-float { right:16px; width:min(var(--floating-width),calc(100% - 32px)); }
   .workspace-stage:has(.workspace-chat-float:not([hidden])) .workspace-canvas,
   .workspace-stage:has(.workspace-chat-float:not([hidden])) .workspace-notices { right:calc(var(--floating-width) + 32px); }
+  .workspace-stage:has(.workspace-chat-float:not([hidden]))>.workspace-loading { right:calc(var(--floating-width) + 32px); }
   .workspace-notices { left:22px; bottom:10px; max-width:260px; }
   .workspace-legend { right:18px; max-width:calc(100% - 36px); bottom:58px; }
 }
 @media(max-width:640px) {
   .workspace-canvas { top:60px; bottom:160px; }
   .workspace-stage:has(.workspace-chat-float:not([hidden])) .workspace-canvas { right:0; bottom:min(58dvh,540px); }
+  .workspace-stage>.workspace-loading { inset:70px 12px 160px; }
+  .workspace-stage:has(.workspace-chat-float:not([hidden]))>.workspace-loading { right:12px; bottom:calc(min(58dvh,540px) + 24px); }
+  .workspace-loading-map { height:min(140px,20dvh); }
+  .workspace-graph-progress { top:96px; left:12px; font-size:11px; padding:8px 10px; }
   .workspace-header { padding:16px; gap:10px; }
   .workspace-header h1 { font-size:17px; }
   .workspace-goal select { max-width:150px; font-size:11px; }
   .workspace-toolbar { top:12px; left:12px; right:12px; flex-wrap:wrap; gap:5px; }
-  .workspace-toolbar form { flex:1; width:auto; min-width:170px; }
+  .workspace-toolbar form { flex:1; width:auto; min-width:150px; }
   .workspace-toolbar button { padding:8px; font-size:11px; }
   .workspace-toolbar input { font-size:12px; padding:6px; }
   .workspace-filters { top:65px; left:12px; right:12px; padding:14px; gap:10px; }

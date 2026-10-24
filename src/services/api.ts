@@ -39,6 +39,8 @@ import type {
   ResumeStatus, ResumeScan, ResumeFormat, ResumeSuggestion,
 } from "./types";
 import { readResumeEvents } from "./resumeStream";
+import { invalidateWorkspaceRequest, resetWorkspaceCache } from "./workspaceCache";
+import { clearPostingsCache } from "./postingsCache";
 
 const BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "/api").replace(/\/$/, "");
 
@@ -48,6 +50,7 @@ export const GOOGLE_LOGIN_URL = `${BASE_URL}/v1/auth/google/login`;
 let _csrfToken: string | null = null;
 
 export function setCsrfToken(token: string | null) {
+  if (token !== _csrfToken) { resetWorkspaceCache(); clearPostingsCache(); }
   _csrfToken = token;
 }
 
@@ -96,6 +99,7 @@ export async function request<T>(
     throw err;
   }
 
+  invalidateWorkspaceRequest(method, path);
   if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
 }

@@ -5,14 +5,16 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { chatWorkspaceApi, readChatEvents, type ChatEvent, type WorkspaceAnswer, type WorkspaceEvidence } from "../../services/chatWorkspace";
 import { roleEvidenceGraphApi } from "../../services/api";
+import { resetWorkspaceCache } from "../../services/workspaceCache";
 import { Chat } from "./Chat";
 
-const state = vi.hoisted(() => ({ goal: "second", select: vi.fn() }));
+const state = vi.hoisted(() => ({ goal: "second", account: "account-a", goalsLoading: false, select: vi.fn() }));
 vi.mock("../../components/AppSidebar", () => ({ AppSidebar: () => null }));
+vi.mock("../../context/SessionContext", () => ({ useSession: () => ({ session: { user_id: state.account, profile_version: 1 } }) }));
 vi.mock("../../hooks/useGoals", () => ({ useGoals: () => {
   const goals = [{ goal_id: "first", occupation_id: "ROLE_A", status: "ACTIVE" }, { goal_id: "second", occupation_id: "ROLE_B", status: "ACTIVE" }];
   return { goals, selectedGoalId: state.goal, selectedGoal: goals.find(g => g.goal_id === state.goal), selectedGoalName: state.goal,
-    setSelectedGoalId: state.select, getGoalName: (g: { goal_id: string }) => g.goal_id, loading: false, error: null };
+    setSelectedGoalId: state.select, getGoalName: (g: { goal_id: string }) => g.goal_id, loading: state.goalsLoading, error: null };
 } }));
 vi.mock("../../services/api", () => ({ chatApi: { status: async () => ({ available: true }) },
   roleEvidenceGraphApi: { get: async () => ({ nodes: [], edges: [] }) }, getCsrfToken: () => "csrf", request: vi.fn() }));
@@ -26,7 +28,7 @@ let root: Root, host: HTMLDivElement;
 beforeEach(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   vi.stubGlobal("matchMedia", () => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
-  state.goal = "second"; state.select.mockReset(); localStorage.clear();
+  state.goal = "second"; state.account = "account-a"; state.goalsLoading = false; state.select.mockReset(); localStorage.clear(); resetWorkspaceCache();
   vi.spyOn(chatWorkspaceApi, "context").mockResolvedValue(evidence);
   host = document.createElement("div"); document.body.append(host); root = createRoot(host);
 });
@@ -38,6 +40,38 @@ async function question() {
 }
 
 describe("graph-centered chat workspace", () => {
+  it("shows a graph-shaped loading state while initial data is pending", async () => {
+    let resolve!: (value: WorkspaceEvidence) => void;
+    vi.mocked(chatWorkspaceApi.context).mockReturnValue(new Promise(done => { resolve = done; }));
+    await render();
+    expect(host.querySelector('.workspace-loading[role="status"]')?.textContent).toContain("연결 지도를 준비하고 있어요");
+    expect(host.querySelectorAll(".workspace-loading-map circle").length).toBeGreaterThan(1);
+    await act(async () => resolve(evidence));
+    expect(host.querySelector(".workspace-loading")).toBeNull();
+  });
+  it("restores a recently loaded graph immediately on page return, including while goals reload", async () => {
+    await render();
+    await act(async () => root.unmount()); root = createRoot(host);
+    state.goalsLoading = true; await render();
+    expect(host.querySelector('[data-testid="graph"]')?.textContent).toContain("내 경험");
+    expect(host.querySelector(".workspace-loading")).toBeNull();
+    state.goalsLoading = false; await render();
+    expect(chatWorkspaceApi.context).toHaveBeenCalledTimes(1);
+  });
+  it("does not restore another account's cached graph", async () => {
+    await render();
+    vi.mocked(chatWorkspaceApi.context).mockResolvedValue({ ...evidence, graph: { ...graph, nodes: [] } });
+    state.account = "account-b"; await render();
+    expect(chatWorkspaceApi.context).toHaveBeenCalledTimes(2);
+    expect(host.querySelector('[data-testid="graph"]')?.textContent).not.toContain("내 경험");
+  });
+  it("allows a manual refresh to replace a cached initial graph", async () => {
+    await render();
+    vi.mocked(chatWorkspaceApi.context).mockResolvedValue({ ...evidence, graph: { ...graph, nodes: [] } });
+    await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="연결 지도 새로고침"]')!.click());
+    expect(chatWorkspaceApi.context).toHaveBeenCalledTimes(2);
+    expect(host.querySelector('[data-testid="graph"]')?.textContent).not.toContain("내 경험");
+  });
   it("sends the selected goal, adds evidence and restores citation focus", async () => {
     const send = vi.spyOn(chatWorkspaceApi, "stream").mockImplementation(async (_messages, _goal, _focus, event) => {
       event({ type: "answer", data: answer }); event({ type: "done" });
@@ -94,7 +128,11 @@ describe("graph-centered chat workspace", () => {
       emit({type:"answer_delta",delta:"작성 중인 답변"});
     });
     expect(host.textContent).toContain("작성 중인 답변");expect(host.textContent).toContain("채용공고 검색");
+    expect(host.querySelector('.workspace-chat-progress[role="status"]')?.textContent).toContain("답변 작성 중");
     expect(host.querySelector(".workspace-citations")).toBeNull();
+    await act(async()=>emit({type:"progress",stage:"finalizing",message:"그래프 연결을 정리하고 있어요."}));
+    expect(host.querySelector('.workspace-chat-progress[role="status"]')?.textContent).toContain("그래프 연결");
+    expect(host.querySelector(".workspace-graph-progress")?.textContent).toContain("그래프 연결 정리 중");
     await act(async()=>emit({type:"answer",data:answer}));
     expect(host.textContent).toContain("작성 중인 답변");
     expect(host.textContent).not.toContain(answer.reply);
@@ -104,6 +142,9 @@ describe("graph-centered chat workspace", () => {
     expect(host.textContent).not.toContain("작성 중인 답변");
     expect(host.querySelectorAll(".workspace-message--assistant")).toHaveLength(1);
     expect(host.textContent).toContain(answer.reply);
+    expect(host.querySelector(".workspace-chat-progress")).toBeNull();
+    expect(host.querySelector(".workspace-graph-progress")).toBeNull();
+    expect(host.querySelector('[aria-label="답변 중지"]')).toBeNull();
     expect(host.querySelector('[data-testid="graph"]')?.getAttribute("data-highlighted")).toBe("personal");
   });
   it.each(["missing done", "invalid frame", "invalid trailing frame"])("keeps an uncommitted answer incomplete after %s", async failure => {

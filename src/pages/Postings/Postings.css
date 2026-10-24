@@ -7,6 +7,7 @@
 .postings-primary { display: inline-block; background: var(--accent-solid); color: var(--on-accent); padding: 11px 16px; border: 0; border-radius: 8px; cursor: pointer; font-size: 13px; text-decoration: none; text-align: center; }
 .postings-secondary, .postings-reset { background: var(--surface-soft); color: var(--text-secondary); padding: 11px 14px; border: 0; border-radius: 8px; cursor: pointer; font-size: 13px; }
 .postings-reset { background: transparent; text-decoration: underline; }
+.postings-filters button:disabled { opacity: .5; cursor: default; }
 .postings-note { color: var(--muted); font-size: 12px; line-height: 1.7; margin: 14px 0 20px; }
 .postings-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; align-items: start; }
 .postings-grid--selected { grid-template-columns: minmax(260px, 1fr) minmax(310px, 1fr); }
