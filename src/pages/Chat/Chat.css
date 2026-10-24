@@ -202,3 +202,25 @@
   .workspace-stage:has(.workspace-chat-float:not([hidden])) .workspace-legend { bottom: calc(min(58dvh,540px) + 20px); }
   .workspace-stage:has(.workspace-chat-float:not([hidden])) .workspace-node-list { display: none; }
 }
+
+.workspace-chat-float>header .workspace-chat-tools { gap: 6px; }
+.reply-markdown { white-space: normal; }
+.reply-markdown > :first-child { margin-top: 0; }
+.reply-markdown > :last-child { margin-bottom: 0; }
+.reply-markdown p { margin: 0 0 .85em; }
+.reply-markdown :is(h1,h2,h3,h4,h5,h6) { font-size: 1.1em; line-height: 1.5; margin: 1.2em 0 .5em; font-weight: 650; }
+.reply-markdown :is(ul,ol) { padding-left: 1.5em; margin: .5em 0 1em; }
+.reply-markdown li { margin: .25em 0; }
+.reply-markdown li > p { margin-bottom: .35em; }
+.reply-markdown blockquote { margin: .8em 0; padding: .4em .8em; border-left: 3px solid var(--accent-border); background: var(--surface-soft); color: var(--text-secondary); }
+.reply-markdown pre { max-width: 100%; overflow-x: auto; padding: 12px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-soft); white-space: pre; font-size: 11px; line-height: 1.7; scrollbar-width: thin; }
+.reply-markdown code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+.reply-markdown :not(pre) > code { padding: 2px 4px; border-radius: 4px; background: var(--surface-soft); font-size: .9em; overflow-wrap: anywhere; }
+.reply-markdown a { color: var(--accent-strong); text-decoration: underline; text-underline-offset: 3px; }
+.reply-table { max-width: 100%; overflow-x: auto; margin: .8em 0; scrollbar-width: thin; }
+.reply-table table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.reply-table :is(th,td) { padding: 7px 9px; border: 1px solid var(--border); text-align: left; }
+.reply-table th { background: var(--surface-soft); font-weight: 600; }
+.reply-markdown hr { border: 0; border-top: 1px solid var(--border); margin: 1em 0; }
+.reply-markdown .contains-task-list { padding-left: .4em; list-style: none; }
+.reply-markdown--animate { animation: workspace-enter .2s ease-out; }

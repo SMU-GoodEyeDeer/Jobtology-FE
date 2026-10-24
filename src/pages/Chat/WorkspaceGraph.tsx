@@ -53,14 +53,15 @@ export function WorkspaceGraph({ graph, selected, onSelect, highlighted, highlig
         .map(({ node, element }) => ({ node, element, rect: element.getBoundingClientRect(), priority: node.id === state.selected || node.id === hoveredNode.current ? 3 : state.highlighted.has(node.id) ? 2 : ["role", "goal", "profile"].includes(node.kind) ? 1 : 0 }))
         .sort((a,b) => b.priority - a.priority);
       const occupied: DOMRect[] = [];
-      let foundAnchor = false;
-      for (const { node, element, rect, priority } of ranked) {
+      for (const { element, rect, priority } of ranked) {
         const overlaps = priority < 3 && occupied.some(other => rect.left < other.right + 6 && rect.right + 6 > other.left && rect.top < other.bottom + 4 && rect.bottom + 4 > other.top);
         element.dataset.cluttered = String(overlaps);
         if (!overlaps) occupied.push(rect);
-        if (node.id === state.anchorId) { foundAnchor = true; state.onAnchor?.({ x: rect.left + rect.width / 2 - bounds.left, y: rect.top - bounds.top - 8 }); }
       }
-      if (!foundAnchor) state.onAnchor?.(null);
+      const point = state.anchorId ? nvl.current?.getNodes?.().find(node => node.id === state.anchorId)?.clientPosition : null;
+      const canvasBounds = canvas.current?.getBoundingClientRect();
+      state.onAnchor?.(point && canvasBounds && Number.isFinite(point.x) && Number.isFinite(point.y)
+        ? { x: point.x + canvasBounds.left - bounds.left, y: point.y + canvasBounds.top - bounds.top } : null);
     });
   }
   function syncLabelScale(zoom = nvl.current?.getScale?.() ?? 1) {
