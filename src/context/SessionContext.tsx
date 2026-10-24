@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, useCallback, useRef } f
 import type { ReactNode } from "react";
 import { authApi, setCsrfToken } from "../services/api";
 import type { SessionResponse } from "../services/types";
+import { scopeWorkspaceCache } from "../services/workspaceCache";
 
 interface SessionState {
   session: SessionResponse | null;
@@ -39,6 +40,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       const data = await authApi.getSession();
       if (version !== requestVersion.current) return;
       setCsrfToken(data.csrf_token);
+      scopeWorkspaceCache(data.user_id, data.profile_version);
       setSession(data);
     } catch (err) {
       if (version !== requestVersion.current) return;

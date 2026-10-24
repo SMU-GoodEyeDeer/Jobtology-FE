@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState, type ComponentRef } from "react";
 import { useReducedMotion } from "motion/react";
 import { useTheme } from "../../context/ThemeContext";
 import { basisLabels, nodeLabels, type WorkspaceGraph as Graph, type WorkspaceKind } from "../../services/chatWorkspace";
+import { WorkspaceLoading } from "./WorkspaceLoading";
 
 const colors: Record<WorkspaceKind, string> = {
   role: "#7056c7", goal: "#7056c7", profile: "#345d79", preferences: "#64748b",
@@ -23,6 +24,7 @@ export function WorkspaceGraph({ graph, selected, onSelect, highlighted, highlig
   const reduced = useReducedMotion();
   const [failed, setFailed] = useState(false);
   const [ready, setReady] = useState(false);
+  const [laidOut, setLaidOut] = useState(false);
   const fitted = useRef(false);
   const fittingIds = useRef<string[] | null>(null);
   const [previewKind, setPreviewKind] = useState<WorkspaceKind | null>(null);
@@ -94,10 +96,12 @@ export function WorkspaceGraph({ graph, selected, onSelect, highlighted, highlig
   for (const node of graph.nodes) counts.set(node.kind, (counts.get(node.kind) ?? 0) + 1);
   return <>
     <div ref={canvas} className="workspace-canvas" aria-label="커리어 근거 그래프">
+      {!laidOut && !failed && nodes.length > 0 && <WorkspaceLoading label="그래프를 준비하고 있어요" />}
       {!failed && nodes.length > 0 && <InteractiveNvlWrapper ref={nvl} nodes={nodes} rels={rels} positions={positions}
         style={{ width: "100%", height: "100%" }} nvlOptions={options}
         onInitializationError={() => setFailed(true)}
-        nvlCallbacks={{ onInitialization: () => setReady(true), onLayoutStep: () => syncLabelScale(), onZoomTransitionDone: () => syncLabelScale(), onLayoutDone: () => {
+        nvlCallbacks={{ onInitialization: () => { setReady(true); if (reduced) setLaidOut(true); }, onLayoutStep: () => syncLabelScale(), onZoomTransitionDone: () => syncLabelScale(), onLayoutDone: () => {
+          setLaidOut(true);
           if (!fitted.current) { nvl.current?.fit?.(nodes.map(n => n.id), { animated: false }); fitted.current = true; }
         } }}
         mouseEventCallbacks={{ onNodeClick: node => onSelect(node.id), onPan: true, onZoomAndPan: zoom => syncLabelScale(zoom), onDrag: true }} />}
