@@ -62,3 +62,39 @@
   .postings-page-gap { padding: 0; }
 }
 @media (prefers-reduced-motion: reduce) { .postings-pagination button { transition: none; } }
+
+/* The filter and page docks stay in view while each result column scrolls. */
+.postings-content { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; padding-bottom: 20px; gap: 14px; }
+.postings-filters { flex: none; z-index: 2; box-shadow: 0 6px 22px #101b3210; background: color-mix(in srgb, var(--surface) 95%, transparent); backdrop-filter: blur(12px); }
+.postings-content > .postings-note { margin: 0; flex: none; }
+.postings-content > .occupation-context-banner { flex: none; max-height: 150px; overflow: auto; }
+.postings-grid { flex: 1; min-height: 0; align-items: stretch; }
+.postings-list, .postings-detail-panel { min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-gutter: stable; }
+.postings-detail-panel { position: relative; top: auto; animation: postings-detail-in .22s ease-out; }
+.postings-list .postings-pagination[aria-label="공고 페이지 (하단)"] { position: sticky; bottom: -20px; z-index: 1; background: var(--surface); border-top: 1px solid var(--border); box-shadow: 0 -6px 18px #101b320a; margin: 12px -20px -20px; padding: 12px 16px; border-radius: 0 0 16px 16px; }
+.posting-card { transition: background-color .16s, box-shadow .16s, transform .16s; animation: postings-card-in .2s ease-out; }
+.posting-card:active { transform: scale(.995); }
+.postings-close { position: sticky; top: 0; z-index: 1; box-shadow: 0 3px 10px #101b3210; }
+.postings-filters button { transition: background-color .16s, transform .16s; }
+.postings-filters button:active:not(:disabled) { transform: translateY(1px); }
+@keyframes postings-detail-in { from { opacity: 0; transform: translateX(12px); } to { opacity: 1; transform: none; } }
+@keyframes postings-card-in { from { opacity: .3; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+@media (max-width: 1100px) {
+  .postings-grid--selected { grid-template-columns: minmax(250px,1fr) minmax(280px,1fr); gap: 14px; }
+  .postings-detail-panel { grid-row: auto; }
+  .postings-filters { padding: 14px; gap: 10px; }
+}
+@media (max-width: 944px) {
+  .postings-grid--selected { grid-template-columns: minmax(0,1fr); }
+}
+@media (max-width: 800px) {
+  .postings-grid--selected .postings-list { display: none; }
+  .postings-grid--selected .postings-detail-panel { grid-row: 1; }
+  .postings-content { gap: 10px; }
+  .postings-filters { max-height: 36dvh; overflow: auto; scrollbar-width: thin; }
+}
+@media (max-width: 600px) {
+  .postings-list .postings-pagination[aria-label="공고 페이지 (하단)"] { bottom: -14px; margin-inline: -14px; margin-bottom: -14px; padding: 10px; }
+}
+@media (prefers-reduced-motion: reduce) { .postings-page *, .postings-page *::before { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
+.posting-detail { animation: postings-detail-in .18s ease-out; }

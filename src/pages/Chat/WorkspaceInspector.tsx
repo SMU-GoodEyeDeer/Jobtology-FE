@@ -1,5 +1,6 @@
+import { motion, useReducedMotion } from "motion/react";
 import { Link } from "react-router-dom";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type CSSProperties } from "react";
 import { basisLabels, goalScopedHref, nodeLabels, safeLocalHref, type WorkspaceGraph, type WorkspaceNode } from "../../services/chatWorkspace";
 import { analysisSkillHref, roadmapSkillHref } from "../../services/skillNavigation";
 import { QualificationCard } from "../Analysis/SkillEvidence";
@@ -39,10 +40,11 @@ function readable(key: string, value: unknown): string {
   return String(value);
 }
 
-export function WorkspaceInspector({ node, graph, onClose, onExpand, busy, onAsk, goalId }: {
+export function WorkspaceInspector({ node, graph, onClose, onExpand, busy, onAsk, goalId, position }: {
   node: WorkspaceNode; graph: WorkspaceGraph; onClose: () => void; onExpand: () => void; busy: boolean; onAsk: () => void;
-  goalId?: string | null;
+  goalId?: string | null; position?: { x: number; y: number } | null;
 }) {
+  const reduced = useReducedMotion();
   const inspector = useRef<HTMLElement>(null);
   useEffect(() => { inspector.current?.focus({ preventScroll: true }); }, [node.id]);
   const links = graph.edges.filter(e => e.source === node.id || e.target === node.id);
@@ -52,7 +54,7 @@ export function WorkspaceInspector({ node, graph, onClose, onExpand, busy, onAsk
   try { const parsed = JSON.parse(detail); if (parsed && typeof parsed === "object") { fields = Object.entries(parsed); detail = ""; } } catch { /* Catalog descriptions are plain text. */ }
   const labels: Record<string, string> = { category: "분류", proficiency: "경험 수준", state: "진행 상태", status: "상태", current_start: "현재 일정 시작", current_end: "현재 일정 종료", schedule_source: "일정 기준", hours: "학습 시간", planned_start: "원래 계획 시작", planned_end: "원래 계획 종료", profile_version: "기준 프로필", current_profile_version: "현재 프로필", matching: "역량 연결", evidence: "경험 근거", credit: "계획 반영치", name: "역량", estimated_hours: "남은 학습 시간", ncs_level: "NCS 수준", major_raw: "전공", year: "학년", enrollment_status: "학적", expected_graduation_on: "졸업 예정", available_hours_per_week: "주당 학습 시간", needs_portfolio: "프로젝트 선호", career_switch: "기초 학습 선호", target_by: "목표일", timezone: "시간대" };
   const href = safeLocalHref(node.href);
-  return <aside ref={inspector} tabIndex={-1} className="workspace-inspector" aria-label={`${node.label} 상세정보`} onKeyDown={event => { if (event.key === "Escape") { event.stopPropagation(); onClose(); } }}>
+  return <motion.aside initial={{ opacity: 0, x: -12, scale: .98 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: -12, scale: .98 }} transition={{ duration: reduced ? 0 : .18 }} style={position ? { "--inspector-x": `${position.x}px`, "--inspector-y": `${position.y}px` } as CSSProperties : undefined} ref={inspector} tabIndex={-1} className="workspace-inspector" aria-label={`${node.label} 상세정보`} onKeyDown={event => { if (event.key === "Escape") { event.stopPropagation(); onClose(); } }}>
     <div className="workspace-inspector-head"><span>{nodeLabels[node.kind]}</span><button onClick={onClose} aria-label="상세정보 닫기">×</button></div>
     <h2>{node.label}</h2><span className="workspace-basis">{basisLabels[node.basis]}</span>
     {detail && <p className="workspace-description">{detail}</p>}
@@ -77,5 +79,5 @@ export function WorkspaceInspector({ node, graph, onClose, onExpand, busy, onAsk
       {(node.kind === "ncs_occupation" || node.kind === "onet_occupation") && node.occupation_code && <Link to={postingsHref({ occupation: node.occupation_code })}>연결된 채용공고 보기 →</Link>}
       {(node.requirement_key || node.ncs_base_code) && <><Link to={goalScopedHref(analysisSkillHref(node.requirement_key, node.ncs_base_code), goalId)}>역량분석에서 보기</Link><Link to={goalScopedHref(roadmapSkillHref(node.requirement_key, node.ncs_base_code), goalId)}>로드맵에서 보기</Link></>}
     </div>
-  </aside>;
+  </motion.aside>;
 }

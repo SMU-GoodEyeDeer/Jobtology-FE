@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { InteractiveNvlWrapper } from "@neo4j-nvl/react";
 import { useEffect, useMemo, useRef, useState, type ComponentRef } from "react";
 import { useReducedMotion } from "motion/react";
@@ -13,11 +14,12 @@ const colors: Record<WorkspaceKind, string> = {
   exam_session: "#b4934a", posting: "#ba7159", posting_evidence: "#ba7159", publication: "#8c7a67",
 };
 interface Props {
-  graph: Graph; selected: string | null; onSelect: (id: string) => void;
+  graph: Graph; selected: string | null; onSelect: (id: string | null) => void;
+  cameraTarget?: HTMLElement | null; anchorId?: string | null; onAnchor?: (point: { x: number; y: number } | null) => void;
   highlighted: ReadonlySet<string>; highlightedEdges: ReadonlySet<string>; kinds: WorkspaceKind[];
   focus: { ids: string[]; revision: number }; reset: number;
 }
-export function WorkspaceGraph({ graph, selected, onSelect, highlighted, highlightedEdges, kinds, focus, reset }: Props) {
+export function WorkspaceGraph({ graph, selected, onSelect, highlighted, highlightedEdges, kinds, focus, reset, cameraTarget, anchorId = selected, onAnchor }: Props) {
   const nvl = useRef<ComponentRef<typeof InteractiveNvlWrapper>>(null);
   const canvas = useRef<HTMLDivElement>(null);
   const { preference } = useTheme();
@@ -30,19 +32,56 @@ export function WorkspaceGraph({ graph, selected, onSelect, highlighted, highlig
   const [previewKind, setPreviewKind] = useState<WorkspaceKind | null>(null);
   const [pinnedKind, setPinnedKind] = useState<WorkspaceKind | null>(null);
   const activeKind = previewKind ?? pinnedKind;
+  useEffect(() => { setPreviewKind(null); setPinnedKind(null); }, [reset]);
   const labels = useRef(new Map<string, { label: string; element: HTMLSpanElement }>());
   useEffect(() => { const ids = new Set(graph.nodes.map(n => n.id)); for (const id of labels.current.keys()) if (!ids.has(id)) labels.current.delete(id); }, [graph.nodes]);
   const labelScale = useRef(0);
+  const hoveredNode = useRef<string | null>(null);
+  const layoutFrame = useRef(0), lastLayout = useRef(0);
+  const viewState = useRef({ selected, anchorId, highlighted, visible: graph.nodes, onAnchor });
+  useEffect(() => () => { cancelAnimationFrame(layoutFrame.current); layoutFrame.current = 0; }, []);
+  function syncOverlays() {
+    if (layoutFrame.current) return;
+    layoutFrame.current = requestAnimationFrame(() => {
+      layoutFrame.current = 0;
+      const state = viewState.current, parent = canvas.current?.parentElement;
+      if (!parent) return;
+      const bounds = parent.getBoundingClientRect();
+      // NVL clones the supplied HTML: measure and update its rendered labels.
+      const byId = new Map(state.visible.map(node => [node.id, node]));
+      const ranked = [...(canvas.current?.querySelectorAll<HTMLSpanElement>(".workspace-node-label") ?? [])].flatMap(element => { const node = byId.get(element.dataset.workspaceNodeId ?? ""); return node ? [{ node, element }] : []; })
+        .map(({ node, element }) => ({ node, element, rect: element.getBoundingClientRect(), priority: node.id === state.selected || node.id === hoveredNode.current ? 3 : state.highlighted.has(node.id) ? 2 : ["role", "goal", "profile"].includes(node.kind) ? 1 : 0 }))
+        .sort((a,b) => b.priority - a.priority);
+      const occupied: DOMRect[] = [];
+      let foundAnchor = false;
+      for (const { node, element, rect, priority } of ranked) {
+        const overlaps = priority < 3 && occupied.some(other => rect.left < other.right + 6 && rect.right + 6 > other.left && rect.top < other.bottom + 4 && rect.bottom + 4 > other.top);
+        element.dataset.cluttered = String(overlaps);
+        if (!overlaps) occupied.push(rect);
+        if (node.id === state.anchorId) { foundAnchor = true; state.onAnchor?.({ x: rect.left + rect.width / 2 - bounds.left, y: rect.top - bounds.top - 8 }); }
+      }
+      if (!foundAnchor) state.onAnchor?.(null);
+    });
+  }
   function syncLabelScale(zoom = nvl.current?.getScale?.() ?? 1) {
+    syncOverlays();
     const next = Math.min(2, Math.max(.65, 1 / Math.max(.08, zoom)));
     if (Math.abs(next - labelScale.current) > .01) { canvas.current?.style.setProperty("--node-label-scale", String(next)); labelScale.current = next; }
   }
   const visible = useMemo(() => graph.nodes.filter(n => !kinds.length || kinds.includes(n.kind)), [graph, kinds]);
+  viewState.current = { selected, anchorId, highlighted, visible, onAnchor };
+  useEffect(() => { syncOverlays(); }, [visible, selected, anchorId, highlighted, activeKind, preference]);
+  useEffect(() => {
+    if (!canvas.current) return;
+    const observer = new MutationObserver(syncOverlays);
+    observer.observe(canvas.current, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
   const nodes = useMemo(() => visible.map(node => {
     let label = labels.current.get(node.id);
     if (!label || label.label !== node.label) {
       const element = document.createElement("span");
-      element.className = "workspace-node-label"; element.textContent = node.label;
+      element.className = "workspace-node-label"; element.dataset.workspaceNodeId = node.id; element.textContent = node.label;
       label = { label: node.label, element }; labels.current.set(node.id, label);
     }
     const dimmed = activeKind ? node.kind !== activeKind : highlighted.size > 0 && !highlighted.has(node.id);
@@ -92,6 +131,11 @@ export function WorkspaceGraph({ graph, selected, onSelect, highlighted, highlig
     observer.observe(canvas.current);
     return () => { observer.disconnect(); cancelAnimationFrame(frame); };
   }, [ready]);
+  const camera = <div className="workspace-camera" role="group" aria-label="그래프 보기 조절">
+    <button onClick={() => { nvl.current?.setZoom?.((nvl.current?.getScale?.() ?? 1) / 1.25); syncLabelScale(); }} aria-label="그래프 축소">−</button>
+    <button onClick={fitAll}>전체 보기</button>
+    <button onClick={() => { nvl.current?.setZoom?.((nvl.current?.getScale?.() ?? 1) * 1.25); syncLabelScale(); }} aria-label="그래프 확대">+</button>
+  </div>;
   const counts = new Map<WorkspaceKind, number>();
   for (const node of graph.nodes) counts.set(node.kind, (counts.get(node.kind) ?? 0) + 1);
   return <>
@@ -100,19 +144,15 @@ export function WorkspaceGraph({ graph, selected, onSelect, highlighted, highlig
       {!failed && nodes.length > 0 && <InteractiveNvlWrapper ref={nvl} nodes={nodes} rels={rels} positions={positions}
         style={{ width: "100%", height: "100%" }} nvlOptions={options}
         onInitializationError={() => setFailed(true)}
-        nvlCallbacks={{ onInitialization: () => { setReady(true); if (reduced) setLaidOut(true); }, onLayoutStep: () => syncLabelScale(), onZoomTransitionDone: () => syncLabelScale(), onLayoutDone: () => {
-          setLaidOut(true);
+        nvlCallbacks={{ onInitialization: () => { setReady(true); if (reduced) setLaidOut(true); }, onLayoutStep: () => { if (Date.now() - lastLayout.current > 80) { lastLayout.current = Date.now(); syncLabelScale(); } }, onZoomTransitionDone: () => syncLabelScale(), onLayoutDone: () => {
+          setLaidOut(true); syncOverlays();
           if (!fitted.current) { nvl.current?.fit?.(nodes.map(n => n.id), { animated: false }); fitted.current = true; }
         } }}
-        mouseEventCallbacks={{ onNodeClick: node => onSelect(node.id), onPan: true, onZoomAndPan: zoom => syncLabelScale(zoom), onDrag: true }} />}
+        mouseEventCallbacks={{ onNodeClick: node => onSelect(node.id), onCanvasClick: () => onSelect(null), onPan: () => syncOverlays(), onZoomAndPan: zoom => syncLabelScale(zoom), onDrag: () => syncOverlays(), onHover: element => { const id = visible.some(node => node.id === element?.id) ? element.id : null; if (hoveredNode.current !== id) { hoveredNode.current = id; syncOverlays(); } } }} />}
       {!graph.nodes.length && <div className="workspace-empty">목표를 선택하거나 궁금한 역량을 검색해 보세요.</div>}
       {failed && <p className="workspace-render-error" role="status">그래픽을 표시하지 못했어요. 아래 노드 목록에서 탐색할 수 있어요.</p>}
     </div>
-    <div className="workspace-camera" role="group" aria-label="그래프 보기 조절">
-      <button onClick={() => { nvl.current?.setZoom?.((nvl.current?.getScale?.() ?? 1) / 1.25); syncLabelScale(); }} aria-label="그래프 축소">−</button>
-      <button onClick={fitAll}>전체 보기</button>
-      <button onClick={() => { nvl.current?.setZoom?.((nvl.current?.getScale?.() ?? 1) * 1.25); syncLabelScale(); }} aria-label="그래프 확대">+</button>
-    </div>
+    {cameraTarget ? createPortal(camera, cameraTarget) : camera}
     <div className="workspace-legend" role="group" aria-label="노드 유형별 강조">
       {[...counts].map(([kind, count]) => <button key={kind} aria-pressed={pinnedKind === kind} onPointerEnter={() => setPreviewKind(kind)} onPointerLeave={() => setPreviewKind(null)}
         onFocus={() => setPreviewKind(kind)} onBlur={() => setPreviewKind(null)} onClick={() => setPinnedKind(previous => previous === kind ? null : kind)}>

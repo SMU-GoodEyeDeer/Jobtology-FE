@@ -189,3 +189,24 @@ describe("graph-centered chat workspace", () => {
     expect(host.querySelector('[data-testid="graph"]')?.textContent).toContain("백엔드 채용");
   });
 });
+it("clears expanded or answer evidence emphasis when its window is dismissed", async () => {
+  vi.spyOn(chatWorkspaceApi, "stream").mockImplementation(async (_messages, _goal, _focus, event) => { event({ type: "answer", data: answer }); event({ type: "done" }); });
+  await render(); await question();
+  expect(host.querySelector('[data-testid="graph"]')?.getAttribute("data-highlighted")).toBe("personal");
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="대화창 최소화"]')!.click());
+  expect(host.querySelector('[data-testid="graph"]')?.getAttribute("data-highlighted")).toBe("");
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="AI 대화 열기"]')!.click());
+  await act(async () => [...host.querySelectorAll("button")].find(button => button.textContent === "경험 근거")!.click());
+  expect(host.querySelector('[data-testid="graph"]')?.getAttribute("data-highlighted")).toBe("personal");
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="상세정보 닫기"]')!.click());
+  expect(host.querySelector('[data-testid="graph"]')?.getAttribute("data-highlighted")).toBe("");
+});
+
+it("does not restore automatic highlights after chat is dismissed during an answer", async () => {
+  let finish!:()=>void, emit!:(event:ChatEvent)=>void;
+  vi.spyOn(chatWorkspaceApi,"stream").mockImplementation((_messages,_goal,_focus,event)=>{emit=event;return new Promise<void>(resolve=>{finish=resolve;});});
+  await render();await question();
+  await act(async()=>host.querySelector<HTMLButtonElement>('[aria-label="대화창 최소화"]')!.click());
+  await act(async()=>{emit({type:"answer",data:answer});emit({type:"done"});finish();});
+  expect(host.querySelector('[data-testid="graph"]')?.getAttribute("data-highlighted")).toBe("");
+});

@@ -296,8 +296,9 @@ describe("resume review through the shared spec manager", () => {
     expect(container.querySelector(".resume-scanner")?.parentElement?.hidden).toBe(false);
     expect(dialog.open).toBe(true);
     await click("검토하고 추가"); await change("직접 수행한 수준", "GUIDED"); await click("스펙 저장");
-    expect(button("검토하고 추가").disabled).toBe(false);
-    await click("검토하고 추가");
+    const nextReview = [...container.querySelectorAll<HTMLButtonElement>(".resume-candidate button")].find(node => node.textContent === "검토하고 추가" && !node.disabled)!;
+    expect(nextReview).toBeDefined();
+    await act(async () => nextReview.click());
     expect(field("스펙 제목").value).toBe("문서화 프로젝트");
     expect(field("직접 수행한 수준").value).toBe("");
     await change("직접 수행한 수준", "INDEPENDENT"); await click("스펙 저장");
@@ -359,9 +360,21 @@ describe("resume review through the shared spec manager", () => {
     expect(api.capabilitiesApi.get).toHaveBeenCalledWith("cap-1");
     expect(container.querySelector(".spec-item")?.textContent).toContain("분석 프로젝트");
     expect(container.querySelector(".spec-item")?.textContent).toContain("현재 목표와 연결됨");
-    expect(button("저장 완료").disabled).toBe(true);
+    expect(container.querySelector('.resume-candidate[data-review="added"] button')?.hasAttribute("disabled")).toBe(true);
     expect(api.resumeApi.interpret).not.toHaveBeenCalled(); expect(api.chatApi.send).not.toHaveBeenCalled();
     await click("가져오기 끝내기"); expect(container.querySelector(".resume-scanner")).toBeNull();
     expect(items).toHaveLength(1);
   });
+});
+it("searches roadmap completion records by their displayed category label", async () => {
+  items = [{ ...stored("completion"), category: "ROADMAP_OUTCOME", raw_text: "완료한 API 학습", details: {}, proficiency: null }, { ...stored("manual"), raw_text: "수동 스펙" }];
+  await act(async () => root.render(createElement(SpecManager, { searchable: true })));
+  const input = container.querySelector<HTMLInputElement>('.spec-list-search input')!;
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, "로드맵 완료 기록");
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  expect(container.querySelectorAll(".spec-item")).toHaveLength(1);
+  expect(container.querySelector(".spec-category")?.textContent).toBe(input.value);
+  expect(container.querySelector(".spec-item h3")?.textContent).toBe("완료한 API 학습");
 });

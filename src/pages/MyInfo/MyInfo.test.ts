@@ -284,3 +284,12 @@ describe("MyInfo persistence", () => {
     expect(api.analysisApi.create).not.toHaveBeenCalled();
   });
 });
+it("filters the scrollable spec card without changing saved capabilities", async () => {
+  capabilities = [capability("python", "Python API 구현"), capability("sql", "SQL 데이터 분석")];
+  await mount(); await input('.spec-list-search input', 'sql');
+  expect(container.querySelectorAll(".spec-item")).toHaveLength(1); expect(container.querySelector(".spec-item")?.textContent).toContain("SQL 데이터 분석");
+  expect(container.querySelector(".spec-count")?.textContent).toBe("2");
+  await input('.spec-list-search input', '없는 스펙'); expect(container.textContent).toContain("검색 결과가 없어요");
+  await input('.spec-list-search input', ''); expect(container.querySelectorAll(".spec-item")).toHaveLength(2);
+  expect(api.capabilitiesApi.delete).not.toHaveBeenCalled();
+});

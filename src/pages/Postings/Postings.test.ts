@@ -148,11 +148,11 @@ describe("real posting browser", () => {
     expect(resourcesApi.postings).toHaveBeenLastCalledWith(expect.objectContaining({ q: "백엔드", offset: 0 }));
     expect(container.querySelector(".posting-detail")).toBeNull();
   });
-  it("shows total pages at both ends of the list and jumps without losing applied filters", async () => {
+  it("shows total pages in the persistent dock and jumps without losing applied filters", async () => {
     vi.mocked(resourcesApi.postings).mockResolvedValue({ ...list, total: 2000 });
     await renderPage("?q=개발&ncs_category=20010203&region=서울&open_on=2026-10-20&posting=urn%3Aposting%3Aa%2Fb");
     const pagers = container.querySelectorAll(".postings-pagination");
-    expect(pagers).toHaveLength(2);
+    expect(pagers).toHaveLength(1);
     expect(pagers[0].querySelector(".postings-page-count")?.textContent).toContain("1 / 100페이지");
     expect(pagers[0].querySelector<HTMLButtonElement>('[aria-label="이전 페이지"]')?.disabled).toBe(true);
     const jumpForm = pagers[0].querySelector("form")!;
@@ -160,7 +160,7 @@ describe("real posting browser", () => {
     await act(async () => jumpForm.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
     expect(resourcesApi.postings).toHaveBeenLastCalledWith({ q: "개발", ncs_category: "20010203", region: "서울", open_on: "2026-10-20", offset: 1440, limit: 20 });
     expect(container.querySelector(".posting-detail")).toBeNull();
-    expect(Array.from(container.querySelectorAll('[aria-current="page"]')).map(item => item.textContent)).toEqual(["73", "73"]);
+    expect(Array.from(container.querySelectorAll('[aria-current="page"]')).map(item => item.textContent)).toEqual(["73"]);
     expect(document.activeElement).toBe(container.querySelector(".postings-list-heading h2"));
     await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="100페이지"]')!.click());
     expect(resourcesApi.postings).toHaveBeenLastCalledWith(expect.objectContaining({ offset: 1980 }));
@@ -267,4 +267,25 @@ describe("real posting browser", () => {
     expect(new URL(link.href).searchParams.get("posting")).toBe(posting.posting_id);
     expect(new URL(link.href).searchParams.get("occupation")).toBe("20010203");
   });
+});
+it("changes pages by scrolling only the results panel, preserving the filter dock", async () => {
+  await renderPage();
+  const panel = container.querySelector<HTMLElement>(".postings-list")!, outer = container.querySelector<HTMLElement>(".postings-content")!;
+  const scroll = vi.fn(), outerScroll = vi.fn(); panel.scrollTo = scroll; outer.scrollTo = outerScroll;
+  await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="2페이지"]')!.click());
+  expect(scroll).toHaveBeenCalledWith(expect.objectContaining({ top: 0 })); expect(outerScroll).not.toHaveBeenCalled();
+  expect(document.activeElement).toBe(container.querySelector(".postings-list-heading h2"));
+});
+it.each([false, true])("keeps the page dock after source/availability information (occupation: %s)", async occupation => {
+  if (occupation) {
+    const context = occupationContext(posting);
+    vi.mocked(resourcesApi.occupationContext).mockResolvedValue({ ...context, total: 2,
+      items: [...context.items, { ...context.items[0], association_id: "unavailable", posting: null }] });
+  }
+  await renderPage(occupation ? "?occupation=20010203" : "");
+  const panel = container.querySelector(".postings-list")!;
+  const information = panel.querySelector(occupation ? ".postings-note" : ".postings-source");
+  expect(information).not.toBeNull();
+  expect(panel.lastElementChild?.classList.contains("postings-pagination")).toBe(true);
+  expect(information!.compareDocumentPosition(panel.lastElementChild!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
 });

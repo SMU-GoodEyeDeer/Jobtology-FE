@@ -12,6 +12,7 @@ import "./Specs.css";
 
 export interface SpecMutationNotice { requestVersion: number; profileVersion: number; message: string }
 interface Props {
+  readonly searchable?: boolean;
   readonly occupationId?: string | null;
   readonly candidate?: ChatCapabilityCandidate | null;
   readonly disabled?: boolean;
@@ -21,10 +22,12 @@ interface Props {
   readonly onMutation?: (result: SpecMutationNotice) => void;
   readonly onEditingChange?: (editing: boolean) => void;
 }
+const categoryLabel = (category: CapabilityDetailResponse["category"]) => category === "ROADMAP_OUTCOME" ? "로드맵 완료 기록" : SPEC_CATEGORIES.find(value => value.value === category)?.label;
 const statusLabels = { MATCHED: "현재 목표와 연결됨", NEEDS_CLARIFICATION: "근거·역량 확인 필요", UNUSED: "현재 목표에 미반영", EXPIRED: "유효기간 만료" };
 
-export function SpecManager({ occupationId, candidate, disabled, mutationLock, onBusyChange, onCountChange, onMutation, onEditingChange }: Props) {
+export function SpecManager({ searchable, occupationId, candidate, disabled, mutationLock, onBusyChange, onCountChange, onMutation, onEditingChange }: Props) {
   const [items, setItems] = useState<CapabilityDetailResponse[]>([]);
+  const [query, setQuery] = useState("");
   const [ready, setReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -140,6 +143,8 @@ export function SpecManager({ occupationId, candidate, disabled, mutationLock, o
   function cancelEditor() {
     setEditor(null); setEditorError(null); lastAttempt.current = null; newKey.current = null;
   }
+  const normalizedQuery = query.trim().toLocaleLowerCase();
+  const visibleItems = items.filter(item => !normalizedQuery || [item.raw_text, item.details.evidence, categoryLabel(item.category), ...item.matching.competencies.map(value => value.label)].some(value => value?.toLocaleLowerCase().includes(normalizedQuery)));
   const dialogOpen = resumeOpen || editor !== null;
   const feedback = <>
     {error && <div className="spec-error" role="alert"><p>{error}</p>{savedId ? <button type="button" disabled={busy} onClick={async () => {
@@ -157,13 +162,15 @@ export function SpecManager({ occupationId, candidate, disabled, mutationLock, o
       view={editor ? "editor" : "resume"} busy={busy || disabled} back={resumeOpen && editor !== null}
       onDismiss={() => { if (editor) cancelEditor(); else setResumeOpen(false); }}>
       {feedback}
-      {resumeOpen && <div hidden={editor !== null}><ResumeScanner occupationId={occupationId} existingCompetencyIds={items.flatMap(item => item.details.competency_ids ?? [])} disabled={disabled || busy || loading || !ready || savedId !== null || editor !== null} onReview={(initialDraft, onSaved) => { setEditor({ item: null, initialDraft, onSaved }); setEditorError(null); setNotice(null); newKey.current = null; lastAttempt.current = null; }} onClose={() => setResumeOpen(false)} /></div>}
+      {resumeOpen && <div className="resume-scanner-wrapper" hidden={editor !== null}><ResumeScanner occupationId={occupationId} existingCompetencyIds={items.flatMap(item => item.details.competency_ids ?? [])} disabled={disabled || busy || loading || !ready || savedId !== null || editor !== null} onReview={(initialDraft, onSaved) => { setEditor({ item: null, initialDraft, onSaved }); setEditorError(null); setNotice(null); newKey.current = null; lastAttempt.current = null; }} onClose={() => setResumeOpen(false)} /></div>}
       {editor && <SpecEditor key={editor.item?.capability_id ?? "new"} item={editor.item} candidate={editor.candidate} initialDraft={editor.initialDraft} occupationId={occupationId} busy={busy || disabled} canSave={ready && !loading} error={editorError} onSave={save} onCancel={cancelEditor} />}
     </SpecDialog>}
     {!loading && ready && !items.length && !dialogOpen && <div className="spec-empty"><strong>등록한 스펙이 없어요</strong><p>이력서를 가져오거나 직접 추가하세요.</p></div>}
-    <ul className="spec-list">{items.map(item => <li className="spec-item" key={item.capability_id}>
-      <div className="spec-item-heading"><div><small className="spec-category">{item.category === "ROADMAP_OUTCOME" ? "로드맵 완료 기록" : SPEC_CATEGORIES.find(category => category.value === item.category)?.label}</small><h3>{item.raw_text}</h3><small>{item.details.source === "DOCUMENT_IMPORT" ? "이력서에서 가져옴 · 본인 확인" : "본인 입력"}</small></div>{item.category !== "ROADMAP_OUTCOME" && <div className="spec-item-actions"><button type="button" disabled={disabled || busy || loading || dialogOpen} onClick={() => void edit(item)} aria-label={`${item.raw_text} 수정`}>수정</button><button type="button" disabled={disabled || busy || loading || dialogOpen} onClick={() => { setRemoving(item); setError(null); }} aria-label={`${item.raw_text} 삭제`}>삭제</button></div>}</div>
-      <p className="spec-help">{PROFICIENCIES.find(value => value.value === item.proficiency)?.label}</p>
+    {searchable && <label className="spec-list-search"><span className="spec-sr-only">내 스펙 검색</span><input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="내 스펙 검색" /></label>}
+    {searchable && items.length > 0 && !visibleItems.length && <p className="spec-help" role="status">검색 결과가 없어요.</p>}
+    <ul className="spec-list">{visibleItems.map(item => <li className="spec-item" key={item.capability_id}>
+      <div className="spec-item-heading"><div><small className="spec-category">{categoryLabel(item.category)}</small><h3>{item.raw_text}</h3><small>{item.details.source === "DOCUMENT_IMPORT" ? "이력서에서 가져옴 · 본인 확인" : "본인 입력"}</small></div>{item.category !== "ROADMAP_OUTCOME" && <div className="spec-item-actions"><button type="button" disabled={disabled || busy || loading || dialogOpen} onClick={() => void edit(item)} aria-label={`${item.raw_text} 수정`}>수정</button><button type="button" disabled={disabled || busy || loading || dialogOpen} onClick={() => { setRemoving(item); setError(null); }} aria-label={`${item.raw_text} 삭제`}>삭제</button></div>}</div>
+      {item.proficiency && !["certification", "test"].includes(item.category) && <p className="spec-help">{PROFICIENCIES.find(value => value.value === item.proficiency)?.label}</p>}
       <p className={`spec-matching spec-matching--${item.matching.status}`}><strong>{statusLabels[item.matching.status]}</strong> · 모델 반영 비율 {Math.round(item.matching.credit * 100)}%</p>
       <details className="spec-item-detail"><summary>근거와 연결 역량 보기</summary>
       <SpecDetailsSummary item={item} />

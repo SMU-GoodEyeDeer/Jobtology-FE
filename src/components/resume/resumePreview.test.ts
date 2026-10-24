@@ -56,3 +56,29 @@ it("uses native block annotations across runs, excluding generated list markers 
   doc.querySelector("p")!.append(duplicate);
   expect(highlightSource(doc, split)).toBe(false);
 });
+
+it("keeps review colors across selection changes without moving the document", async () => {
+  const { reviewSource } = await import("./resumePreview");
+  const { vi } = await import("vitest");
+  const scroll = vi.fn();
+  Element.prototype.scrollIntoView = scroll;
+  const doc = new DOMParser().parseFromString('<p data-node-id="p.1">😀 Python <b>Python</b></p>', "text/html");
+  const added = { ...suggestion, suggestion_id: "added", start: 2, end: 8 };
+  reviewSource(doc, [block], [added, suggestion], new Set(["added"]), new Set(["id"]));
+  expect(doc.querySelector('mark[data-resume-review="added"]')?.textContent).toBe("Python");
+  expect(doc.querySelector('mark[data-resume-review="excluded"]')?.textContent).toBe("Python");
+  highlightSource(doc, block, suggestion); highlightSource(doc, block);
+  expect(doc.querySelectorAll("mark[data-resume-review]")).toHaveLength(2);
+  expect(doc.body.textContent).toBe(block.text); expect(doc.querySelector("b")?.textContent).toBe("Python");
+  reviewSource(doc, [block], [added, suggestion], new Set(), new Set());
+  expect(doc.querySelector("mark[data-resume-review]")).toBeNull(); expect(doc.body.textContent).toBe(block.text);
+  expect(scroll).not.toHaveBeenCalled(); delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView;
+});
+it("shows a single page fitted by both width and height", async () => {
+  const { showDocumentPage } = await import("./resumePreview");
+  const doc = new DOMParser().parseFromString('<section class="document-page">one</section><section class="document-page">two</section>', "text/html");
+  const pages = [...doc.querySelectorAll<HTMLElement>("section")];
+  pages.forEach(page => { Object.defineProperty(page, "offsetWidth", { value: 800 }); Object.defineProperty(page, "offsetHeight", { value: 1100 }); });
+  showDocumentPage(doc, 2); expect(pages[0].hidden).toBe(true); expect(pages[1].hidden).toBe(false);
+  expect(zoomDocument(doc, 800, null, 500)).toBe(41);
+});
