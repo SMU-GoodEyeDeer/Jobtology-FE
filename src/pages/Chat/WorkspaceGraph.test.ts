@@ -2,7 +2,7 @@
 import { act, createElement, forwardRef, useEffect, useImperativeHandle } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { WorkspaceGraph as Graph, WorkspaceKind } from "../../services/chatWorkspace";
+import type { EvidenceBasis, WorkspaceGraph as Graph, WorkspaceKind } from "../../services/chatWorkspace";
 import { WorkspaceGraph } from "./WorkspaceGraph";
 const native = vi.hoisted(() => ({ props: {} as Record<string, any>, reduced: false, fit: vi.fn() }));
 vi.mock("motion/react", () => ({ useReducedMotion: () => native.reduced }));
@@ -21,10 +21,27 @@ beforeEach(() => {
   native.reduced = false; native.fit.mockClear(); host = document.createElement("div"); document.body.append(host); root = createRoot(host);
 });
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.unstubAllGlobals(); });
-async function render(kinds: WorkspaceKind[] = [], ids: string[] = [], revision = 0, data = graph) {
-  await act(async () => root.render(createElement(WorkspaceGraph, { graph: data, selected: null, onSelect: vi.fn(), highlighted: new Set<string>(), highlightedEdges: new Set<string>(), kinds, focus: { ids, revision }, reset: 0 })));
+async function render(kinds: WorkspaceKind[] = [], ids: string[] = [], revision = 0, data = graph, highlightedEdges = new Set<string>()) {
+  await act(async () => root.render(createElement(WorkspaceGraph, { graph: data, selected: null, onSelect: vi.fn(), highlighted: new Set<string>(), highlightedEdges, kinds, focus: { ids, revision }, reset: 0 })));
 }
 describe("native graph view behavior", () => {
+  it.each<[EvidenceBasis, string]>([
+    ["METADATA_INFERRED", "과거 추론 연결"], ["REFERENCE", "과거 참고 자료"],
+    ["REVIEWED_REQUIREMENT", "과거 검토된 요구 역량"], ["USER_REPORTED", "과거 본인 입력"],
+    ["APPLICATION_RECORD", "과거 저장된 계획·평가"], ["APPLICATION_CONTEXT_SELECTION", "과거 직무 탐색 참고"],
+    ["PROPOSED", "과거 제안 연결"],
+  ])("preserves the %s basis in historical edge captions", async (basis, caption) => {
+    await render([], [], 0, { ...graph, edges: [{ id: "edge", source: "a", target: "b", kind: "LINK", basis, catalog_freshness: "STALE" }] });
+    expect(native.props.rels[0].caption).toBe(caption);
+  });
+  it("retains proposal and highlighted captions for current edges", async () => {
+    await render([], [], 0, { ...graph, edges: [
+      { id: "proposed", source: "a", target: "b", kind: "SUGGESTED_LINK", basis: "PROPOSED" },
+      { id: "highlighted", source: "a", target: "b", kind: "MATCHED_TO", basis: "USER_REPORTED" },
+      { id: "ordinary", source: "a", target: "b", kind: "REFERENCE", basis: "REFERENCE" },
+    ] }, new Set(["proposed", "highlighted"]));
+    expect(native.props.rels.map((r: { caption?: string }) => r.caption)).toEqual(["제안 연결", "MATCHED_TO", undefined]);
+  });
   it("uses fixed positions and unanimated fit for reduced motion", async () => {
     native.reduced = true; await render([], ["a"]);
     expect(native.props.nvlOptions.layout).toBe("free");

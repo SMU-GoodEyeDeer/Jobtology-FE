@@ -57,6 +57,14 @@
 .workspace-citations { display:flex; flex-wrap:wrap; gap:5px; margin-top:8px; }
 .workspace-citations button { border:1px solid var(--border); border-radius:6px; padding:4px 7px; background:var(--surface-soft); color:var(--text-secondary); font-size:10px; text-align:left; }
 .workspace-chat-progress { color:var(--muted); font-size:12px; animation:workspace-pulse 1.6s ease-in-out infinite alternate; }
+.workspace-tool-log { margin:0 0 14px; padding:8px 10px; border:1px solid var(--border); border-radius:9px; color:var(--muted); font-size:11px; }
+.workspace-tool-log summary { cursor:pointer; }
+.workspace-tool-log ul { list-style:none; padding:0; margin:8px 0 0; }
+.workspace-tool-log li { display:flex; align-items:center; gap:7px; margin:4px 0; }
+.workspace-tool-log li>span { color:var(--accent); }
+.workspace-tool-log li[data-status="failed"]>span, .workspace-answer-incomplete { color:var(--danger-text); }
+.workspace-tool-log small { margin-left:auto; font-size:10px; }
+.workspace-answer-incomplete { font-size:11px; margin:10px 0 0; }
 .chat-workspace .chat-suggestions { flex-shrink:0; display:flex; gap:6px; overflow-x:auto; padding:8px 16px 11px; scrollbar-width:thin; scrollbar-color:var(--border) transparent; }
 .chat-suggestions button { flex-shrink:0; border:1px solid var(--border); color:var(--text-secondary); background:var(--surface); padding:7px 10px; border-radius:9px; font-size:11px; }
 .workspace-chat-input { display:flex; align-items:flex-end; gap:8px; margin:0 12px 12px; padding:10px; border:1px solid var(--border); background:var(--surface-soft); border-radius:13px; }

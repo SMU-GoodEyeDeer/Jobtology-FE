@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { edgeIdentity, emptyGraph, goalScopedHref, mergeWorkspace, readChatEvents, safeLocalHref, type WorkspaceGraph } from "./chatWorkspace";
 
 const graph: WorkspaceGraph = { nodes: [{ id: "sql", kind: "technology", label: "SQL", basis: "REFERENCE" }], edges: [], truncated: false };
@@ -7,6 +7,64 @@ const answer = { ...evidence, reply: "자료를 확인했어요", explanation: "
 function stream(...chunks: string[]) { return new ReadableStream<Uint8Array>({ start(controller) { chunks.forEach(chunk => controller.enqueue(new TextEncoder().encode(chunk))); controller.close(); } }); }
 
 describe("chat evidence stream", () => {
+  it.each(["\n", "\r", "\r\n"])("accepts SSE line endings %j across every byte boundary", async separator => {
+    const text = [": heartbeat", "", "event: answer", 'data: {"type":"answer",',
+      `data: "data":${JSON.stringify(answer)}}`, "", "event: done", 'data: {"type":"done"}', "", ""].join(separator);
+    const bytes = new TextEncoder().encode(text), received: string[] = [];
+    const split = new ReadableStream<Uint8Array>({ start(controller) {
+      for (const byte of bytes) controller.enqueue(new Uint8Array([byte]));
+      controller.close();
+    }});
+    await readChatEvents(split, event => received.push(event.type), undefined, "sse");
+    expect(received).toEqual(["answer", "done"]);
+  });
+  it.each(["ndjson", "sse"] as const)("accepts a large %s chunk containing several bounded events", async format => {
+    const events = [{ type: "progress", stage: "searching", message: "x".repeat(360_000) },
+      { type: "progress", stage: "answering", message: "x".repeat(360_000) }, { type: "answer", data: answer }, { type: "done" }];
+    const text = events.map(event => format === "sse" ? `data: ${JSON.stringify(event)}\n\n` : `${JSON.stringify(event)}\n`).join("");
+    const received: string[] = [];
+    expect(text.length).toBeGreaterThan(700_000);
+    await readChatEvents(stream(text), event => received.push(event.type), undefined, format);
+    expect(received).toEqual(["progress", "progress", "answer", "done"]);
+  });
+  it.each(["ndjson", "sse"] as const)("keeps the %s unfinished-line and individual-event bounds", async format => {
+    await expect(readChatEvents(stream("x".repeat(700_001)), () => {}, undefined, format)).rejects.toThrow("응답이 너무 커요.");
+    const line = JSON.stringify({ type: "progress", stage: "searching", message: "x".repeat(700_001) });
+    await expect(readChatEvents(stream(format === "sse" ? `data: ${line}\n\n` : `${line}\n`), () => {}, undefined, format)).rejects.toThrow("응답이 너무 커요.");
+  });
+  it("decodes SSE frames, heartbeat comments, CRLF and incremental tool/text events", async () => {
+    const events = [{type:"tool",call_id:"one",name:"search_postings",label:"채용공고 검색",status:"started"},
+      {type:"tool",call_id:"one",name:"search_postings",label:"채용공고 검색",status:"completed",node_count:6},
+      {type:"answer_delta",delta:"한글 😀"}, {type:"answer",data:answer},{type:"done"}];
+    const text = ': heartbeat\r\n\r\n' + events.map(e => `event: ${e.type}\r\ndata: ${JSON.stringify(e)}\r\n\r\n`).join('');
+    const received: string[] = [];
+    const bytes = new TextEncoder().encode(text);
+    const splitBytes = new ReadableStream<Uint8Array>({ start(controller) {
+      for (let i = 0; i < bytes.length; i += 2) controller.enqueue(bytes.slice(i, i + 2));
+      controller.close();
+    }});
+    await readChatEvents(splitBytes,e=>received.push(e.type),undefined,"sse");
+    expect(received).toEqual(["tool","tool","answer_delta","answer","done"]);
+  });
+  it.each([
+    {type:"tool",call_id:"one",name:"shell",label:"실행",status:"started"},
+    {type:"tool",call_id:"one",name:"search_catalog",label:"검색",status:"unknown"},
+    {type:"answer_delta",delta:4},
+  ])("rejects malformed tool/text events: %j",async event=>{
+    await expect(readChatEvents(stream(`data: ${JSON.stringify(event)}\n\n`),()=>{},undefined,"sse")).rejects.toThrow();
+  });
+  it("requires a final validated answer after text deltas and rejects unfinished SSE frames",async()=>{
+    await expect(readChatEvents(stream('data: {"type":"answer_delta","delta":"partial"}\n\ndata: {"type":"done"}\n\n'),()=>{},undefined,"sse")).rejects.toThrow("답변이 누락");
+    await expect(readChatEvents(stream(`data: ${JSON.stringify({type:"answer",data:answer})}`),()=>{},undefined,"sse")).rejects.toThrow("연결이 끊겼어요");
+    await expect(readChatEvents(stream(`data: ${JSON.stringify({type:"answer",data:answer})}\n\ndata: {"type":"done"}\n\ndata: {"type":`),()=>{},undefined,"sse")).rejects.toThrow("연결이 끊겼어요");
+  });
+  it("cancels an outstanding read immediately when aborted", async()=>{
+    const controller=new AbortController(), cancelled=vi.fn();
+    const pending=new ReadableStream<Uint8Array>({cancel:cancelled});
+    const result=readChatEvents(pending,()=>{},controller.signal,"sse");
+    controller.abort();
+    await expect(result).rejects.toMatchObject({name:"AbortError"}); expect(cancelled).toHaveBeenCalled();
+  });
   it("decodes split Unicode JSON and requires a terminal answer and done event", async () => {
     const text = [{ type: "evidence", data: evidence }, { type: "answer", data: answer }, { type: "done" }].map(e => JSON.stringify(e)).join("\n");
     const events: string[] = [];
