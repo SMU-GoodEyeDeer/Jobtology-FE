@@ -366,3 +366,15 @@ describe("resume review through the shared spec manager", () => {
     expect(items).toHaveLength(1);
   });
 });
+it("searches roadmap completion records by their displayed category label", async () => {
+  items = [{ ...stored("completion"), category: "ROADMAP_OUTCOME", raw_text: "완료한 API 학습", details: {}, proficiency: null }, { ...stored("manual"), raw_text: "수동 스펙" }];
+  await act(async () => root.render(createElement(SpecManager, { searchable: true })));
+  const input = container.querySelector<HTMLInputElement>('.spec-list-search input')!;
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, "로드맵 완료 기록");
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  expect(container.querySelectorAll(".spec-item")).toHaveLength(1);
+  expect(container.querySelector(".spec-category")?.textContent).toBe(input.value);
+  expect(container.querySelector(".spec-item h3")?.textContent).toBe("완료한 API 학습");
+});

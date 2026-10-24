@@ -119,9 +119,9 @@ export function Postings() {
                   <small>{postingDeadlineLabel(item)}</small>
                   {current.context && current.context.items.filter(association => association.posting?.posting_id === item.posting_id).map(association => <AssociationStatus key={association.association_id} item={association} />)}
                 </button>) : <p className="postings-state">조건에 맞는 수집 공고가 없어요. 다른 검색어나 날짜로 찾아보세요.</p>}
-                <PostingsPagination total={current.data.total} page={page} pageSize={PAGE_SIZE} position="bottom" onChange={changePage} />
                 {current.context?.items.some(association => !association.posting) && <p className="postings-note">일부 연결 공고는 현재 원문 정보를 제공하지 않아 목록에 표시되지 않아요.</p>}
                 {current.data.sources.map(source => <p className="postings-source" key={`${source.source_id}:${source.run_id}`}>{postingSourceName(source.source_id)}{source.data_as_of ? ` · 데이터 반영 ${source.data_as_of.slice(0, 10)}` : " · 데이터 반영일 미제공"}</p>)}
+                <PostingsPagination total={current.data.total} page={page} pageSize={PAGE_SIZE} position="bottom" onChange={changePage} />
               </>}
           </section>
           {postingId && <section className="postings-detail-panel" aria-label="선택한 공고"><button className="postings-close" onClick={() => update("posting", null)}>상세 닫기 ×</button>{occupation && !current ? <p role="status">공고 정보를 불러오는 중이에요…</p> : <PostingDetail key={`${postingId}:${attempt}`} postingId={postingId} posting={selectedPosting} />}{!!selectedAssociations.length && <AssociationProvenance items={selectedAssociations} />}</section>}

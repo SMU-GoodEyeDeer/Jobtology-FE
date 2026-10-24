@@ -276,3 +276,16 @@ it("changes pages by scrolling only the results panel, preserving the filter doc
   expect(scroll).toHaveBeenCalledWith(expect.objectContaining({ top: 0 })); expect(outerScroll).not.toHaveBeenCalled();
   expect(document.activeElement).toBe(container.querySelector(".postings-list-heading h2"));
 });
+it.each([false, true])("keeps the page dock after source/availability information (occupation: %s)", async occupation => {
+  if (occupation) {
+    const context = occupationContext(posting);
+    vi.mocked(resourcesApi.occupationContext).mockResolvedValue({ ...context, total: 2,
+      items: [...context.items, { ...context.items[0], association_id: "unavailable", posting: null }] });
+  }
+  await renderPage(occupation ? "?occupation=20010203" : "");
+  const panel = container.querySelector(".postings-list")!;
+  const information = panel.querySelector(occupation ? ".postings-note" : ".postings-source");
+  expect(information).not.toBeNull();
+  expect(panel.lastElementChild?.classList.contains("postings-pagination")).toBe(true);
+  expect(information!.compareDocumentPosition(panel.lastElementChild!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+});

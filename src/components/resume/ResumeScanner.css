@@ -21,7 +21,7 @@
 .resume-analysis-notice { flex: none; margin: 0 0 10px; padding: 8px 12px; }
 .resume-scanner--review { display: flex; flex-direction: column; flex: 1; min-height: 0; height: 100%; }
 .spec-dialog-content[data-view="resume"] { display: flex; flex-direction: column; padding: 18px 24px 0; overflow: hidden; scrollbar-gutter: auto; }
-.spec-dialog-content[data-view="resume"] > div:not([hidden]) { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+.spec-dialog-content[data-view="resume"] > .resume-scanner-wrapper:not([hidden]) { display: flex; flex-direction: column; min-height: 0; flex: 1; }
 .resume-workspace { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(280px, 1fr); gap: 16px; flex: 1; min-height: 0; }
 .resume-source, .resume-suggestions { box-sizing: border-box; min-width: 0; min-height: 0; margin: 0; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); }
 .resume-source { display: flex; flex-direction: column; overflow: hidden; }

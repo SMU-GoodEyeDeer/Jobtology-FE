@@ -84,7 +84,7 @@
 .workspace-chat-input button { border:0; background:var(--accent-solid); color:var(--on-accent); border-radius:9px; width:33px; height:33px; font-size:20px; flex-shrink:0; }
 .workspace-chat-launcher { position:absolute; z-index:6; right:24px; bottom:25px; background:var(--strong-bg); color:var(--on-accent); padding:14px 18px; border:0; border-radius:15px; box-shadow:0 6px 25px #101b3225; font-size:13px; animation:workspace-enter .2s ease-out; }
 .workspace-chat-launcher span { margin-left:15px; }
-.workspace-inspector { position:absolute; z-index:5; top:82px; left:22px; width:310px; max-width:calc(100% - 44px); max-height:calc(100% - 155px); overflow:auto; overscroll-behavior:contain; scrollbar-width:thin; background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:17px; padding:19px; box-shadow:0 12px 35px #101b321b; animation:workspace-enter .2s ease-out; }
+.workspace-inspector { position:absolute; z-index:5; top:82px; left:22px; width:350px; box-sizing:border-box; max-width:calc(100% - 44px); max-height:calc(100% - 155px); overflow:auto; overscroll-behavior:contain; scrollbar-width:thin; background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:17px; padding:19px; box-shadow:0 12px 35px #101b321b; animation:workspace-enter .2s ease-out; }
 .workspace-inspector-head { display:flex; align-items:center; justify-content:space-between; color:var(--muted); font-size:11px; }
 .workspace-inspector:focus-visible { outline:2px solid var(--accent-focus); outline-offset:2px; }
 .workspace-inspector-head button { background:none; border:0; color:var(--muted); font-size:20px; }
@@ -179,7 +179,7 @@
 .workspace-legend button[aria-pressed="true"] i { box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px var(--accent-border); }
 .workspace-chat-float { transition: opacity .18s ease, transform .18s ease, display .18s allow-discrete; animation: none; }
 .workspace-chat-float[hidden] { opacity: 0; transform: translate(20px, 5px) scale(.98); pointer-events: none; }
-.workspace-inspector { left: var(--inspector-x, 22px); top: var(--inspector-y, 88px); max-height: min(65%, 650px); animation: none; transition: left .16s ease-out, top .16s ease-out; }
+.workspace-inspector { left: var(--inspector-x, 22px); top: var(--inspector-y, 88px); max-height: min(65%, 650px, calc(100% - var(--inspector-y, 88px) - 16px)); animation: none; transition: left .16s ease-out, top .16s ease-out; }
 .workspace-node-tether { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 4; overflow: visible; }
 .workspace-node-tether path { stroke: var(--accent-focus); stroke-width: 1.5; stroke-dasharray: 4 4; fill: none; }
 .workspace-node-tether circle { fill: var(--surface); stroke: var(--accent-focus); stroke-width: 2; }

@@ -84,8 +84,10 @@
   .postings-detail-panel { grid-row: auto; }
   .postings-filters { padding: 14px; gap: 10px; }
 }
-@media (max-width: 800px) {
+@media (max-width: 944px) {
   .postings-grid--selected { grid-template-columns: minmax(0,1fr); }
+}
+@media (max-width: 800px) {
   .postings-grid--selected .postings-list { display: none; }
   .postings-grid--selected .postings-detail-panel { grid-row: 1; }
   .postings-content { gap: 10px; }
