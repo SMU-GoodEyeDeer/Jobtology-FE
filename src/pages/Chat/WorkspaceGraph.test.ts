@@ -48,6 +48,17 @@ describe("native graph view behavior", () => {
     ] }, new Set(["proposed", "highlighted"]));
     expect(native.props.rels.map((r: { caption?: string }) => r.caption)).toEqual(["제안 연결", "MATCHED_TO", undefined]);
   });
+  it("labels crosswalk connections by their actual review state", async () => {
+    await render([], [], 0, { ...graph, edges: [
+      { id: "candidate", source: "a", target: "b", kind: "CROSSWALK_RELATED", basis: "PROPOSED" },
+      { id: "partial", source: "a", target: "b", kind: "CROSSWALK_PARTIAL", basis: "REFERENCE" },
+      { id: "exact", source: "a", target: "b", kind: "CROSSWALK_EXACT", basis: "REFERENCE", catalog_freshness: "STALE" },
+    ] });
+    expect(native.props.rels.map((r: { caption?: string }) => r.caption)).toEqual([
+      "NCS ↔ O*NET · 제안", "NCS ↔ O*NET · 부분 대응", "과거 NCS ↔ O*NET · 검토된 대응",
+    ]);
+    expect(native.props.rels.every((r: { width: number }) => r.width === 2)).toBe(true);
+  });
   it("uses fixed positions and unanimated fit for reduced motion", async () => {
     native.reduced = true; await render([], ["a"]);
     expect(native.props.nvlOptions.layout).toBe("free");

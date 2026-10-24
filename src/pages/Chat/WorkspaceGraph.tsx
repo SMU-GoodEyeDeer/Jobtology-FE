@@ -96,13 +96,17 @@ export function WorkspaceGraph({ graph, selected, onSelect, highlighted, highlig
   }; }), [visible, selected, highlighted, activeKind, preference]);
   const rels = useMemo(() => {
     const ids = new Set(visible.map(n => n.id));
-    return graph.edges.filter(e => ids.has(e.source) && ids.has(e.target)).map(e => ({
-      id: e.id, from: e.source, to: e.target, color: highlightedEdges.has(e.id) ? "#8d6de0" : preference === "dark" ? "#49536b" : "#c0c7d6",
-      width: highlightedEdges.has(e.id) ? 3 : 1.5, selected: highlightedEdges.has(e.id),
-      caption: e.source_freshness === "STALE" || e.catalog_freshness === "STALE"
+    return graph.edges.filter(e => ids.has(e.source) && ids.has(e.target)).map(e => {
+      const crosswalk = e.kind.startsWith("CROSSWALK_");
+      const historical = e.source_freshness === "STALE" || e.catalog_freshness === "STALE";
+      const label = e.basis === "PROPOSED" ? "제안" : e.kind === "CROSSWALK_PARTIAL" ? "부분 대응" : e.kind === "CROSSWALK_EXACT" ? "검토된 대응" : "참고 연결";
+      return {
+      id: e.id, from: e.source, to: e.target, color: highlightedEdges.has(e.id) ? "#8d6de0" : crosswalk ? preference === "dark" ? "#a28cd4" : "#8271ad" : preference === "dark" ? "#49536b" : "#c0c7d6",
+      width: highlightedEdges.has(e.id) ? 3 : crosswalk ? 2 : 1.5, selected: highlightedEdges.has(e.id),
+      caption: crosswalk ? `${historical ? "과거 " : ""}NCS ↔ O*NET · ${label}` : historical
         ? e.basis === "METADATA_INFERRED" ? "과거 추론 연결" : `과거 ${basisLabels[e.basis]}`
         : e.basis === "PROPOSED" ? "제안 연결" : highlightedEdges.has(e.id) ? e.kind : undefined,
-    }));
+    }; });
   }, [graph, visible, highlightedEdges, preference]);
   const options = useMemo(() => ({
     renderer: "canvas" as const, layout: reduced ? "free" as const : "forceDirected" as const,

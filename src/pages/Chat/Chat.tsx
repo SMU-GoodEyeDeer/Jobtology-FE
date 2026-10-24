@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties, type FormEvent } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type CSSProperties, type FormEvent } from "react";
 import { AnimatePresence } from "motion/react";
 import { Link } from "react-router-dom";
 import { AppSidebar } from "../../components/AppSidebar";
@@ -14,6 +14,8 @@ import { ReplyText } from "./ReplyText";
 import { WorkspaceInspector } from "./WorkspaceInspector";
 import { WorkspaceLoading } from "./WorkspaceLoading";
 import { cachedWorkspace, cacheWorkspace, clearWorkspaceCache, scopeWorkspaceCache } from "../../services/workspaceCache";
+import { connectCrosswalk, crosswalkContext, readCrosswalk } from "../../services/crosswalkGraph";
+import type { CrosswalkResponse } from "../../services/resourcesApi";
 import "./Chat.css";
 
 const loadWorkspaceGraph = () => import("./WorkspaceGraph").then(module => ({ default: module.WorkspaceGraph }));
@@ -43,6 +45,7 @@ export function Chat() {
   const [graph, setGraph] = useState<Graph>(() => cached?.graph ?? emptyGraph()), initialGraph = useRef<Graph>(cached?.graph ?? emptyGraph());
   const [loading, setLoading] = useState(!cached), [error, setError] = useState<string | null>(null), [reload, setReload] = useState(0);
   const [warnings, setWarnings] = useState<string[]>([]), [available, setAvailable] = useState(false);
+  const [mappingLoading, setMappingLoading] = useState(false);
   const [turns, setTurns] = useState<Turn[]>([]), [input, setInput] = useState("");
   const [busy, setBusy] = useState(false), [progress, setProgress] = useState(""), [finalizing, setFinalizing] = useState(false);
   const [chatOpen, setChatOpen] = useState(() => !window.matchMedia("(max-width:640px)").matches), [selected, setSelected] = useState<string | null>(null);
@@ -81,7 +84,7 @@ export function Chat() {
     initialGraph.current = saved?.graph ?? emptyGraph();
     turnController.current?.abort(); searchController.current?.abort();
     setGraph(initialGraph.current); setTurns([]); setSuggestions(DEFAULT_QUESTIONS); setSelected(null); setHighlighted(new Set()); setHighlightedEdges(new Set());
-    setInput(""); setBusy(false); setFinalizing(false); setSearching(false); setError(null); setLoading(!saved); setWarnings(saved?.warnings ?? []); setPage(null); setMore(false); setKinds([]);
+    setInput(""); setBusy(false); setFinalizing(false); setSearching(false); setError(null); setLoading(!saved); setMappingLoading(false); setWarnings(saved?.warnings ?? []); setPage(null); setMore(false); setKinds([]);
     setFocus(previous => ({ ids: [], revision: previous.revision + 1 }));
     const cleanup = () => { epoch.current += 1; controller.abort(); turnController.current?.abort(); searchController.current?.abort(); };
     if (saved) return cleanup;
@@ -119,6 +122,48 @@ export function Chat() {
     });
     return cleanup;
   }, [account, profileVersion, selectedGoalId, selectedGoal?.occupation_id, goalsLoading, reload]);
+  useEffect(() => {
+    if (loading || goalsLoading) return;
+    const current = epoch.current, generation = scopeWorkspaceCache(account, profileVersion);
+    const context = crosswalkContext(initialGraph.current);
+    const anchors = initialGraph.current.nodes.filter(node => node.kind === "onet_occupation").slice(0, 2);
+    if (!anchors.length) { setMappingLoading(false); return; }
+    let active = true; setMappingLoading(true);
+    Promise.allSettled(anchors.map(node => readCrosswalk(node.id, 100, context))).then(results => {
+      if (!active || current !== epoch.current) return;
+      const mappingWarnings: string[] = [];
+      for (const result of results) {
+        if (result.status === "fulfilled" && result.value.graph) {
+          const connections = result.value.graph;
+          initialGraph.current = connectCrosswalk(initialGraph.current, connections);
+          setGraph(previous => connectCrosswalk(previous, connections));
+          mappingWarnings.push(...(connections.warnings ?? []));
+        } else if (result.status === "rejected") mappingWarnings.push("CROSSWALK_UNAVAILABLE");
+      }
+      setWarnings(previous => [...new Set([...previous, ...mappingWarnings])]);
+      const saved = cachedWorkspace(account, selectedGoalId, profileVersion);
+      if (saved) cacheWorkspace(account, selectedGoalId, generation, { graph: initialGraph.current,
+        warnings: [...new Set([...saved.warnings, ...mappingWarnings])] });
+      setMappingLoading(false);
+    });
+    return () => { active = false; };
+  }, [loading, goalsLoading, account, selectedGoalId, profileVersion, reload]);
+  const addMappingConnections = useCallback((connections: Graph) => {
+    setGraph(previous => connectCrosswalk(previous, connections, true));
+    if (connections.warnings?.length) setWarnings(previous => [...new Set([...previous, ...connections.warnings!])]);
+  }, []);
+  const showMapping = useCallback((data: CrosswalkResponse, mappingId: string) => {
+    if (!data.graph) return;
+    const link = data.graph.edges.find(edge => edge.association_id === mappingId);
+    if (!link) return;
+    const endpoints = new Set([link.source, link.target]), ids = new Set(endpoints);
+    for (const edge of data.graph.edges) if (!edge.kind.startsWith("CROSSWALK_") && (endpoints.has(edge.source) || endpoints.has(edge.target))) {
+      ids.add(edge.source); ids.add(edge.target);
+    }
+    addMappingConnections(data.graph); evidenceDismissed.current = false;
+    setKinds([]); setHighlighted(ids); setHighlightedEdges(new Set([link.id]));
+    setFocus(previous => ({ ids: [...ids], revision: previous.revision + 1 }));
+  }, [addMappingConnections]);
   useEffect(() => { if (followAnswer.current) end.current?.scrollIntoView?.({ behavior: "instant", block: "nearest" }); }, [turns, progress]);
   function interruptAnswer() {
     setTurns(previous => previous.map(turn => turn.streaming ? { ...turn, streaming: false, incomplete: true,
@@ -234,7 +279,8 @@ export function Chat() {
       {selectedNode && nodeAnchor && inspectorPosition && <svg className="workspace-node-tether" aria-hidden="true"><path d={`M${nodeAnchor.x},${nodeAnchor.y} Q${nodeAnchor.x},${inspectorPosition.y+32} ${inspectorPosition.x > nodeAnchor.x ? inspectorPosition.x : inspectorPosition.x+350},${inspectorPosition.y+32}`} /><circle cx={nodeAnchor.x} cy={nodeAnchor.y} r="4" /></svg>}
       {!selectedNode && chatOpen && highlighted.size > 0 && nodeAnchor && chatPanel.current && <svg className="workspace-node-tether" aria-hidden="true"><path d={`M${nodeAnchor.x},${nodeAnchor.y} Q${chatPanel.current.offsetLeft-24},${nodeAnchor.y} ${chatPanel.current.offsetLeft},${chatPanel.current.offsetTop+38}`} /><circle cx={nodeAnchor.x} cy={nodeAnchor.y} r="4" /></svg>}
       <AnimatePresence mode="wait">{selectedNode && <WorkspaceInspector key={selectedNode.id} position={inspectorPosition} node={selectedNode} graph={graph} goalId={selectedGoalId} onClose={() => { selectNode(null); requestAnimationFrame(() => document.querySelector<HTMLElement>(".workspace-node-list summary")?.focus()); }} busy={searching}
-        onExpand={() => void search(undefined, selectedNode.id)} onAsk={() => { if (window.matchMedia("(max-width: 1000px)").matches) selectNode(null); setChatOpen(true); setInput(`${selectedNode.label}에 대해 설명해줘`); requestAnimationFrame(() => inputRef.current?.focus()); }} />}</AnimatePresence>
+        onExpand={() => void search(undefined, selectedNode.id)} contextNodes={crosswalkContext(initialGraph.current)} onConnections={addMappingConnections} onShowMapping={showMapping}
+        onAsk={() => { if (window.matchMedia("(max-width: 1000px)").matches) selectNode(null); setChatOpen(true); setInput(`${selectedNode.label}에 대해 설명해줘`); requestAnimationFrame(() => inputRef.current?.focus()); }} />}</AnimatePresence>
       <button ref={launcher} className="workspace-chat-launcher" aria-label="AI 대화 열기" aria-expanded={chatOpen} onClick={() => { selectNode(null); setChatOpen(true); requestAnimationFrame(() => inputRef.current?.focus()); }} hidden={chatOpen}>대화하기 <span>↗</span></button>
       <section ref={chatPanel} className={`workspace-chat-float${resize.resizing ? " is-resizing" : ""}`} hidden={!chatOpen} aria-label="AI 커리어 대화">
         <div className="workspace-chat-resize" {...resize.separatorProps} aria-label="대화창 너비 조절" />
@@ -262,6 +308,7 @@ export function Chat() {
         </form>
       </section>
       <div className="workspace-notices" aria-live="polite">{(error || goalsError) && <p className="workspace-error" role="alert">{error || goalsError}<button aria-label="알림 닫기" onClick={() => setError(null)}>×</button></p>}
+        {mappingLoading && <p role="status">NCS·O*NET 연결을 확인하고 있어요…</p>}
         {warnings.map(w => warningLabels[w] && <p key={w}>{warningLabels[w]}</p>)}
         {graph.truncated && <p>관계별 일부를 표시해요. 검색하거나 연결을 펼쳐 탐색할 수 있어요.</p>}
       </div>

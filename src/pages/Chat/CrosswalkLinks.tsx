@@ -1,24 +1,30 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { formatPostingDateTime, freshnessLabel, postingsHref, resourcesApi, type CrosswalkResponse } from "../../services/resourcesApi";
-import { readPostingsCache } from "../../services/postingsCache";
+import { formatPostingDateTime, freshnessLabel, postingsHref, type CrosswalkResponse } from "../../services/resourcesApi";
+import type { WorkspaceGraph } from "../../services/chatWorkspace";
+import { readCrosswalk } from "../../services/crosswalkGraph";
 import "./CrosswalkLinks.css";
 
 const relations = { RELATED: "관련 항목", PARTIAL: "부분 대응", EXACT: "동등 범위" };
 const statuses = { PROPOSED: "검토 전 제안", APPROVED: "검토된 연결", REJECTED: "제외된 연결" };
 const bases = { SHARED_POSTINGS: "동일 공고의 직무 분류로 연결", CATALOG_COMPARISON: "분류 자료 비교로 연결", BILINGUAL_CUE: "공통 기술 용어로 제안" };
 
-export function CrosswalkLinks({ nodeId, nodeScheme, onExpand, busy }: { readonly nodeId: string; readonly nodeScheme: "NCS" | "ONET"; readonly onExpand: () => void; readonly busy: boolean }) {
+export function CrosswalkLinks({ nodeId, nodeScheme, onExpand, busy, contextNodes = [], onConnections, onShowMapping }: {
+  readonly nodeId: string; readonly nodeScheme: "NCS" | "ONET"; readonly onExpand: () => void; readonly busy: boolean;
+  readonly contextNodes?: readonly string[]; readonly onConnections?: (graph: WorkspaceGraph) => void;
+  readonly onShowMapping?: (data: CrosswalkResponse, mappingId: string) => void;
+}) {
   const [request, setRequest] = useState({ nodeId, limit: 6, attempt: 0 });
   const limit = request.nodeId === nodeId ? request.limit : 6, attempt = request.nodeId === nodeId ? request.attempt : 0;
   const [result, setResult] = useState<{ nodeId: string; limit: number; data?: CrosswalkResponse; error?: boolean } | null>(null);
+  const contextKey = JSON.stringify(contextNodes);
   useEffect(() => {
     let active = true;
-    readPostingsCache(JSON.stringify(["crosswalk", nodeId, limit]), () => resourcesApi.crosswalk(nodeId, limit)).then(data => {
-      if (active) setResult({ nodeId, limit, data });
+    readCrosswalk(nodeId, limit, JSON.parse(contextKey)).then(data => {
+      if (active) { setResult({ nodeId, limit, data }); if (data.graph) onConnections?.(data.graph); }
     }, () => { if (active) setResult(previous => ({ nodeId, limit, data: previous?.nodeId === nodeId ? previous.data : undefined, error: true })); });
     return () => { active = false; };
-  }, [nodeId, limit, attempt]);
+  }, [nodeId, limit, attempt, contextKey, onConnections]);
   const current = result?.nodeId === nodeId ? result : null, loading = !current || current.limit !== limit;
   return <section className="workspace-crosswalk" aria-label="NCS와 O*NET 연결">
     <h3>NCS ↔ O*NET</h3>
@@ -35,7 +41,7 @@ export function CrosswalkLinks({ nodeId, nodeScheme, onExpand, busy }: { readonl
           <small>원문 {freshnessLabel(item.source_freshness)} · 분류 {freshnessLabel(item.catalog_freshness)}</small>
           <small>{bases[item.basis]}{typeof item.evidence.shared_postings === "number" && Number.isSafeInteger(item.evidence.shared_postings) && item.evidence.shared_postings >= 0 ? ` · 공고 ${item.evidence.shared_postings}건` : ""}</small>
           {item.status === "PROPOSED" && item.relation !== "RELATED" && <small>대응 범위는 아직 검토되지 않았어요.</small>}
-          <div className="workspace-crosswalk-actions">{item.status !== "REJECTED" && <button onClick={onExpand} disabled={busy}>지도에서 보기</button>}
+          <div className="workspace-crosswalk-actions">{item.status !== "REJECTED" && <button onClick={() => onShowMapping && current.data?.graph ? onShowMapping(current.data, item.mapping_id) : onExpand()} disabled={busy}>지도에서 보기</button>}
             {other.kind.endsWith("occupation") && <Link to={postingsHref({ occupation: other.code })}>연결 공고 ↗</Link>}</div>
           <details><summary>연결 근거와 버전</summary><p>{item.review?.note || (item.status === "PROPOSED" ? "개별 검토 전인 제안이에요." : "검토 설명이 제공되지 않았어요.")}</p><dl>
             {item.version && <div><dt>연결 규칙 버전</dt><dd>{item.version}</dd></div>}
