@@ -94,6 +94,18 @@ describe("graph-centered chat workspace", () => {
     await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="AI 대화 열기"]')!.click());
     expect(host.querySelector<HTMLTextAreaElement>("textarea")!.value).toBe(value);
   });
+  it("keeps a selected inspector visible when resizing to a narrow screen", async () => {
+    const listeners = new Set<() => void>();
+    const media = { matches: false, addEventListener: (_type: string, listener: () => void) => listeners.add(listener),
+      removeEventListener: (_type: string, listener: () => void) => listeners.delete(listener) };
+    vi.stubGlobal("matchMedia", () => media);
+    await render();
+    await act(async () => [...host.querySelectorAll<HTMLButtonElement>('[data-testid="graph"] button')][0].click());
+    expect(host.querySelector<HTMLElement>(".workspace-chat-float")!.hidden).toBe(false);
+    await act(async () => { media.matches = true; listeners.forEach(listener => listener()); });
+    expect(host.querySelector<HTMLElement>(".workspace-chat-float")!.hidden).toBe(true);
+    expect(host.querySelector(".workspace-inspector")?.textContent).toContain("내 경험");
+  });
   it("resets conversation, suggestions, emphasis, filters and focus while keeping the explored graph", async () => {
     const send = vi.spyOn(chatWorkspaceApi, "stream").mockImplementation(async (_m, _g, _f, event) => {
       event({ type: "answer", data: { ...answer,

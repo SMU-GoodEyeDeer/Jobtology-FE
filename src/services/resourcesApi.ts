@@ -27,6 +27,7 @@ export interface PostingItem {
   readonly recruitment_type: string | null;
   readonly education: string | null;
   readonly ncs_categories: readonly { readonly code: string | null; readonly name: string | null }[];
+  readonly occupation_associations?: readonly PostingOccupationAssociation[];
   readonly headcount: number | null;
   readonly source_url: string | null;
 }
@@ -64,7 +65,48 @@ export interface OccupationAssociation {
   readonly catalog_freshness: "CURRENT" | "STALE" | "UNKNOWN";
   readonly source_pins: { readonly run_id: string | null; readonly source_hash: string | null; readonly normalized_hash: string | null; readonly source_facts_sha256: string | null };
   readonly catalog_pins: { readonly pin: string | null; readonly catalog_hash: string | null };
+  readonly catalog_revalidation?: {
+    readonly original_pin: string;
+    readonly current_pin: string;
+    readonly policy: "FULL_CONTEXT_EQUAL_V1";
+    readonly context_hash: string;
+    readonly verified_at: string;
+  } | null;
   readonly posting: PostingItem | null;
+}
+export type PostingOccupationAssociation = Omit<OccupationAssociation, "posting"> & { readonly competency_evidence: false };
+export interface CrosswalkEndpoint {
+  readonly id: string;
+  readonly scheme: "NCS" | "ONET";
+  readonly kind: "ncs_occupation" | "ncs_competency" | "onet_occupation" | "onet_skill" | "onet_task" | "onet_work_activity" | "onet_knowledge" | "technology";
+  readonly code: string;
+  readonly name: string;
+  readonly description?: string | null;
+  readonly catalog_pin: string | null;
+  readonly content_hash: string | null;
+}
+export interface CrosswalkLink {
+  readonly mapping_id: string;
+  readonly version?: string | null;
+  readonly source: CrosswalkEndpoint;
+  readonly target: CrosswalkEndpoint;
+  readonly relation: "RELATED" | "PARTIAL" | "EXACT";
+  readonly status: "PROPOSED" | "APPROVED" | "REJECTED";
+  readonly basis: "SHARED_POSTINGS" | "CATALOG_COMPARISON" | "BILINGUAL_CUE";
+  readonly evidence: Readonly<Record<string, unknown>>;
+  readonly review: { readonly review_id?: number | null; readonly reviewer_kind: "ASSISTANT" | "HUMAN"; readonly reviewer: string; readonly note: string; readonly reviewed_at: string } | null;
+  readonly source_freshness: "CURRENT" | "STALE" | "UNKNOWN";
+  readonly catalog_freshness: "CURRENT" | "STALE" | "UNKNOWN";
+  readonly created_at: string | null;
+}
+export interface CrosswalkResponse {
+  readonly contract_version: "jobtology-ncs-onet-crosswalk-v1";
+  readonly basis: "CATALOG_CROSSWALK";
+  readonly competency_evidence: false;
+  readonly limit: number;
+  readonly offset: number;
+  readonly total: number;
+  readonly items: readonly CrosswalkLink[];
 }
 export interface OccupationContextResponse {
   readonly role_context?: { readonly role_id: string; readonly version: "posting-context-v1"; readonly basis: "APPLICATION_CONTEXT_SELECTION"; readonly onet_occupations: readonly { readonly code: string; readonly name: string }[] };
@@ -128,6 +170,7 @@ export function safeSourceUrl(value: string | null | undefined): string | null {
   try { const url = new URL(value); return ["https:", "http:"].includes(url.protocol) ? url.href : null; } catch { return null; }
 }
 export const resourcesApi = {
+  crosswalk: (nodeId: string, limit = 6, offset = 0) => request<CrosswalkResponse>("GET", `/v2/live/crosswalk?${new URLSearchParams({ node_id: nodeId, limit: String(limit), offset: String(offset) })}`),
   occupationContext: (occupationCodes: string, limit = 20, offset = 0) => request<OccupationContextResponse>("GET", `/v2/live/occupation-context?${new URLSearchParams({ occupation_codes: occupationCodes, limit: String(limit), offset: String(offset) })}`),
   rolePostingContext: (occupationId: string, limit = 3, offset = 0) => request<OccupationContextResponse>("GET", `/v2/roles/${encodeURIComponent(occupationId)}/posting-context?${new URLSearchParams({ limit: String(limit), offset: String(offset) })}`),
   postings: (filters: PostingFilters = {}) => request<PostingsResponse>("GET", `/v2/live/postings?${postingSearchParams(filters)}`),

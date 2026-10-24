@@ -1,0 +1,18 @@
+.workspace-crosswalk { margin: 18px 0; border-top: 1px solid var(--border); padding-top: 14px; font-size: 12px; color: var(--text-secondary); }
+.workspace-crosswalk h3 { font-size: 13px; margin: 0 0 8px; color: var(--text); }
+.workspace-crosswalk > p { line-height: 1.65; }
+.workspace-inspector .workspace-crosswalk ul { display: grid; gap: 10px; list-style: none; margin: 12px 0; padding: 0; }
+.workspace-crosswalk li { display: grid; gap: 5px; padding: 12px; background: var(--surface-soft); border: 1px solid var(--border-soft); border-radius: 9px; line-height: 1.6; }
+.workspace-crosswalk li[data-historical="true"] { border-color: var(--warning-border); }
+.workspace-crosswalk li strong { color: var(--text); }
+.workspace-inspector .workspace-crosswalk li small, .workspace-crosswalk-label { color: var(--muted); font-size: 11px; }
+.workspace-crosswalk-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 4px; }
+.workspace-crosswalk button { font: inherit; font-size: 11px; padding: 5px 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text-secondary); border-radius: 6px; cursor: pointer; }
+.workspace-crosswalk button:disabled { opacity: .5; cursor: default; }
+.workspace-crosswalk a { color: var(--accent-strong); text-decoration: none; }
+.workspace-crosswalk a:hover { text-decoration: underline; }
+.workspace-crosswalk details { margin-top: 4px; font-size: 11px; }
+.workspace-crosswalk details summary { color: var(--muted); cursor: pointer; }
+.workspace-crosswalk details p { margin: 6px 0; overflow-wrap: anywhere; }
+.workspace-crosswalk details dl { margin: 6px 0; }
+.workspace-crosswalk details dd { overflow-wrap: anywhere; }

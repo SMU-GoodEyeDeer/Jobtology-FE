@@ -5,10 +5,10 @@ import type { Root } from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PostingItem, PostingResponse, PostingsResponse } from "../../services/resourcesApi";
-import { resourcesApi } from "../../services/resourcesApi";
+import { formatPostingDateTime, resourcesApi } from "../../services/resourcesApi";
 import { clearPostingsCache } from "../../services/postingsCache";
 import { occupationContext } from "../../testFixtures/occupationContext";
-import { AssociationProvenance } from "./OccupationContext";
+import { AssociationProvenance, AssociationStatus } from "./OccupationContext";
 import { Postings } from "./Postings";
 import { PostingDetail } from "./PostingDetail";
 import { PostingEvidence } from "../Chat/PostingEvidence";
@@ -104,6 +104,28 @@ describe("real posting browser", () => {
     expect(container.textContent).not.toContain("원문 수집 실행");
     expect(container.textContent).not.toContain("분류 자료 검증값");
   });
+  it("distinguishes full-context revalidation from a new inference while retaining original catalog pins", async () => {
+    const association = { ...occupationContext(posting).items[0], catalog_revalidation: {
+      original_pin: "original-ncs-run", current_pin: "current-ncs-run", policy: "FULL_CONTEXT_EQUAL_V1" as const,
+      context_hash: "full-context-hash", verified_at: "2026-10-25T00:00:00Z",
+    } };
+    await act(async () => root.render(createElement(AssociationProvenance, { items: [association] })));
+    expect(container.querySelector(".occupation-association-status")?.textContent).toContain("분류 내용 동일 재확인");
+    expect(container.querySelector(".occupation-association-status")?.textContent).not.toContain("분류 최신");
+    const rows = Object.fromEntries([...container.querySelectorAll("dl div")].map(row => [row.querySelector("dt")?.textContent, row.querySelector("dd")?.textContent]));
+    expect(rows).toMatchObject({
+      "분류 기준 버전": "exact-catalog", "재확인 원래 분류 기준": "original-ncs-run", "재확인 현재 분류 기준": "current-ncs-run",
+      "재확인 문맥 검증값": "full-context-hash", "재확인 시각": formatPostingDateTime(association.catalog_revalidation.verified_at),
+    });
+    expect(rows["재확인 정책"]).toContain("FULL_CONTEXT_EQUAL_V1");
+    await act(async () => root.render(createElement(AssociationStatus, { item: { ...association, catalog_freshness: "STALE" } })));
+    expect(container.textContent).toContain("분류 과거 자료");
+    expect(container.textContent).not.toContain("내용 동일 재확인");
+    vi.mocked(resourcesApi.postings).mockResolvedValue({ ...list, items: [{ ...posting, occupation_associations: [{ ...association, competency_evidence: false }] }] });
+    await renderPage();
+    expect(container.querySelector(".posting-card-classifications")?.textContent).toContain("분류 동일 재확인");
+    expect(container.querySelector(".posting-card-classifications")?.textContent).not.toContain("최신 추론");
+  });
   it.each(["2026-10-20T09:30:00", "invalid-start"])("formats an application start instant or preserves its invalid source value: %s", async application_start_at => {
     await act(async () => root.render(createElement(PostingDetail, { postingId: posting.posting_id, posting: { ...posting, application_start_at, application_start_date: "2026-10-01" } })));
     const start = Array.from(container.querySelectorAll("dl div")).find(row => row.querySelector("dt")?.textContent === "접수 시작")?.querySelector("dd")?.textContent;
@@ -136,8 +158,36 @@ describe("real posting browser", () => {
     await act(async () => container.querySelector<HTMLButtonElement>(".posting-card")!.click());
     expect(resourcesApi.posting).toHaveBeenLastCalledWith("jobkorea:001");
     expect(container.querySelector(".posting-detail")?.textContent).toContain("잡코리아 · 데이터 반영 2026-10-08");
-    const ncs = Array.from(container.querySelectorAll(".posting-detail dl div")).find(row => row.querySelector("dt")?.textContent === "NCS 분야");
-    expect(ncs?.querySelector("dd")?.textContent).toBe("제공되지 않음");
+    const ncs = Array.from(container.querySelectorAll(".posting-detail dl div")).find(row => row.querySelector("dt")?.textContent === "NCS 분야 · 원문");
+    expect(ncs?.querySelector("dd")?.textContent).toBe("원문에 분류 없음");
+  });
+  it("keeps original NCS fields separate from current, historical and unverified inferred occupations", async () => {
+    const { posting: original, ...association } = occupationContext(posting).items[0];
+    const item: PostingItem = { ...original!, ncs_categories: [], occupation_associations: [
+      { ...association, competency_evidence: false, association_id: "historical", occupation_code: "20010202", occupation_name: "응용SW엔지니어링", catalog_freshness: "STALE", review_status: "ASSISTANT_REVIEWED" },
+      { ...association, competency_evidence: false, association_id: "current", occupation_name: "데이터베이스", review_status: "HUMAN_REVIEWED" },
+      { ...association, competency_evidence: false, association_id: "unknown", occupation_scheme: "ONET", occupation_code: "15-1252.00", occupation_name: "Software Developers", source_freshness: "UNKNOWN", catalog_freshness: "UNKNOWN" },
+    ] };
+    await act(async () => root.render(createElement(MemoryRouter, null, createElement(PostingDetail, { postingId: item.posting_id, posting: item }))));
+    expect(resourcesApi.posting).not.toHaveBeenCalled();
+    const originalField = [...container.querySelectorAll(".posting-detail > dl > div")].find(row => row.querySelector("dt")?.textContent === "NCS 분야 · 원문");
+    expect(originalField?.querySelector("dd")?.textContent).toBe("원문에 분류 없음");
+    const section = container.querySelector('[aria-label="추론 직무 연결"]')!;
+    expect([...section.querySelectorAll("li strong")].map(node => node.textContent)).toEqual(["데이터베이스", "응용SW엔지니어링", "Software Developers"]);
+    expect(section.textContent).toContain("사람 검토 · 원문 최신 · 분류 최신");
+    expect(section.textContent).toContain("보조 검토 · 원문 최신 · 분류 과거 자료");
+    expect(section.textContent).toContain("미검토 · 원문 확인 안 됨 · 분류 확인 안 됨");
+    expect(section.textContent).toContain("요구 역량이나 보유 역량으로 반영하지 않아요");
+    expect(section.textContent).toContain("분류 기준 버전");
+    expect(new URL(section.querySelector("a")!.href).searchParams.get("occupation")).toBe("20010203");
+  });
+  it("loads classification details missing from an occupation-context preview without replacing its posting fields", async () => {
+    const { posting: original, ...association } = occupationContext(posting).items[0];
+    vi.mocked(resourcesApi.posting).mockResolvedValueOnce({ ...detail, item: { ...original!, title: "별도 상세 제목", occupation_associations: [{ ...association, competency_evidence: false }] } });
+    await act(async () => root.render(createElement(MemoryRouter, null, createElement(PostingDetail, { postingId: posting.posting_id, posting }))));
+    expect(resourcesApi.posting).toHaveBeenCalledWith(posting.posting_id);
+    expect(container.querySelector("h2")?.textContent).toBe(posting.title);
+    expect(container.querySelector('[aria-label="추론 직무 연결"]')?.textContent).toContain("NCS 직무개발");
   });
   it("paginates real results and resets paging and detail when search changes", async () => {
     await renderPage("?q=old&offset=20&posting=urn%3Aposting%3Aa%2Fb");
@@ -222,7 +272,7 @@ describe("real posting browser", () => {
   it("renders missing NCS codes and names without inventing category identifiers", async () => {
     vi.mocked(resourcesApi.posting).mockResolvedValueOnce({ ...detail, item: { ...posting, ncs_categories: [{ code: null, name: "분류명만 제공" }, { code: null, name: null }] } });
     await act(async () => root.render(createElement(PostingDetail, { postingId: posting.posting_id })));
-    const value = Array.from(container.querySelectorAll("dl div")).find(row => row.querySelector("dt")?.textContent === "NCS 분야")?.querySelector("dd")?.textContent;
+    const value = Array.from(container.querySelectorAll("dl div")).find(row => row.querySelector("dt")?.textContent === "NCS 분야 · 원문")?.querySelector("dd")?.textContent;
     expect(value).toBe("분류명만 제공");
     expect(value).not.toContain("null");
   });
@@ -233,7 +283,7 @@ describe("real posting browser", () => {
     expect(container.textContent).toContain("원문 링크가 제공되지 않았어요");
   });
   it("paginates associated postings using nested previews and clears context on a normal search", async () => {
-    vi.mocked(resourcesApi.occupationContext).mockResolvedValue({ ...occupationContext(posting), total: 25 });
+    vi.mocked(resourcesApi.occupationContext).mockResolvedValue({ ...occupationContext({ ...posting, occupation_associations: [] }), total: 25 });
     await renderPage("?occupation=20010203&offset=20&posting=urn%3Aposting%3Aa%2Fb");
     expect(resourcesApi.occupationContext).toHaveBeenLastCalledWith("20010203", 20, 20);
     expect(resourcesApi.postings).not.toHaveBeenCalled();

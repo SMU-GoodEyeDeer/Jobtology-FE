@@ -1,8 +1,9 @@
-import { freshnessLabel, postingSourceName, reviewStatusLabel } from "../../services/resourcesApi";
+import { formatPostingDateTime, freshnessLabel, postingSourceName, reviewStatusLabel } from "../../services/resourcesApi";
 import type { OccupationAssociation, OccupationContextResponse } from "../../services/resourcesApi";
 
-export function AssociationStatus({ item }: { readonly item: OccupationAssociation }) {
-  return <span className="occupation-association-status">추론 연결 · {reviewStatusLabel(item.review_status)} · 원문 {freshnessLabel(item.source_freshness)} · 분류 {freshnessLabel(item.catalog_freshness)}</span>;
+export function AssociationStatus({ item }: { readonly item: Omit<OccupationAssociation, "posting"> }) {
+  const catalog = item.catalog_freshness === "CURRENT" && item.catalog_revalidation ? "내용 동일 재확인" : freshnessLabel(item.catalog_freshness);
+  return <span className="occupation-association-status">추론 연결 · {reviewStatusLabel(item.review_status)} · 원문 {freshnessLabel(item.source_freshness)} · 분류 {catalog}</span>;
 }
 
 export function ContextSummary({ data }: { readonly data: OccupationContextResponse }) {
@@ -16,7 +17,7 @@ export function ContextSummary({ data }: { readonly data: OccupationContextRespo
   </div>;
 }
 
-export function AssociationProvenance({ items }: { readonly items: readonly OccupationAssociation[] }) {
+export function AssociationProvenance({ items }: { readonly items: readonly Omit<OccupationAssociation, "posting">[] }) {
   return <div className="occupation-association-provenance">{items.map(item => <details key={item.association_id}>
     <summary>{item.occupation_name || item.occupation_code} · 연결 출처와 검토</summary>
     <p><AssociationStatus item={item} /></p>
@@ -26,6 +27,10 @@ export function AssociationProvenance({ items }: { readonly items: readonly Occu
         ["원문 수집 실행", item.source_pins.run_id], ["원문 검증값", item.source_pins.source_hash],
         ["정규화 자료 검증값", item.source_pins.normalized_hash], ["원문 사실 검증값", item.source_pins.source_facts_sha256],
         ["분류 기준 버전", item.catalog_pins.pin], ["분류 자료 검증값", item.catalog_pins.catalog_hash],
+        ["재확인 원래 분류 기준", item.catalog_revalidation?.original_pin], ["재확인 현재 분류 기준", item.catalog_revalidation?.current_pin],
+        ["재확인 정책", item.catalog_revalidation ? `전체 분류 문맥 동일성 검증 (${item.catalog_revalidation.policy})` : null],
+        ["재확인 문맥 검증값", item.catalog_revalidation?.context_hash],
+        ["재확인 시각", item.catalog_revalidation ? formatPostingDateTime(item.catalog_revalidation.verified_at) : null],
       ].map(([label, value]) => value && <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
   </details>)}</div>;
 }
