@@ -11,6 +11,7 @@
     "test:integration": "node --test test/integration/*.test.mjs"
   },
   "dependencies": {
+    "@neo4j-nvl/react": "2.0.0",
     "@vitejs/plugin-react": "6.1.2",
     "d3-force": "3.0.0",
     "motion": "^14.3.0",
@@ -30,6 +31,8 @@
     "vitest": "5.0.5"
   },
   "overrides": {
+    "js-cookie": "3.0.8",
+    "fast-uri": "3.1.9",
     "compression": "1.8.2"
   }
 }

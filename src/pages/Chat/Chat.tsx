@@ -1,376 +1,178 @@
-import { GoalArrow } from "../../components/GoalArrow";
-import { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import "./Chat.css";
+import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties, type FormEvent } from "react";
+import { Link } from "react-router-dom";
 import { AppSidebar } from "../../components/AppSidebar";
-import { GoalDropdown } from "../../components/GoalDropdown";
-import { capabilitiesApi, chatApi, roleEvidenceGraphApi } from "../../services/api";
-import type { ChatCapabilityCandidate, ChatMessagePayload, RoleEvidenceGraph } from "../../services/types";
-import { EvidenceGraph } from "./EvidenceGraph";
-import { ReplyText } from "./ReplyText";
-import { usePanelResize } from "../../hooks/usePanelResize";
-import type { CSSProperties } from "react";
-import { ROUTE_SUGGESTION, initialSuggestions, withRouteSuggestion } from "./chatSuggestions";
 import { useGoals } from "../../hooks/useGoals";
-import { useRoadmap } from "../../hooks/useRoadmap";
-import { useSession } from "../../context/SessionContext";
+import { usePanelResize } from "../../hooks/usePanelResize";
+import { chatApi, roleEvidenceGraphApi } from "../../services/api";
+import type { ChatMessagePayload, RoleEvidenceGraph } from "../../services/types";
+import { basisLabels, chatWorkspaceApi, edgeIdentity, emptyGraph, mergeWorkspace, nodeLabels,
+  type WorkspaceAnswer, type WorkspaceGraph as Graph, type WorkspaceKind } from "../../services/chatWorkspace";
+import { ReplyText } from "./ReplyText";
+import { WorkspaceInspector } from "./WorkspaceInspector";
+import "./Chat.css";
 
-type CandidateStatus = "dismissed";
+const WorkspaceGraph = lazy(() => import("./WorkspaceGraph").then(module => ({ default: module.WorkspaceGraph })));
 
-const MAX_HISTORY = 20;
-
-function toHistory(messages: Message[]): ChatMessagePayload[] {
-  return messages
-    .flatMap((msg): ChatMessagePayload[] =>
-      msg.role === "user" ? [{ role: "user", text: msg.text }]
-        : msg.role === "ai" ? [{ role: "assistant", text: msg.text }]
-        : []
-    )
-    .slice(-MAX_HISTORY);
+interface Turn { role: "user" | "assistant"; text: string; answer?: WorkspaceAnswer }
+function roleGraph(value: RoleEvidenceGraph): Graph {
+  return { nodes: value.nodes.map(n => ({ ...n, occupation_code: n.occupation_code ?? n.ncs_category, sourceMetadata: n, basis: n.basis ?? "REFERENCE" })),
+    edges: value.edges.map(e => ({ ...e, sourceMetadata: e, id: edgeIdentity(e.source, e.kind, e.target), basis: e.basis ?? "REFERENCE" })), truncated: true, warnings: [...(value.warnings ?? [])] };
 }
-
-type Message =
-  | { role: "ai"; text: string; chips?: string[]; candidates?: ChatCapabilityCandidate[]; animate?: boolean }
-  | { role: "ai-route" }
-  | { role: "user"; text: string };
-
-function makeInitialMessages(goalName: string): Message[] {
-  return [
-    {
-      role: "ai",
-      text: `**${goalName}** 준비에 필요한 역량과 학습 경로를 물어보세요.`,
-      chips: [`${goalName} 보기`],
-    },
-  ];
-}
-
-function AiIcon({ size = 16 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 3v3M9 3h6M4 11H2m20 0h-2" />
-      <rect x="4" y="6" width="16" height="14" rx="5" />
-      <circle cx="9" cy="12" r="1" fill="currentColor" stroke="none" />
-      <circle cx="15" cy="12" r="1" fill="currentColor" stroke="none" />
-      <path d="M9 16h6" />
-    </svg>
-  );
-}
-
+const warningLabels: Record<string, string> = {
+  SKILL_CATALOG_UNAVAILABLE: "역량 카탈로그를 확인하지 못해 현재 스펙 반영치를 계산할 수 없어요.",
+  POSTING_CONTEXT_UNAVAILABLE: "공고 연결 집계를 확인하지 못했어요.",
+  FOCUSED_SOURCE_UNAVAILABLE: "선택한 항목의 최신 자료를 확인하지 못했어요.",
+  NO_ANALYSIS: "아직 분석 결과가 없어요.", NO_ROADMAP: "저장된 로드맵이 없어요.",
+  ANALYSIS_PROFILE_OUTDATED: "분석 이후 프로필이 바뀌었어요. 새 분석에서 반영돼요.",
+  SEARCH_PLANNER_UNAVAILABLE: "추가 자료 검색을 완료하지 못했어요.",
+  CATALOG_PARTIALLY_UNAVAILABLE: "일부 자료를 불러오지 못했어요.", CATALOG_UNAVAILABLE: "카탈로그 연결을 확인해 주세요.",
+};
 export function Chat() {
-  const navigate = useNavigate();
-  const { session, loading: sessionLoading } = useSession();
-  const { goals, selectedGoalId, setSelectedGoalId, selectedGoal, selectedGoalName, getGoalName } = useGoals();
+  const { goals, selectedGoalId, selectedGoal, selectedGoalName, setSelectedGoalId, getGoalName, loading: goalsLoading, error: goalsError } = useGoals();
+  const [graph, setGraph] = useState<Graph>(emptyGraph), initialGraph = useRef<Graph>(emptyGraph());
+  const [loading, setLoading] = useState(true), [error, setError] = useState<string | null>(null);
+  const [warnings, setWarnings] = useState<string[]>([]), [available, setAvailable] = useState(false);
+  const [turns, setTurns] = useState<Turn[]>([]), [input, setInput] = useState("");
+  const [busy, setBusy] = useState(false), [progress, setProgress] = useState("");
+  const [chatOpen, setChatOpen] = useState(() => !window.matchMedia("(max-width:640px)").matches), [selected, setSelected] = useState<string | null>(null);
+  const [highlighted, setHighlighted] = useState<Set<string>>(new Set()), [highlightedEdges, setHighlightedEdges] = useState<Set<string>>(new Set());
+  const [focus, setFocus] = useState({ ids: [] as string[], revision: 0 }), [reset, setReset] = useState(0);
+  const [kinds, setKinds] = useState<WorkspaceKind[]>([]), [filtersOpen, setFiltersOpen] = useState(false);
+  const [query, setQuery] = useState(""), [searching, setSearching] = useState(false);
+  const [page, setPage] = useState<{ q?: string; node?: string; offset: number } | null>(null), [more, setMore] = useState(false);
+  const [suggestions, setSuggestions] = useState(["내 목표에 뭐가 부족해?", "내 스펙은 어떻게 반영됐어?", "다음 학습 활동을 설명해줘"]);
+  const epoch = useRef(0), turnController = useRef<AbortController | null>(null), searchController = useRef<AbortController | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null), launcher = useRef<HTMLButtonElement>(null), end = useRef<HTMLDivElement>(null);
+  const resize = usePanelResize({ storageKey: "jobtology.chat.floatingWidth", initial: 400, min: 320, max: 560, direction: -1 });
 
+  useEffect(() => { chatApi.status().then(r => setAvailable(r.available)).catch(() => setAvailable(false)); }, []);
   useEffect(() => {
-    if (!sessionLoading && !session) navigate("/");
-  }, [session, sessionLoading, navigate]);
-  const { activeRoadmap, progressPct } = useRoadmap(selectedGoalId);
-
-  const [goalOpen, setGoalOpen] = useState(false);
-  const [input, setInput] = useState("");
-  const [selectedSuggestion, setSelectedSuggestion] = useState<string | null>(null);
-  const [aiSuggestions, setAiSuggestions] = useState<string[] | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [isTyping, setIsTyping] = useState(false);
-  const [aiAvailable, setAiAvailable] = useState(false);
-  const [candidateStatus, setCandidateStatus] = useState<Record<string, CandidateStatus>>({});
-  const [graph, setGraph] = useState<RoleEvidenceGraph | null>(null);
-  const [graphStatus, setGraphStatus] = useState<"idle" | "loading" | "error" | "ready">("idle");
-
-  // Capabilities → mark "have" nodes dynamically
-  const [ownedSkills, setOwnedSkills] = useState<Set<string>>(new Set());
-
-  const goalRef = useRef<HTMLDivElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const replyRequest = useRef(0);
-  const bodyRef = useRef<HTMLDivElement>(null);
-  const [bodyWidth, setBodyWidth] = useState(1000);
-  const { size: graphWidth, resizing, separatorProps } = usePanelResize({
-    storageKey: "jobtology.chat.graphWidth", initial: 420, min: 280, max: Math.max(280, Math.min(900, bodyWidth - 316)), direction: -1,
-  });
-  useEffect(() => {
-    if (!bodyRef.current) return;
-    const observer = new ResizeObserver(([entry]) => setBodyWidth(entry.contentRect.width));
-    observer.observe(bodyRef.current);
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    chatApi.status().then((res) => setAiAvailable(res.available)).catch(() => setAiAvailable(false));
-  }, []);
-
-  // Load capabilities to mark owned skills in graph
-  useEffect(() => {
-    capabilitiesApi.list().then((res) => {
-      const names = new Set(res.items.filter(item => item.lifecycle === "ACTIVE" && item.matching.status === "MATCHED" && item.matching.credit === 1)
-        .flatMap(item => item.matching.competencies.filter(value => value.requirement_keys.length).map(value => value.label.toLowerCase())));
-      setOwnedSkills(names);
-    }).catch(console.error);
-  }, []);
-
-  // Update initial message when goal changes
-  useEffect(() => {
-    const goalName = selectedGoalName;
-    setMessages(makeInitialMessages(goalName));
-    setAiSuggestions(null);
-    setCandidateStatus({});
-    setIsTyping(false);
-    replyRequest.current += 1;
-    return () => { replyRequest.current += 1; };
-  }, [selectedGoal]);
-
-  // Load the role's recommendation-evidence graph from Neo4j
-  const occupationId = selectedGoal?.occupation_id ?? null;
-  useEffect(() => {
-    if (occupationId === null) {
-      setGraph(null);
-      setGraphStatus("idle");
-      return;
-    }
-    let cancelled = false;
-    setGraphStatus("loading");
-    roleEvidenceGraphApi.get(occupationId)
-      .then((res) => { if (!cancelled) { setGraph(res); setGraphStatus("ready"); } })
-      .catch(() => { if (!cancelled) { setGraph(null); setGraphStatus("error"); } });
-    return () => { cancelled = true; };
-  }, [occupationId]);
-
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (goalRef.current && !goalRef.current.contains(e.target as Node)) setGoalOpen(false);
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isTyping]);
-
-  async function handleSend() {
-    if (!input.trim() || isTyping) return;
-    const sentText = input.trim();
-    const next: Message[] = [...messages, { role: "user", text: sentText }];
-    setMessages(next);
-    setInput("");
-    setSelectedSuggestion(null);
-    setIsTyping(true);
-    const request = ++replyRequest.current;
-    if (aiAvailable && sentText !== ROUTE_SUGGESTION) {
-      try {
-        const res = await chatApi.send(toHistory(next));
-        if (request !== replyRequest.current) return;
-        setMessages((prev) => [...prev, { role: "ai", text: res.reply, candidates: res.candidates, animate: true }]);
-        if (res.suggestions?.length) setAiSuggestions(withRouteSuggestion(res.suggestions));
-      } catch {
-        if (request !== replyRequest.current) return;
-        setMessages((prev) => [...prev, { role: "ai", text: "지금은 AI 답변을 받을 수 없어요. 잠시 후 다시 시도해주세요." }]);
-      } finally {
-        if (request === replyRequest.current) setIsTyping(false);
-      }
-      return;
-    }
-    setIsTyping(false);
-    setMessages((prev) => [...prev, sentText === ROUTE_SUGGESTION ? { role: "ai-route" } : { role: "ai", text: "지금은 AI 상담을 연결할 수 없어요. 잠시 후 다시 시도해주세요." }]);
+    if (goalsLoading) return;
+    const current = ++epoch.current, controller = new AbortController();
+    initialGraph.current = emptyGraph();
+    turnController.current?.abort(); searchController.current?.abort();
+    setGraph(emptyGraph()); setTurns([]); setSelected(null); setHighlighted(new Set()); setHighlightedEdges(new Set());
+    setInput(""); setBusy(false); setSearching(false); setError(null); setLoading(true); setWarnings([]); setPage(null); setMore(false); setKinds([]);
+    setFocus(previous => ({ ids: [], revision: previous.revision + 1 }));
+    Promise.allSettled([chatWorkspaceApi.context(selectedGoalId, controller.signal),
+      selectedGoal?.occupation_id ? roleEvidenceGraphApi.get(selectedGoal.occupation_id, controller.signal) : Promise.resolve(null),
+    ]).then(([personal, catalog]) => {
+      if (current !== epoch.current || controller.signal.aborted) return;
+      const merged = mergeWorkspace(personal.status === "fulfilled" ? personal.value.graph : emptyGraph(),
+        catalog.status === "fulfilled" && catalog.value ? roleGraph(catalog.value) : emptyGraph());
+      initialGraph.current = merged; setGraph(merged); setLoading(false);
+      if (personal.status === "fulfilled") setWarnings([...personal.value.warnings, ...(merged.warnings ?? [])]);
+      else setError("내 정보를 불러오지 못했어요. 다시 시도해 주세요.");
+      if (personal.status === "fulfilled" && catalog.status === "rejected") setError("참고 그래프 일부를 불러오지 못했어요. 검색으로 다시 탐색할 수 있어요.");
+    });
+    return () => { epoch.current += 1; controller.abort(); turnController.current?.abort(); searchController.current?.abort(); };
+  }, [selectedGoalId, selectedGoal?.occupation_id, goalsLoading]);
+  useEffect(() => { end.current?.scrollIntoView?.({ behavior: "instant", block: "nearest" }); }, [turns, progress]);
+  function selectNode(id: string | null) {
+    setSelected(id);
+    if (id && window.matchMedia("(max-width: 1000px)").matches) setChatOpen(false);
   }
-
-  const suggestions = aiSuggestions
-    ?? initialSuggestions(selectedGoal ? selectedGoalName : null, graph, ownedSkills);
-
-  // Route steps from actual roadmap, or fallback static
-  const routeSteps = activeRoadmap?.steps.slice(0, 6).map((step, i) => ({
-    icon: step.state === "COMPLETED" ? "check" : String(i + 1),
-    label: step.title,
-    tag: step.state === "COMPLETED" ? "완료" : step.state === "IN_PROGRESS" ? "진행 중" : null,
-    tagColor: step.state === "COMPLETED" ? "#16a34a" : step.state === "IN_PROGRESS" ? "#4f46e5" : null,
-  })) ?? [
-    { icon: "check", label: "Python", tag: "보유", tagColor: "#16a34a" },
-    { icon: "2", label: "실무 교육 과정", tag: "교육", tagColor: "#4f46e5" },
-    { icon: "3", label: "PyTorch", tag: null, tagColor: null },
-    { icon: "4", label: "개인 프로젝트", tag: "기간 가변", tagColor: null },
-    { icon: "5", label: "AI 인턴", tag: "경력", tagColor: null },
-    { icon: "star", label: selectedGoalName, tag: "목표", tagColor: "#4f46e5" },
-  ];
-
-  return (
-    <div className="chat-layout">
-      {/* Sidebar */}
-      <AppSidebar>
-        <div className="satisfaction-card">
-          <p className="satisfaction-title">{selectedGoalName} 진행률</p>
-          <div className="satisfaction-row">
-            <span className="satisfaction-label">로드맵</span>
-            <span className="satisfaction-pct">{progressPct}%</span>
-          </div>
-          <div className="progress-bar">
-            <div className="progress-fill progress-fill--blue" style={{ width: `${progressPct}%` }} />
-          </div>
-          <div className="satisfaction-row" style={{ marginTop: 10 }}>
-            <span className="satisfaction-label">보유 역량</span>
-            <span className="satisfaction-pct">{ownedSkills.size}개</span>
-          </div>
-        </div>
-      </AppSidebar>
-
-      {/* Main area */}
-      <div className="chat-main">
-        <header className="chat-header">
-          <h2 className="chat-title">AI 커리어 추천</h2>
-          <div className="goal-wrapper" ref={goalRef}>
-            <button className="goal-button" aria-expanded={goalOpen} aria-controls="goal-dropdown" onClick={() => setGoalOpen((v) => !v)}>
-              {selectedGoalName}
-              <GoalArrow />
-            </button>
-            <GoalDropdown open={goalOpen}>
-                {goals.map((goal) => (
-                  <div
-                    key={goal.goal_id}
-                    className={`goal-dropdown-item${selectedGoalId === goal.goal_id ? " selected" : ""}`}
-                    onClick={() => { setSelectedGoalId(goal.goal_id); setGoalOpen(false); }}
-                  >
-                    <span>{getGoalName(goal)}</span>
-                    <span className="goal-dropdown-count">{goal.status}</span>
-                  </div>
-                ))}
-            </GoalDropdown>
-          </div>
-        </header>
-
-        <div ref={bodyRef} className={`chat-body${resizing ? " chat-body--resizing" : ""}`} style={{ "--graph-width": `${graphWidth}px` } as CSSProperties}>
-          {/* Left: Chat panel */}
-          <div className="chat-panel">
-            <div className="ai-header-card">
-              <div className="ai-header-icon">
-                <AiIcon size={24} />
-              </div>
-              <div>
-                <p className="ai-header-name">커리어 추천 AI</p>
-              </div>
-            </div>
-
-            <div className="chat-messages">
-              {messages.map((msg, i) =>
-                msg.role === "ai-route" ? (
-                  <div key={i} className="msg-ai-wrap">
-                    <div className="msg-ai-icon"><AiIcon /></div>
-                    <div className="route-card">
-                      <span className="route-card-badge">AI 추천 경로</span>
-                      <p className="route-card-title">
-                        {selectedGoalName}까지 {routeSteps.length}단계
-                      </p>
-                      <p className="route-card-sub">목표 직무 공고 분석 기반</p>
-                      <div className="route-steps">
-                        {routeSteps.map((step, si) => (
-                          <div key={si} className="route-step">
-                            <div className={`route-step-icon${step.icon === "check" ? " route-step-icon--check" : step.icon === "star" ? " route-step-icon--star" : step.icon === "2" ? " route-step-icon--active" : ""}`}>
-                              {step.icon === "check" ? "✓" : step.icon === "star" ? "★" : step.icon}
-                            </div>
-                            <span className="route-step-label">{step.label}</span>
-                            {step.tag && (
-                              <span className="route-step-tag" style={step.tagColor ? { color: step.tagColor, fontWeight: 700 } : undefined}>
-                                {step.tag}
-                              </span>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                      <button className="route-card-btn" onClick={() => navigate("/roadmap")}>로드맵에서 보기</button>
-                    </div>
-                  </div>
-                ) : msg.role === "ai" ? (
-                  <div key={i} className="msg-ai-wrap">
-                    <div className="msg-ai-icon"><AiIcon /></div>
-                    <div>
-                      <div className="msg-ai-bubble"><ReplyText text={msg.text} animate={msg.animate} /></div>
-                      {msg.chips && (
-                        <div className="msg-chips">
-                          {msg.chips.map((c) => (
-                            <button key={c} className="msg-chip">{c}</button>
-                          ))}
-                        </div>
-                      )}
-                      {msg.candidates?.map((candidate) => {
-                        const key = `${i}-${candidate.entity_id}`;
-                        const status = candidateStatus[key];
-                        if (status === "dismissed") return null;
-                        return (
-                          <div key={key} className="cap-candidate">
-                            <p className="cap-candidate-title">
-                              <strong>{candidate.label}</strong> 역량을 보유 역량에 추가할까요?
-                            </p>
-                            <p className="cap-candidate-quote">“{candidate.evidence_quote}”</p>
-                            <div className="cap-candidate-actions">
-                              <button className="cap-candidate-add" onClick={() => navigate("/myinfo", { state: { specCandidate: candidate } })}>검토하고 스펙에 추가</button>
-                              <button className="cap-candidate-skip" onClick={() => setCandidateStatus(previous => ({ ...previous, [key]: "dismissed" }))}>아니요</button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ) : (
-                  <div key={i} className="msg-user-wrap">
-                    <div className="msg-user-bubble">{msg.text}</div>
-                  </div>
-                )
-              )}
-              {isTyping && (
-                <div className="msg-ai-wrap">
-                  <div className="msg-ai-icon"><AiIcon /></div>
-                  <div className="msg-ai-bubble msg-typing" role="status" aria-label="AI가 답변을 작성하고 있어요">
-                    <span aria-hidden="true" /><span aria-hidden="true" /><span aria-hidden="true" />
-                  </div>
-                </div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-
-            <div className="chat-suggestions" role="region" aria-label="추천 질문" tabIndex={0}>
-              {suggestions.map((s) => (
-                <button
-                  key={s}
-                  className={`suggestion-chip${selectedSuggestion === s ? " suggestion-chip--active" : ""}`}
-                  onClick={() => { setInput(s); setSelectedSuggestion(s); }}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-
-            <div className="chat-input-bar">
-              <input
-                className="chat-input"
-                placeholder="궁금한 걸 물어보세요"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.nativeEvent.isComposing) {
-                    e.preventDefault();
-                    handleSend();
-                  }
-                }}
-              />
-              <button className="chat-send-btn" disabled={!input.trim() || isTyping} onClick={handleSend}>보내기</button>
-            </div>
-          </div>
-
-          <div className="chat-divider" {...separatorProps} aria-label="채팅과 그래프 너비 조절" title="끌어서 너비 조절 · 두 번 클릭하여 초기화"><span /></div>
-
-          {/* Right: Graph panel */}
-          <div className="graph-panel" style={{ position: "relative" }}>
-            <EvidenceGraph
-              graph={graph}
-              status={graphStatus}
-              ownedSkills={ownedSkills}
-              onOpenRoadmap={() => navigate("/roadmap")}
-            />
-          </div>
-        </div>
-
-        <div className="chat-action-bar">
-          <button className="chat-action-btn" onClick={() => navigate("/roadmap")}>이 추천으로 내 로드맵 만들기</button>
-        </div>
+  function showEvidence(answer: WorkspaceAnswer, sourceId?: string) {
+    setGraph(previous => mergeWorkspace(previous, answer.graph));
+    const source = sourceId ? answer.sources.find(s => s.id === sourceId) : null;
+    const action = answer.actions.find(a => a.type === "highlight"), ids = source?.node_ids ?? action?.node_ids ?? [];
+    setHighlighted(new Set(ids)); setHighlightedEdges(new Set(source?.edge_ids ?? action?.edge_ids ?? []));
+    setKinds(source ? [] : answer.actions.find(a => a.type === "filter")?.kinds ?? []);
+    setFocus(previous => ({ ids, revision: previous.revision + 1 }));
+    if (sourceId) selectNode(ids[0] ?? null);
+  }
+  async function send(event?: FormEvent) {
+    event?.preventDefault();
+    if (!input.trim() || busy || !available || loading) return;
+    const current = epoch.current, controller = new AbortController();
+    turnController.current?.abort(); turnController.current = controller;
+    const next = [...turns, { role: "user" as const, text: input.trim().slice(0, 2000) }];
+    const history: ChatMessagePayload[] = next.slice(-20).map(t => ({ role: t.role, text: t.text.slice(0, 2000) }));
+    setTurns(next.slice(-40)); setInput(""); setBusy(true); setError(null); setProgress("내 정보와 연결 근거를 확인하고 있어요.");
+    try {
+      await chatWorkspaceApi.stream(history, selectedGoalId, selected ? [selected] : [], event => {
+        if (epoch.current !== current || controller.signal.aborted) return;
+        if (event.type === "progress") setProgress(event.message);
+        if (event.type === "evidence") { setGraph(previous => mergeWorkspace(previous, event.data.graph)); setWarnings(event.data.warnings); }
+        if (event.type === "answer") {
+          setTurns(previous => [...previous, { role: "assistant" as const, text: event.data.reply, answer: event.data }].slice(-40));
+          showEvidence(event.data); setWarnings(event.data.warnings);
+          if (event.data.suggestions.length) setSuggestions(event.data.suggestions);
+        }
+      }, controller.signal);
+    } catch (cause) { if (epoch.current === current && !controller.signal.aborted) setError((cause as Error).message); }
+    finally { if (epoch.current === current && !controller.signal.aborted) { setBusy(false); setProgress(""); } }
+  }
+  async function search(q?: string, node?: string, offset = 0) {
+    if ((!node && !q?.trim()) || searching || loading) return;
+    const controller = new AbortController(), current = epoch.current;
+    searchController.current?.abort(); searchController.current = controller; setSearching(true); setError(null);
+    try {
+      const found = node ? await chatWorkspaceApi.expand(node, offset, controller.signal) : await chatWorkspaceApi.search(q!.trim(), offset, controller.signal);
+      if (current !== epoch.current || controller.signal.aborted) return;
+      setGraph(previous => mergeWorkspace(previous, found)); setKinds([]);
+      setWarnings(previous => [...new Set([...previous, ...(found.warnings ?? [])])]);
+      setHighlighted(new Set(found.nodes.map(n => n.id))); setHighlightedEdges(new Set(found.edges.map(e => e.id)));
+      setFocus(previous => ({ ids: found.nodes.map(n => n.id), revision: previous.revision + 1 }));
+      setMore(found.truncated); setPage({ q, node, offset });
+      if (!found.nodes.length) setError("연결된 자료를 찾지 못했어요. 다른 이름으로 검색해 보세요.");
+    } catch (cause) { if (current === epoch.current && !controller.signal.aborted) setError((cause as Error).message); }
+    finally { if (current === epoch.current && !controller.signal.aborted) setSearching(false); }
+  }
+  function resetGraph() {
+    turnController.current?.abort(); setBusy(false); setProgress("");
+    searchController.current?.abort(); setSearching(false); setGraph(initialGraph.current); setKinds([]); setSelected(null);
+    setHighlighted(new Set()); setHighlightedEdges(new Set()); setPage(null); setMore(false);
+    setFocus(previous => ({ ids: [], revision: previous.revision + 1 })); setReset(previous => previous + 1);
+  }
+  const selectedNode = graph.nodes.find(n => n.id === selected);
+  return <div className="chat-layout chat-workspace"><AppSidebar /><main className="chat-main">
+    <header className="workspace-header"><div><p>커리어 탐색</p><h1>{selectedGoal ? selectedGoalName : "나의 연결 지도"}</h1></div>
+      <label className="workspace-goal"><span className="sr-only">목표 선택</span><select value={selectedGoalId ?? ""} onChange={e => setSelectedGoalId(e.target.value || null)} disabled={goalsLoading}>
+        <option value="">전체 프로필</option>{goals.map(g => <option key={g.goal_id} value={g.goal_id}>{getGoalName(g)}</option>)}
+      </select></label></header>
+    <section className="chat-body workspace-stage" aria-label="커리어 그래프 탐색" style={{ "--floating-width": `min(${resize.size}px, max(320px, calc(100% - 320px)))` } as CSSProperties}>
+      <div className="workspace-toolbar"><form onSubmit={e => { e.preventDefault(); void search(query); }}>
+        <label className="sr-only" htmlFor="catalog-search">전체 카탈로그 검색</label>
+        <input id="catalog-search" placeholder="역량·직무·자격·공고 검색" value={query} maxLength={120} onChange={e => setQuery(e.target.value)} />
+        <button disabled={loading || searching || query.trim().length < 2}>{searching ? "검색 중…" : "검색"}</button></form>
+        <button aria-expanded={filtersOpen} onClick={() => setFiltersOpen(v => !v)}>유형 {kinds.length ? `· ${kinds.length}` : ""}</button>
+        <button onClick={resetGraph}>초기화</button>
+        {more && page && <button disabled={searching} onClick={() => void search(page.q, page.node, page.offset + 24)}>더 불러오기</button>}
       </div>
-    </div>
-  );
+      {filtersOpen && <div className="workspace-filters" role="group" aria-label="표시할 노드 유형">
+        {(Object.entries(nodeLabels) as [WorkspaceKind, string][]).map(([kind, label]) => <label key={kind}><input type="checkbox" checked={kinds.includes(kind)} onChange={() => setKinds(previous => previous.includes(kind) ? previous.filter(k => k !== kind) : [...previous, kind])} />{label}</label>)}
+        <button onClick={() => setKinds([])}>전체 유형</button></div>}
+      {loading ? <p className="workspace-loading" role="status">연결 지도를 불러오는 중…</p> : <Suspense fallback={<p className="workspace-loading">그래프를 준비하는 중…</p>}><WorkspaceGraph key={selectedGoalId ?? "account"} graph={graph} selected={selected} onSelect={selectNode}
+        highlighted={highlighted} highlightedEdges={highlightedEdges} kinds={kinds} focus={focus} reset={reset} /></Suspense>}
+      {selectedNode && <WorkspaceInspector node={selectedNode} graph={graph} goalId={selectedGoalId} onClose={() => { setSelected(null); requestAnimationFrame(() => document.querySelector<HTMLElement>(".workspace-node-list summary")?.focus()); }} busy={searching}
+        onExpand={() => void search(undefined, selectedNode.id)} onAsk={() => { setChatOpen(true); setInput(`${selectedNode.label}에 대해 설명해줘`); requestAnimationFrame(() => inputRef.current?.focus()); }} />}
+      <button ref={launcher} className="workspace-chat-launcher" aria-label="AI 대화 열기" aria-expanded={chatOpen} onClick={() => { setSelected(null); setChatOpen(true); requestAnimationFrame(() => inputRef.current?.focus()); }} hidden={chatOpen}>대화하기 <span>↗</span></button>
+      <section className={`workspace-chat-float${resize.resizing ? " is-resizing" : ""}`} hidden={!chatOpen} aria-label="AI 커리어 대화">
+        <div className="workspace-chat-resize" {...resize.separatorProps} aria-label="대화창 너비 조절" />
+        <header><div><span className="workspace-ai-dot" />커리어 도우미</div><button onClick={() => { setChatOpen(false); requestAnimationFrame(() => launcher.current?.focus()); }} aria-label="대화창 최소화">−</button></header>
+        <div className="workspace-messages" role="log" aria-label="대화 내용">
+          {!turns.length && <div className="workspace-chat-intro"><h2>어떤 연결이 궁금한가요?</h2><p>내 경험부터 다음 학습까지,<br />근거를 따라 함께 살펴봐요.</p></div>}
+          {turns.map((turn, index) => <article key={index} className={`workspace-message workspace-message--${turn.role}`}><ReplyText text={turn.text} />
+            {turn.answer && <div className="workspace-answer-evidence">{turn.answer.explanation && <p>{turn.answer.explanation}</p>}
+              <button onClick={() => showEvidence(turn.answer!)}>연결 근거 보기 ↗</button>
+              <div className="workspace-citations">{turn.answer.sources.map(source => <button key={source.id} onClick={() => showEvidence(turn.answer!, source.id)} title={basisLabels[source.basis]}>{source.title}</button>)}</div>
+            </div>}</article>)}
+          {busy && <p className="workspace-chat-progress" role="status">{progress}</p>}<div ref={end} />
+        </div>
+        <div className="chat-suggestions">{suggestions.map(s => <button key={s} onClick={() => { setInput(s); inputRef.current?.focus(); }}>{s}</button>)}</div>
+        <form className="workspace-chat-input" onSubmit={e => void send(e)}><label className="sr-only" htmlFor="workspace-question">질문</label>
+          <textarea id="workspace-question" ref={inputRef} value={input} onChange={e => setInput(e.target.value)} maxLength={2000} placeholder={available ? "궁금한 내용을 물어보세요" : "AI 연결을 사용할 수 없어요"}
+            onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); void send(); } }} />
+          {busy ? <button type="button" onClick={() => { turnController.current?.abort(); setBusy(false); setProgress(""); }} aria-label="답변 중지">■</button>
+            : <button disabled={!input.trim() || !available || loading} aria-label="질문 보내기">↑</button>}
+        </form>
+      </section>
+      <div className="workspace-notices" aria-live="polite">{(error || goalsError) && <p className="workspace-error" role="alert">{error || goalsError}<button aria-label="알림 닫기" onClick={() => setError(null)}>×</button></p>}
+        {warnings.map(w => warningLabels[w] && <p key={w}>{warningLabels[w]}</p>)}
+        {graph.truncated && <p>관계별 일부를 표시해요. 검색하거나 연결을 펼쳐 탐색할 수 있어요.</p>}
+      </div>
+    </section>
+    {!goals.length && !goalsLoading && <Link className="workspace-add-goal" to="/myinfo">목표 추가하기 →</Link>}
+  </main></div>;
 }
