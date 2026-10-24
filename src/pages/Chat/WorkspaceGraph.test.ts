@@ -25,6 +25,14 @@ async function render(kinds: WorkspaceKind[] = [], ids: string[] = [], revision 
   await act(async () => root.render(createElement(WorkspaceGraph, { graph: data, selected: null, onSelect: vi.fn(), highlighted: new Set<string>(), highlightedEdges, kinds, focus: { ids, revision }, reset: 0 })));
 }
 describe("native graph view behavior", () => {
+  it("distinguishes source and inferred posting classifications on their graph edges", async () => {
+    await render([], [], 0, { ...graph, edges: [
+      { id: "source", source: "a", target: "b", kind: "SOURCE_NCS_CLASSIFICATION", basis: "REFERENCE" },
+      { id: "inferred", source: "a", target: "b", kind: "INFERRED_POSTING_OCCUPATION", basis: "METADATA_INFERRED" },
+      { id: "old", source: "a", target: "b", kind: "INFERRED_POSTING_OCCUPATION", basis: "METADATA_INFERRED", catalog_freshness: "STALE" },
+    ] });
+    expect(native.props.rels.map((r: { caption?: string }) => r.caption)).toEqual(["원문 NCS 분류", "추론 직무 분류", "과거 추론 직무 분류"]);
+  });
   it("keeps the first layout covered until node positions are ready", async () => {
     await render();
     expect(host.querySelector(".workspace-loading")?.textContent).toContain("그래프를 준비하고 있어요");

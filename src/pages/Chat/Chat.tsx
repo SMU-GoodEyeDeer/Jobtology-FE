@@ -29,6 +29,7 @@ function roleGraph(value: RoleEvidenceGraph): Graph {
 const warningLabels: Record<string, string> = {
   SKILL_CATALOG_UNAVAILABLE: "역량 카탈로그를 확인하지 못해 현재 스펙 반영치를 계산할 수 없어요.",
   POSTING_CONTEXT_UNAVAILABLE: "공고 연결 집계를 확인하지 못했어요.",
+  POSTING_CLASSIFICATIONS_MISSING: "이 공고에는 연결할 수 있는 NCS·O*NET 세부 직무 분류가 없어요.",
   CROSSWALK_UNAVAILABLE: "NCS·O*NET 연결 일부를 불러오지 못했어요.",
   FOCUSED_SOURCE_UNAVAILABLE: "선택한 항목의 최신 자료를 확인하지 못했어요.",
   NO_ANALYSIS: "아직 분석 결과가 없어요.", NO_ROADMAP: "저장된 로드맵이 없어요.",
@@ -49,6 +50,7 @@ export function Chat() {
   const [turns, setTurns] = useState<Turn[]>([]), [input, setInput] = useState("");
   const [busy, setBusy] = useState(false), [progress, setProgress] = useState(""), [finalizing, setFinalizing] = useState(false);
   const [chatOpen, setChatOpen] = useState(() => !window.matchMedia("(max-width:640px)").matches), [selected, setSelected] = useState<string | null>(null);
+  const [questionTarget, setQuestionTarget] = useState<{ id: string; label: string } | null>(null);
   const [highlighted, setHighlighted] = useState<Set<string>>(new Set()), [highlightedEdges, setHighlightedEdges] = useState<Set<string>>(new Set());
   const [focus, setFocus] = useState({ ids: [] as string[], revision: 0 }), [reset, setReset] = useState(0);
   const [cameraTarget, setCameraTarget] = useState<HTMLDivElement | null>(null);
@@ -83,7 +85,7 @@ export function Chat() {
     const saved = cachedWorkspace(account, selectedGoalId, profileVersion);
     initialGraph.current = saved?.graph ?? emptyGraph();
     turnController.current?.abort(); searchController.current?.abort();
-    setGraph(initialGraph.current); setTurns([]); setSuggestions(DEFAULT_QUESTIONS); setSelected(null); setHighlighted(new Set()); setHighlightedEdges(new Set());
+    setGraph(initialGraph.current); setTurns([]); setSuggestions(DEFAULT_QUESTIONS); setSelected(null); setQuestionTarget(null); setHighlighted(new Set()); setHighlightedEdges(new Set());
     setInput(""); setBusy(false); setFinalizing(false); setSearching(false); setError(null); setLoading(!saved); setMappingLoading(false); setWarnings(saved?.warnings ?? []); setPage(null); setMore(false); setKinds([]);
     setFocus(previous => ({ ids: [], revision: previous.revision + 1 }));
     const cleanup = () => { epoch.current += 1; controller.abort(); turnController.current?.abort(); searchController.current?.abort(); };
@@ -199,8 +201,10 @@ export function Chat() {
     followAnswer.current = true; evidenceDismissed.current = false;
     setTurns([...next, { role: "assistant", text: "", streaming: true }].slice(-40) as Turn[]); setInput(""); setBusy(true); setFinalizing(false); setError(null); setProgress("질문에 필요한 자료를 찾고 있어요.");
     let pendingAnswer: WorkspaceAnswer | null = null, completed = false;
+    const target = graph.nodes.find(node => node.id === selected) ?? questionTarget;
+    if (target) setQuestionTarget({ id: target.id, label: target.label });
     try {
-      await chatWorkspaceApi.stream(history, selectedGoalId, selected ? [selected] : [], event => {
+      await chatWorkspaceApi.stream(history, selectedGoalId, target ? [target.id] : [], event => {
         if (epoch.current !== current || controller.signal.aborted) return;
         if (event.type === "progress") { setProgress(event.message); setFinalizing(event.stage === "finalizing"); }
         if (event.type === "tool") setTurns(previous => previous.map((turn, index) => index === previous.length - 1 && turn.streaming
@@ -244,16 +248,18 @@ export function Chat() {
   function resetChat() {
     turnController.current?.abort();
     setTurns([]); setInput(""); setSuggestions(DEFAULT_QUESTIONS); setBusy(false); setProgress(""); setFinalizing(false); setError(null);
+    setQuestionTarget(null); setSelected(null);
     clearHighlights(); setKinds([]); setFocus(previous => ({ ids: [], revision: previous.revision + 1 })); followAnswer.current = true;
     requestAnimationFrame(() => inputRef.current?.focus());
   }
   function resetGraph() {
     stopAnswer();
-    searchController.current?.abort(); setSearching(false); setGraph(initialGraph.current); setKinds([]); setSelected(null);
+    searchController.current?.abort(); setSearching(false); setGraph(initialGraph.current); setKinds([]); setSelected(null); setQuestionTarget(null);
     setHighlighted(new Set()); setHighlightedEdges(new Set()); setPage(null); setMore(false);
     setFocus(previous => ({ ids: [], revision: previous.revision + 1 })); setReset(previous => previous + 1);
   }
   const selectedNode = graph.nodes.find(n => n.id === selected);
+  const activeQuestionTarget = selectedNode ?? questionTarget;
   return <div className="chat-layout chat-workspace"><AppSidebar /><main className="chat-main">
     <header className="workspace-header"><div><p>커리어 탐색</p><h1>{selectedGoal ? selectedGoalName : "나의 연결 지도"}</h1></div>
       <label className="workspace-goal"><span className="sr-only">목표 선택</span><select value={selectedGoalId ?? ""} onChange={e => setSelectedGoalId(e.target.value || null)} disabled={goalsLoading}>
@@ -280,8 +286,8 @@ export function Chat() {
       {!selectedNode && chatOpen && highlighted.size > 0 && nodeAnchor && chatPanel.current && <svg className="workspace-node-tether" aria-hidden="true"><path d={`M${nodeAnchor.x},${nodeAnchor.y} Q${chatPanel.current.offsetLeft-24},${nodeAnchor.y} ${chatPanel.current.offsetLeft},${chatPanel.current.offsetTop+38}`} /><circle cx={nodeAnchor.x} cy={nodeAnchor.y} r="4" /></svg>}
       <AnimatePresence mode="wait">{selectedNode && <WorkspaceInspector key={selectedNode.id} position={inspectorPosition} node={selectedNode} graph={graph} goalId={selectedGoalId} onClose={() => { selectNode(null); requestAnimationFrame(() => document.querySelector<HTMLElement>(".workspace-node-list summary")?.focus()); }} busy={searching}
         onExpand={() => void search(undefined, selectedNode.id)} contextNodes={crosswalkContext(initialGraph.current)} onConnections={addMappingConnections} onShowMapping={showMapping}
-        onAsk={() => { if (window.matchMedia("(max-width: 1000px)").matches) selectNode(null); setChatOpen(true); setInput(`${selectedNode.label}에 대해 설명해줘`); requestAnimationFrame(() => inputRef.current?.focus()); }} />}</AnimatePresence>
-      <button ref={launcher} className="workspace-chat-launcher" aria-label="AI 대화 열기" aria-expanded={chatOpen} onClick={() => { selectNode(null); setChatOpen(true); requestAnimationFrame(() => inputRef.current?.focus()); }} hidden={chatOpen}>대화하기 <span>↗</span></button>
+        onAsk={() => { setQuestionTarget({ id: selectedNode.id, label: selectedNode.label }); if (window.matchMedia("(max-width: 1000px)").matches) selectNode(null); setChatOpen(true); setInput(`${selectedNode.label}에 대해 설명해줘`); requestAnimationFrame(() => inputRef.current?.focus()); }} />}</AnimatePresence>
+      <button ref={launcher} className="workspace-chat-launcher" aria-label="AI 대화 열기" aria-expanded={chatOpen} onClick={() => { if (selectedNode) setQuestionTarget({ id: selectedNode.id, label: selectedNode.label }); selectNode(null); setChatOpen(true); requestAnimationFrame(() => inputRef.current?.focus()); }} hidden={chatOpen}>대화하기 <span>↗</span></button>
       <section ref={chatPanel} className={`workspace-chat-float${resize.resizing ? " is-resizing" : ""}`} hidden={!chatOpen} aria-label="AI 커리어 대화">
         <div className="workspace-chat-resize" {...resize.separatorProps} aria-label="대화창 너비 조절" />
         <header><div><span className="workspace-ai-dot" />커리어 도우미</div><div className="workspace-chat-tools"><button onClick={resetChat} disabled={!turns.length && !input && !busy} aria-label="대화 초기화" title="대화 초기화">↺</button><button onClick={() => { setChatOpen(false); clearHighlights(); requestAnimationFrame(() => launcher.current?.focus()); }} aria-label="대화창 최소화">−</button></div></header>
@@ -300,6 +306,7 @@ export function Chat() {
         </div>
         {busy && <p className="workspace-chat-progress" role="status"><span className="workspace-spinner" aria-hidden="true" />{progress || "답변을 준비하고 있어요."}</p>}
         <div className="chat-suggestions">{suggestions.map(s => <button key={s} onClick={() => { setInput(s); inputRef.current?.focus(); }}>{s}</button>)}</div>
+        {activeQuestionTarget && <div className="workspace-question-target"><span>참고 항목 · {activeQuestionTarget.label}</span><button type="button" aria-label="참고 항목 해제" disabled={busy} onClick={() => { setQuestionTarget(null); selectNode(null); }}>×</button></div>}
         <form className="workspace-chat-input" onSubmit={e => void send(e)}><label className="sr-only" htmlFor="workspace-question">질문</label>
           <textarea id="workspace-question" ref={inputRef} value={input} onChange={e => setInput(e.target.value)} maxLength={2000} placeholder={available ? "궁금한 내용을 물어보세요" : "AI 연결을 사용할 수 없어요"}
             onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); void send(); } }} />

@@ -28,6 +28,7 @@ export interface WorkspaceEdge {
   association_id?: string | null; source_freshness?: "CURRENT" | "STALE" | "UNKNOWN" | null;
   catalog_freshness?: "CURRENT" | "STALE" | "UNKNOWN" | null; review_status?: string | null;
   source_run_id?: string | null; catalog_pin?: string | null;
+  mapping_version?: string | null; source_quote?: string | null; target_quote?: string | null;
 }
 export interface WorkspaceGraph { nodes: WorkspaceNode[]; edges: WorkspaceEdge[]; truncated: boolean; warnings?: string[] }
 export interface ChatSource {
@@ -52,7 +53,14 @@ export const emptyGraph = (): WorkspaceGraph => ({ nodes: [], edges: [], truncat
 export const edgeIdentity = (source: string, kind: string, target: string) => `edge:${source}|${kind}|${target}`;
 export function mergeWorkspace(...graphs: WorkspaceGraph[]): WorkspaceGraph {
   const all = new Map<string, WorkspaceNode>();
-  for (const graph of graphs) for (const node of graph.nodes) { const previous = all.get(node.id); all.delete(node.id); all.set(node.id, { ...previous, ...node }); }
+  for (const graph of graphs) {
+    const classificationIds = new Set(graph.edges.filter(edge => ["SOURCE_NCS_CLASSIFICATION", "INFERRED_POSTING_OCCUPATION"].includes(edge.kind)).map(edge => edge.target));
+    for (const node of graph.nodes) {
+      const previous = all.get(node.id); all.delete(node.id);
+      // Posting inferences describe an association, not a newer catalog snapshot.
+      all.set(node.id, previous && classificationIds.has(node.id) ? previous : { ...previous, ...node });
+    }
+  }
   const protectedNodes = [...all.values()].filter(n => ["profile", "goal", "role", "preferences"].includes(n.kind)).slice(0, 16);
   const protectedIds = new Set(protectedNodes.map(n => n.id));
   const nodes = [...protectedNodes, ...[...all.values()].filter(n => !protectedIds.has(n.id)).slice(-(160 - protectedNodes.length))], kept = new Set(nodes.map(n => n.id));

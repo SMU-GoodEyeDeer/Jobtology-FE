@@ -16,7 +16,8 @@ const postingFieldLabels: Record<string, string> = {
   headcount: "모집 인원", date_posted: "등록일", closing_date: "마감일", deadline_at: "마감 시각", deadline_kind: "마감 기준",
   application_start_at: "접수 시작", application_start_date: "접수 시작일", source_id: "공고 출처", source_status: "원문 상태", ongoing: "상시 모집(원문)",
 };
-const postingRelationshipLabels: Record<string, string> = { SEARCH_RESULT: "검색어 일치", INFERRED_POSTING_CONTEXT: "추론 직무 연결" };
+const postingRelationshipLabels: Record<string, string> = { SEARCH_RESULT: "검색어 일치", INFERRED_POSTING_CONTEXT: "추론 직무 연결",
+  INFERRED_POSTING_OCCUPATION: "추론 직무 분류", SOURCE_NCS_CLASSIFICATION: "원문 NCS 분류" };
 const freshnessLabels = { CURRENT: "최신", STALE: "과거 기준", UNKNOWN: "미확인" };
 
 const relationshipLabels: Record<string, string> = { REQUIRES: "검토된 요구 역량", TEACHES: "학습할 역량", HAS_GOAL: "내 목표", TARGETS: "목표 직무", REPORTED: "본인 입력", MATCHED_TO: "역량 연결", PLANNED_WITH: "계획 선호 반영", ANALYZED_BY: "분석 결과", PLANNED_ACTIVITY: "학습 계획", PREREQUISITE: "선행 활동", DEVELOPS: "학습할 역량", EVALUATED_AS: "반영 결과", SATISFIED: "충족", PARTIAL: "부분 반영", UNMET: "미충족", NEEDS_INPUT: "추가 정보 필요", MAPPED_TO: "직무 분류", CLASSIFIED_AS: "직무 분류", QUALIFIED_BY: "관련 자격", QUALIFICATION_MAPPING: "관련 자격", HAS_EXAM_SESSION: "시험 일정", EVIDENCED_BY: "공고 연결", CONTEXT_FOR: "탐색 참고", MATCHED_ONET: "공고를 통한 참고 연결", ESSENTIAL_SKILL: "O*NET 주요 역량", ONET_ESSENTIAL_SKILL: "O*NET 주요 역량", HOT_TECHNOLOGY: "주요 기술", ONET_SOFTWARE_EXAMPLE: "기술 활용 예시", SUGGESTED_LINK: "학습 연결 제안" };

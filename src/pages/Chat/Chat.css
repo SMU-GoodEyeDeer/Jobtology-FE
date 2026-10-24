@@ -80,6 +80,10 @@
 .chat-workspace .chat-suggestions { flex-shrink:0; display:flex; gap:6px; overflow-x:auto; padding:8px 16px 11px; scrollbar-width:thin; scrollbar-color:var(--border) transparent; }
 .chat-suggestions button { flex-shrink:0; border:1px solid var(--border); color:var(--text-secondary); background:var(--surface); padding:7px 10px; border-radius:9px; font-size:11px; }
 .workspace-chat-input { display:flex; align-items:flex-end; gap:8px; margin:0 12px 12px; padding:10px; border:1px solid var(--border); background:var(--surface-soft); border-radius:13px; }
+.workspace-question-target { display:flex; align-items:center; flex-shrink:0; gap:8px; margin:0 12px 7px; color:var(--muted); font-size:12px; min-width:0; }
+.workspace-question-target span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.workspace-question-target button { flex-shrink:0; margin-left:auto; border:0; border-radius:5px; padding:2px 6px; color:var(--muted); background:var(--surface-soft); cursor:pointer; }
+.workspace-question-target button:focus-visible { outline:2px solid var(--accent-focus); outline-offset:2px; }
 .workspace-chat-input textarea { resize:none; border:0; outline:none; background:transparent; color:var(--text); font-size:13px; line-height:1.6; height:48px; min-width:0; flex:1; padding:3px; }
 .workspace-chat-input button { border:0; background:var(--accent-solid); color:var(--on-accent); border-radius:9px; width:33px; height:33px; font-size:20px; flex-shrink:0; }
 .workspace-chat-launcher { position:absolute; z-index:6; right:24px; bottom:25px; background:var(--strong-bg); color:var(--on-accent); padding:14px 18px; border:0; border-radius:15px; box-shadow:0 6px 25px #101b3225; font-size:13px; animation:workspace-enter .2s ease-out; }
