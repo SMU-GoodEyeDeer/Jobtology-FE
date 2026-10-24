@@ -63,7 +63,7 @@ export function Postings() {
     if (!current?.data || !pageChanged.current) return;
     pageChanged.current = false;
     listHeading.current?.focus({ preventScroll: true });
-    listHeading.current?.scrollIntoView?.({ block: "start", behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
+    listHeading.current?.closest<HTMLElement>(".postings-list")?.scrollTo?.({ top: 0, behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
   }, [current]);
   function search(event: FormEvent) {
     event.preventDefault();

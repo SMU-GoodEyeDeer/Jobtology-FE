@@ -268,3 +268,11 @@ describe("real posting browser", () => {
     expect(new URL(link.href).searchParams.get("occupation")).toBe("20010203");
   });
 });
+it("changes pages by scrolling only the results panel, preserving the filter dock", async () => {
+  await renderPage();
+  const panel = container.querySelector<HTMLElement>(".postings-list")!, outer = container.querySelector<HTMLElement>(".postings-content")!;
+  const scroll = vi.fn(), outerScroll = vi.fn(); panel.scrollTo = scroll; outer.scrollTo = outerScroll;
+  await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="2페이지"]')!.click());
+  expect(scroll).toHaveBeenCalledWith(expect.objectContaining({ top: 0 })); expect(outerScroll).not.toHaveBeenCalled();
+  expect(document.activeElement).toBe(container.querySelector(".postings-list-heading h2"));
+});
