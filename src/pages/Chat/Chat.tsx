@@ -192,7 +192,7 @@ export function Chat() {
   function resetChat() {
     turnController.current?.abort();
     setTurns([]); setInput(""); setSuggestions(DEFAULT_QUESTIONS); setBusy(false); setProgress(""); setFinalizing(false); setError(null);
-    clearHighlights(); followAnswer.current = true;
+    clearHighlights(); setKinds([]); setFocus(previous => ({ ids: [], revision: previous.revision + 1 })); followAnswer.current = true;
     requestAnimationFrame(() => inputRef.current?.focus());
   }
   function resetGraph() {

@@ -5,7 +5,7 @@ export function followUpQuestions(raw: readonly unknown[]): string[] {
   for (const item of raw) {
     if (typeof item !== "string") continue;
     const text = item.replace(/\s+/g, " ").trim();
-    if (text.length > 60 || !/(?:[?？]|(?:알려|설명해|보여|추천해|비교해|정리해)\s*줘)[.!]?$/.test(text)) continue;
+    if (text.length > 60 || !/(?:[?？]|(?:알려|설명해|보여|추천해|비교해|정리해)\s*(?:줘(?:요)?|주세요))[.!]?$/.test(text)) continue;
     const key = text.toLocaleLowerCase();
     if (!selected.has(key)) selected.set(key, text);
     if (selected.size === 4) break;

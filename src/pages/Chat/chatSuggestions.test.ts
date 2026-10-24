@@ -19,4 +19,10 @@ describe("follow-up questions", () => {
     expect(followUpQuestions([])).toEqual(DEFAULT_QUESTIONS);
     expect(followUpQuestions(["프로젝트를 보완하세요."])).toEqual(DEFAULT_QUESTIONS);
   });
+
+  it("keeps polite requests with optional spacing and punctuation", () => {
+    expect(followUpQuestions(["SQL 공부 순서 알려주세요", "프로젝트를 설명해 주세요.", "다음 단계를 추천해줘요"]))
+      .toEqual(["SQL 공부 순서 알려주세요", "프로젝트를 설명해 주세요.", "다음 단계를 추천해줘요"]);
+    expect(followUpQuestions(["x".repeat(60) + " 알려주세요"])).toEqual(DEFAULT_QUESTIONS);
+  });
 });
