@@ -28,6 +28,7 @@ export interface WorkspaceEdge {
   association_id?: string | null; source_freshness?: "CURRENT" | "STALE" | "UNKNOWN" | null;
   catalog_freshness?: "CURRENT" | "STALE" | "UNKNOWN" | null; review_status?: string | null;
   source_run_id?: string | null; catalog_pin?: string | null;
+  mapping_version?: string | null; source_quote?: string | null; target_quote?: string | null;
 }
 export interface WorkspaceGraph { nodes: WorkspaceNode[]; edges: WorkspaceEdge[]; truncated: boolean; warnings?: string[] }
 export interface ChatSource {

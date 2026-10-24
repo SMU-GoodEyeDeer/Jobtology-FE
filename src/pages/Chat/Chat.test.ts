@@ -42,8 +42,53 @@ async function question() {
   await act(async () => host.querySelector<HTMLButtonElement>(".chat-suggestions button")!.click());
   await act(async () => host.querySelector(".workspace-chat-input")!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
 }
+async function preparePostingQuestion() {
+  vi.stubGlobal("matchMedia", () => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
+  const posting = { id: "posting:jobkorea:one", kind: "posting" as const, label: "백엔드 채용", basis: "REFERENCE" as const };
+  vi.mocked(chatWorkspaceApi.context).mockResolvedValue({ ...evidence, graph: { ...graph, nodes: [...graph.nodes, posting] } });
+  await render();
+  await act(async () => [...host.querySelectorAll<HTMLButtonElement>('[data-testid="graph"] button')].find(button => button.textContent === posting.label)!.click());
+  await act(async () => [...host.querySelectorAll<HTMLButtonElement>(".workspace-inspector button")].find(button => button.textContent === "이 항목 질문하기")!.click());
+  return posting;
+}
 
 describe("graph-centered chat workspace", () => {
+  it("keeps the posting ID for mobile questions and follow-ups after closing its inspector", async () => {
+    const send = vi.spyOn(chatWorkspaceApi, "stream").mockImplementation(async (_messages, _goal, _focus, event) => {
+      event({ type: "answer", data: answer }); event({ type: "done" });
+    });
+    const posting = await preparePostingQuestion();
+    expect(host.querySelector(".workspace-question-target")?.textContent).toContain(posting.label);
+    await act(async () => host.querySelector(".workspace-chat-input")!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
+    expect(send.mock.calls[0][2]).toEqual([posting.id]);
+    await question();
+    expect(send.mock.calls[1][2]).toEqual([posting.id]);
+    await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="대화 초기화"]')!.click());
+    expect(host.querySelector(".workspace-question-target")).toBeNull();
+    await question();
+    expect(send.mock.calls[2][2]).toEqual([]);
+  });
+  it("lets the user clear a question target before sending", async () => {
+    const send = vi.spyOn(chatWorkspaceApi, "stream").mockImplementation(async (_messages, _goal, _focus, event) => {
+      event({ type: "answer", data: answer }); event({ type: "done" });
+    });
+    await preparePostingQuestion();
+    await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="참고 항목 해제"]')!.click());
+    await question();
+    expect(send.mock.calls[0][2]).toEqual([]);
+    expect(host.querySelector(".workspace-question-target")).toBeNull();
+  });
+  it("drops the previous account's question target when the session changes", async () => {
+    const send = vi.spyOn(chatWorkspaceApi, "stream").mockImplementation(async (_messages, _goal, _focus, event) => {
+      event({ type: "answer", data: answer }); event({ type: "done" });
+    });
+    await preparePostingQuestion();
+    state.account = "account-b";
+    await render();
+    expect(host.querySelector(".workspace-question-target")).toBeNull();
+    await question();
+    expect(send.mock.calls[0][2]).toEqual([]);
+  });
   it("shows a graph-shaped loading state while initial data is pending", async () => {
     let resolve!: (value: WorkspaceEvidence) => void;
     vi.mocked(chatWorkspaceApi.context).mockReturnValue(new Promise(done => { resolve = done; }));
