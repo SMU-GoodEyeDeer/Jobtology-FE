@@ -92,6 +92,44 @@ describe("graph-centered chat workspace", () => {
     await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="AI 대화 열기"]')!.click());
     expect(host.querySelector<HTMLTextAreaElement>("textarea")!.value).toBe(value);
   });
+  it("resets conversation, suggestions and emphasis while keeping the explored graph", async () => {
+    const send = vi.spyOn(chatWorkspaceApi, "stream").mockImplementation(async (_m, _g, _f, event) => {
+      event({ type: "answer", data: { ...answer, suggestions: ["프로젝트를 보완하세요.", "어떤 프로젝트가 좋을까?"] } });
+      event({ type: "done" });
+    });
+    await render(); await question();
+    expect(host.querySelector(".chat-suggestions")?.textContent).toBe("어떤 프로젝트가 좋을까?");
+    await act(async () => host.querySelector<HTMLButtonElement>(".chat-suggestions button")!.click());
+    await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="대화 초기화"]')!.click());
+    expect(host.querySelectorAll(".workspace-message")).toHaveLength(0);
+    expect(host.querySelector<HTMLTextAreaElement>("textarea")!.value).toBe("");
+    expect(host.querySelector(".chat-suggestions")?.textContent).toContain("내 목표에 뭐가 부족해?");
+    expect(host.querySelector('[data-testid="graph"]')?.textContent).toContain("내 경험");
+    expect(host.querySelector('[data-testid="graph"]')?.getAttribute("data-highlighted")).toBe("");
+    await question();
+    expect(send.mock.calls[1][0]).toEqual([{ role: "user", text: "내 목표에 뭐가 부족해?" }]);
+  });
+  it("aborts a reset stream and ignores late events even after a new conversation starts", async () => {
+    let emit!: (event: ChatEvent) => void, finish!: () => void;
+    const send = vi.spyOn(chatWorkspaceApi, "stream").mockImplementationOnce(async (_m, _g, _f, event) => {
+      emit = event; await new Promise<void>(resolve => { finish = resolve; });
+    }).mockImplementation(async (_m, _g, _f, event) => {
+      event({ type: "answer", data: { ...answer, reply: "새 대화 답변" } }); event({ type: "done" });
+    });
+    await render(); await question();
+    await act(async () => emit({ type: "answer_delta", delta: "초기화 전 답변" }));
+    await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="대화 초기화"]')!.click());
+    expect(send.mock.calls[0][4].aborted).toBe(true);
+    expect(host.querySelectorAll(".workspace-message")).toHaveLength(0);
+    expect(host.querySelector('[aria-label="질문 보내기"]')).not.toBeNull();
+    await question();
+    await act(async () => { emit({ type: "answer_delta", delta: "늦은 토큰" }); emit({ type: "answer", data: answer }); emit({ type: "done" }); finish(); });
+    expect(host.textContent).toContain("새 대화 답변");
+    expect(host.textContent).not.toContain("초기화 전 답변");
+    expect(host.textContent).not.toContain("늦은 토큰");
+    expect(host.textContent).not.toContain(answer.reply);
+    expect(host.querySelectorAll(".workspace-message--assistant")).toHaveLength(1);
+  });
   it("aborts an old goal's response and ignores late graph/answer events", async () => {
     let callback: (event: ChatEvent) => void = () => {};
     const send = vi.spyOn(chatWorkspaceApi, "stream").mockImplementation(async (_m, _g, _f, event, signal) => {

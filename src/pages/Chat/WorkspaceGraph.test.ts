@@ -4,11 +4,11 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { EvidenceBasis, WorkspaceGraph as Graph, WorkspaceKind } from "../../services/chatWorkspace";
 import { WorkspaceGraph } from "./WorkspaceGraph";
-const native = vi.hoisted(() => ({ props: {} as Record<string, any>, reduced: false, fit: vi.fn() }));
+const native = vi.hoisted(() => ({ props: {} as Record<string, any>, reduced: false, fit: vi.fn(), point: { x: 120, y: 90 } }));
 vi.mock("motion/react", () => ({ useReducedMotion: () => native.reduced }));
 vi.mock("@neo4j-nvl/react", () => ({ InteractiveNvlWrapper: forwardRef((props: Record<string, any>, ref) => {
   native.props = props;
-  useImperativeHandle(ref, () => ({ fit: native.fit, getScale: () => .5, setZoom: vi.fn() }));
+  useImperativeHandle(ref, () => ({ fit: native.fit, getScale: () => .5, setZoom: vi.fn(), getNodes: () => props.nodes.map((node: { id: string }) => ({ id: node.id, clientPosition: native.point })) }));
   useEffect(() => { props.nvlCallbacks.onInitialization(); }, []);
   return createElement("div", { "data-native-graph": true, ref: (element: HTMLDivElement | null) => { if (element) element.replaceChildren(...props.nodes.map((node: {html:HTMLElement}) => node.html.cloneNode(true))); } });
 }) }));
@@ -18,7 +18,7 @@ let host: HTMLDivElement, root: Root;
 beforeEach(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
-  native.reduced = false; native.fit.mockClear(); host = document.createElement("div"); document.body.append(host); root = createRoot(host);
+  native.reduced = false; native.point = { x: 120, y: 90 }; native.fit.mockClear(); host = document.createElement("div"); document.body.append(host); root = createRoot(host);
 });
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.unstubAllGlobals(); });
 async function render(kinds: WorkspaceKind[] = [], ids: string[] = [], revision = 0, data = graph, highlightedEdges = new Set<string>()) {
@@ -95,7 +95,11 @@ it("declutters rendered native label copies while preserving selected labels and
   await act(async()=>{await new Promise(resolve=>setTimeout(resolve,10));});
   expect(host.querySelector('[data-workspace-node-id="b"]')?.getAttribute("data-cluttered")).toBe("false");
   expect(host.querySelector('[data-workspace-node-id="a"]')?.getAttribute("data-cluttered")).toBe("true");
-  expect(anchor).toHaveBeenCalledWith(expect.objectContaining({x:60}));
+  expect(anchor).toHaveBeenLastCalledWith({ x: 120, y: 90 });
+  // A camera movement updates the native node center independently of its label.
+  native.point = { x: 200, y: 140 };
+  await act(async () => { native.props.mouseEventCallbacks.onZoomAndPan(.8); await new Promise(resolve => setTimeout(resolve, 10)); });
+  expect(anchor).toHaveBeenLastCalledWith({ x: 200, y: 140 });
   expect(native.props.nodes[0].html.isConnected).toBe(false);
   boxes.mockRestore();
 });

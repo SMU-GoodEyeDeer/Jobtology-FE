@@ -9,6 +9,7 @@ import { chatApi, roleEvidenceGraphApi } from "../../services/api";
 import type { ChatMessagePayload, RoleEvidenceGraph } from "../../services/types";
 import { basisLabels, chatWorkspaceApi, edgeIdentity, emptyGraph, mergeWorkspace, nodeLabels,
   type ToolEvent, type WorkspaceAnswer, type WorkspaceGraph as Graph, type WorkspaceKind } from "../../services/chatWorkspace";
+import { DEFAULT_QUESTIONS, followUpQuestions } from "./chatSuggestions";
 import { ReplyText } from "./ReplyText";
 import { WorkspaceInspector } from "./WorkspaceInspector";
 import { WorkspaceLoading } from "./WorkspaceLoading";
@@ -56,7 +57,7 @@ export function Chat() {
   const [kinds, setKinds] = useState<WorkspaceKind[]>([]), [filtersOpen, setFiltersOpen] = useState(false);
   const [query, setQuery] = useState(""), [searching, setSearching] = useState(false);
   const [page, setPage] = useState<{ q?: string; node?: string; offset: number } | null>(null), [more, setMore] = useState(false);
-  const [suggestions, setSuggestions] = useState(["내 목표에 뭐가 부족해?", "내 스펙은 어떻게 반영됐어?", "다음 학습 활동을 설명해줘"]);
+  const [suggestions, setSuggestions] = useState(DEFAULT_QUESTIONS);
   const epoch = useRef(0), turnController = useRef<AbortController | null>(null), searchController = useRef<AbortController | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null), launcher = useRef<HTMLButtonElement>(null), end = useRef<HTMLDivElement>(null);
   const followAnswer = useRef(true);
@@ -72,7 +73,7 @@ export function Chat() {
     const saved = cachedWorkspace(account, selectedGoalId, profileVersion);
     initialGraph.current = saved?.graph ?? emptyGraph();
     turnController.current?.abort(); searchController.current?.abort();
-    setGraph(initialGraph.current); setTurns([]); setSelected(null); setHighlighted(new Set()); setHighlightedEdges(new Set());
+    setGraph(initialGraph.current); setTurns([]); setSuggestions(DEFAULT_QUESTIONS); setSelected(null); setHighlighted(new Set()); setHighlightedEdges(new Set());
     setInput(""); setBusy(false); setFinalizing(false); setSearching(false); setError(null); setLoading(!saved); setWarnings(saved?.warnings ?? []); setPage(null); setMore(false); setKinds([]);
     setFocus(previous => ({ ids: [], revision: previous.revision + 1 }));
     const cleanup = () => { epoch.current += 1; controller.abort(); turnController.current?.abort(); searchController.current?.abort(); };
@@ -167,7 +168,7 @@ export function Chat() {
       setTurns(previous => [...(previous.at(-1)?.streaming ? previous.slice(0, -1) : previous),
         { role: "assistant" as const, text: answer.reply, answer, tools: previous.at(-1)?.tools }].slice(-40));
       showEvidence(answer); setWarnings(answer.warnings);
-      if (answer.suggestions.length) setSuggestions(answer.suggestions);
+      setSuggestions(followUpQuestions(answer.suggestions));
     } catch (cause) { if (epoch.current === current && !controller.signal.aborted) { setError((cause as Error).message); interruptAnswer(); } }
     finally { if (epoch.current === current && !controller.signal.aborted) { setBusy(false); setFinalizing(false); setProgress(""); } }
   }
@@ -187,6 +188,12 @@ export function Chat() {
       if (!found.nodes.length) setError("연결된 자료를 찾지 못했어요. 다른 이름으로 검색해 보세요.");
     } catch (cause) { if (current === epoch.current && !controller.signal.aborted) setError((cause as Error).message); }
     finally { if (current === epoch.current && !controller.signal.aborted) setSearching(false); }
+  }
+  function resetChat() {
+    turnController.current?.abort();
+    setTurns([]); setInput(""); setSuggestions(DEFAULT_QUESTIONS); setBusy(false); setProgress(""); setFinalizing(false); setError(null);
+    clearHighlights(); followAnswer.current = true;
+    requestAnimationFrame(() => inputRef.current?.focus());
   }
   function resetGraph() {
     stopAnswer();
@@ -224,14 +231,14 @@ export function Chat() {
       <button ref={launcher} className="workspace-chat-launcher" aria-label="AI 대화 열기" aria-expanded={chatOpen} onClick={() => { selectNode(null); setChatOpen(true); requestAnimationFrame(() => inputRef.current?.focus()); }} hidden={chatOpen}>대화하기 <span>↗</span></button>
       <section ref={chatPanel} className={`workspace-chat-float${resize.resizing ? " is-resizing" : ""}`} hidden={!chatOpen} aria-label="AI 커리어 대화">
         <div className="workspace-chat-resize" {...resize.separatorProps} aria-label="대화창 너비 조절" />
-        <header><div><span className="workspace-ai-dot" />커리어 도우미</div><button onClick={() => { setChatOpen(false); clearHighlights(); requestAnimationFrame(() => launcher.current?.focus()); }} aria-label="대화창 최소화">−</button></header>
+        <header><div><span className="workspace-ai-dot" />커리어 도우미</div><div className="workspace-chat-tools"><button onClick={resetChat} disabled={!turns.length && !input && !busy} aria-label="대화 초기화" title="대화 초기화">↺</button><button onClick={() => { setChatOpen(false); clearHighlights(); requestAnimationFrame(() => launcher.current?.focus()); }} aria-label="대화창 최소화">−</button></div></header>
         <div className="workspace-messages" role="log" aria-label="대화 내용" onScroll={event => { const element = event.currentTarget; followAnswer.current = element.scrollHeight - element.scrollTop - element.clientHeight < 48; }}>
           {!turns.length && <div className="workspace-chat-intro"><h2>어떤 연결이 궁금한가요?</h2><p>내 경험부터 다음 학습까지,<br />근거를 따라 함께 살펴봐요.</p></div>}
           {turns.map((turn, index) => <article key={index} aria-busy={turn.streaming || undefined} className={`workspace-message workspace-message--${turn.role}`}>
             {!!turn.tools?.length && <details className="workspace-tool-log" open={turn.streaming || undefined}><summary>자료 확인 · {turn.tools.length}</summary><ul>{turn.tools.map(tool => <li key={tool.call_id} data-status={tool.status}>
               <span aria-hidden>{tool.status === "started" ? "◌" : tool.status === "failed" ? "!" : "✓"}</span>{tool.label}<small>{tool.status === "started" ? "확인 중" : tool.status === "failed" ? "확인 실패" : "완료"}</small>
             </li>)}</ul></details>}
-            <ReplyText text={turn.text} />{turn.incomplete && <p className="workspace-answer-incomplete">답변이 완료되지 않았어요.</p>}
+            {turn.role === "assistant" ? <ReplyText text={turn.text} /> : turn.text}{turn.incomplete && <p className="workspace-answer-incomplete">답변이 완료되지 않았어요.</p>}
             {turn.answer && <div className="workspace-answer-evidence">{turn.answer.explanation && <p>{turn.answer.explanation}</p>}
               <button onClick={() => showEvidence(turn.answer!, undefined, true)}>연결 근거 보기 ↗</button>
               <div className="workspace-citations">{turn.answer.sources.map(source => <button key={source.id} onClick={() => showEvidence(turn.answer!, source.id, true)} title={basisLabels[source.basis]}>{source.title}</button>)}</div>

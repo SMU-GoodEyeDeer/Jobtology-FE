@@ -1,9 +1,16 @@
-import type { CSSProperties } from "react";
+import { memo } from "react";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
-export function ReplyText({ text, animate = false }: { text: string; animate?: boolean }) {
-  let token = 0;
-  const words = (value: string) => !animate ? value : (value.match(/\S+\s*|\s+/g) ?? []).map(word =>
-    <span key={token} className="reply-token" style={{ "--token-delay": `${Math.min(token++, 120) * 12}ms` } as CSSProperties}>{word}</span>);
-  return <>{text.split(/(\*\*[^*]+\*\*)/g).map((part, i) => i % 2 === 1
-    ? <strong key={i}>{words(part.slice(2, -2))}</strong> : <span key={i}>{words(part)}</span>)}</>;
-}
+const plugins = [remarkGfm];
+
+export const ReplyText = memo(function ReplyText({ text, animate = false }: { text: string; animate?: boolean }) {
+  return <div className={`reply-markdown${animate ? " reply-markdown--animate" : ""}`}>
+    <Markdown remarkPlugins={plugins} skipHtml components={{
+      a: ({ href, children }) => href ? <a href={href} target="_blank" rel="noopener noreferrer">{children}</a> : <span>{children}</span>,
+      // Model text must not cause automatic requests to image/tracking URLs.
+      img: ({ alt }) => <span className="reply-image-alt">{alt ? `[${alt}]` : "[이미지]"}</span>,
+      table: ({ children }) => <div className="reply-table"><table>{children}</table></div>,
+    }}>{text}</Markdown>
+  </div>;
+});
