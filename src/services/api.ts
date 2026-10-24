@@ -60,7 +60,8 @@ export async function request<T>(
   method: string,
   path: string,
   body?: unknown,
-  extraHeaders?: Record<string, string>
+  extraHeaders?: Record<string, string>,
+  signal?: AbortSignal
 ): Promise<T> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -77,6 +78,7 @@ export async function request<T>(
     credentials: "include", // send session cookie
     headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,
+    signal,
   });
 
   if (!res.ok) {
@@ -225,8 +227,8 @@ export const catalogV2Api = {
 
 // ─── Capabilities ────────────────────────────────────────────────────────────
 export const roleEvidenceGraphApi = {
-  get: (occupationId: string) =>
-    get<RoleEvidenceGraph>(`/v2/roles/${encodeURIComponent(occupationId)}/evidence-graph`),
+  get: (occupationId: string, signal?: AbortSignal) =>
+    request<RoleEvidenceGraph>("GET", `/v2/roles/${encodeURIComponent(occupationId)}/evidence-graph`, undefined, undefined, signal),
 };
 
 export const capabilitiesApi = {
@@ -277,6 +279,6 @@ export const resumeApi = {
 // ─── AI Chat ─────────────────────────────────────────────────────────────────
 export const chatApi = {
   status: () => get<{ available: boolean }>("/v1/chat/status"),
-  send: (messages: ChatMessagePayload[], mode: "counsel" | "onboarding" | "spec" = "counsel") =>
-    post<ChatReplyResponse>("/v1/chat/messages", { messages, mode }),
+  send: (messages: ChatMessagePayload[], mode: "counsel" | "onboarding" | "spec" = "counsel", goalId?: string) =>
+    post<ChatReplyResponse>("/v1/chat/messages", { messages, mode, ...(goalId ? { goal_id: goalId } : {}) }),
 };

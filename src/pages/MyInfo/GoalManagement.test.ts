@@ -34,9 +34,9 @@ function Harness() {
   );
 }
 
-async function mount(goals: GoalResponse[] = []) {
+async function mount(goals: GoalResponse[] = [], route = "/") {
   stored = goals.map(goal => ({ ...goal }));
-  await act(async () => root.render(createElement(MemoryRouter, null, createElement(Harness))));
+  await act(async () => root.render(createElement(MemoryRouter, { initialEntries: [route] }, createElement(Harness))));
 }
 
 function button(text: string) {
@@ -304,6 +304,12 @@ describe("goal management", () => {
     expect(api.goalsApi.delete).toHaveBeenCalledTimes(1);
     await act(async () => { stored = []; version = 8; finish({ goal_id: "existing", profile_version: 8 }); });
     expect(container.textContent).toContain("아직 목표가 없어요");
+  });
+
+  it("selects the owned goal from a deep link instead of the first active goal", async () => {
+    const linked = { ...existing, goal_id: "linked", occupation_id: "FRONTEND_DEVELOPER" };
+    await mount([existing, linked], "/myinfo?goal_id=linked");
+    expect(container.querySelector("[data-selected-goal]")?.textContent).toBe("linked");
   });
 
   it("clears pending analysis retry when its goal is deleted", async () => {
