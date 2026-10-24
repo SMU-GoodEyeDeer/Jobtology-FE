@@ -278,6 +278,35 @@ describe("graph-centered chat workspace", () => {
     expect(expand).toHaveBeenCalledWith("postings:onet:15-1252.00",0,expect.any(AbortSignal));
     expect(host.querySelector('[data-testid="graph"]')?.textContent).toContain("백엔드 채용");
   });
+  it("expands an individual posting into its NCS and O*NET classifications on the canvas", async () => {
+    const posting = { id: "posting:one", kind: "posting" as const, label: "백엔드 채용", basis: "REFERENCE" as const };
+    vi.mocked(chatWorkspaceApi.context).mockResolvedValue({ ...evidence, graph: { ...graph, nodes: [...graph.nodes, posting] } });
+    const expand = vi.spyOn(chatWorkspaceApi, "expand").mockResolvedValue({ ...graph, nodes: [posting,
+      { id: "ncs:occupation:20010202", kind: "ncs_occupation", label: "응용SW엔지니어링", basis: "REFERENCE" },
+      { id: "urn:jobtology:onet:occupation:15-1252.00", kind: "onet_occupation", label: "Software Developers", basis: "REFERENCE" },
+    ], edges: [
+      { id: "ncs-classification", source: posting.id, target: "ncs:occupation:20010202", kind: "INFERRED_POSTING_OCCUPATION", basis: "METADATA_INFERRED" },
+      { id: "onet-classification", source: posting.id, target: "urn:jobtology:onet:occupation:15-1252.00", kind: "INFERRED_POSTING_OCCUPATION", basis: "METADATA_INFERRED" },
+    ] });
+    await render();
+    await act(async () => [...host.querySelectorAll<HTMLButtonElement>('[data-testid="graph"] button')].find(button => button.textContent === posting.label)!.click());
+    await act(async () => [...host.querySelectorAll<HTMLButtonElement>(".workspace-inspector button")].find(button => button.textContent === "연결 더 보기")!.click());
+    expect(expand).toHaveBeenCalledWith(posting.id, 0, expect.any(AbortSignal));
+    const canvas = host.querySelector('[data-testid="graph"]');
+    expect(canvas?.getAttribute("data-edges")).toContain("ncs-classification");
+    expect(canvas?.getAttribute("data-edges")).toContain("onet-classification");
+    expect(canvas?.textContent).toContain("Software Developers");
+    expect(host.querySelector(".workspace-inspector")?.textContent).toContain("추론 직무 분류");
+  });
+  it("explains when a posting has no specific occupation classifications", async () => {
+    const posting = { id: "posting:unclassified", kind: "posting" as const, label: "미분류 공고", basis: "REFERENCE" as const };
+    vi.mocked(chatWorkspaceApi.context).mockResolvedValue({ ...evidence, graph: { ...graph, nodes: [posting] } });
+    vi.spyOn(chatWorkspaceApi, "expand").mockResolvedValue({ ...graph, nodes: [posting], warnings: ["POSTING_CLASSIFICATIONS_MISSING"] });
+    await render();
+    await act(async () => host.querySelector<HTMLButtonElement>('[data-testid="graph"] button')!.click());
+    await act(async () => [...host.querySelectorAll<HTMLButtonElement>(".workspace-inspector button")].find(button => button.textContent === "연결 더 보기")!.click());
+    expect(host.textContent).toContain("이 공고에는 연결할 수 있는 NCS·O*NET 세부 직무 분류가 없어요.");
+  });
 });
 it("clears expanded or answer evidence emphasis when its window is dismissed", async () => {
   vi.spyOn(chatWorkspaceApi, "stream").mockImplementation(async (_messages, _goal, _focus, event) => { event({ type: "answer", data: answer }); event({ type: "done" }); });

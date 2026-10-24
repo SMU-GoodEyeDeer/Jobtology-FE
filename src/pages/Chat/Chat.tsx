@@ -29,6 +29,7 @@ function roleGraph(value: RoleEvidenceGraph): Graph {
 const warningLabels: Record<string, string> = {
   SKILL_CATALOG_UNAVAILABLE: "역량 카탈로그를 확인하지 못해 현재 스펙 반영치를 계산할 수 없어요.",
   POSTING_CONTEXT_UNAVAILABLE: "공고 연결 집계를 확인하지 못했어요.",
+  POSTING_CLASSIFICATIONS_MISSING: "이 공고에는 연결할 수 있는 NCS·O*NET 세부 직무 분류가 없어요.",
   CROSSWALK_UNAVAILABLE: "NCS·O*NET 연결 일부를 불러오지 못했어요.",
   FOCUSED_SOURCE_UNAVAILABLE: "선택한 항목의 최신 자료를 확인하지 못했어요.",
   NO_ANALYSIS: "아직 분석 결과가 없어요.", NO_ROADMAP: "저장된 로드맵이 없어요.",
