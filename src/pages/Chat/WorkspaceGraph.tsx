@@ -25,7 +25,9 @@ export function WorkspaceGraph({ graph, selected, onSelect, highlighted, highlig
   const [ready, setReady] = useState(false);
   const fitted = useRef(false);
   const fittingIds = useRef<string[] | null>(null);
-  const [hoverKind, setHoverKind] = useState<WorkspaceKind | null>(null);
+  const [previewKind, setPreviewKind] = useState<WorkspaceKind | null>(null);
+  const [pinnedKind, setPinnedKind] = useState<WorkspaceKind | null>(null);
+  const activeKind = previewKind ?? pinnedKind;
   const labels = useRef(new Map<string, { label: string; element: HTMLSpanElement }>());
   useEffect(() => { const ids = new Set(graph.nodes.map(n => n.id)); for (const id of labels.current.keys()) if (!ids.has(id)) labels.current.delete(id); }, [graph.nodes]);
   const labelScale = useRef(0);
@@ -41,15 +43,15 @@ export function WorkspaceGraph({ graph, selected, onSelect, highlighted, highlig
       element.className = "workspace-node-label"; element.textContent = node.label;
       label = { label: node.label, element }; labels.current.set(node.id, label);
     }
-    const dimmed = hoverKind ? node.kind !== hoverKind : highlighted.size > 0 && !highlighted.has(node.id);
+    const dimmed = activeKind ? node.kind !== activeKind : highlighted.size > 0 && !highlighted.has(node.id);
     label.element.dataset.dimmed = String(dimmed);
     return {
     id: node.id, html: label.element, color: dimmed ? preference === "dark" ? "#30394a" : "#d9dde6" : colors[node.kind],
     size: node.kind === "role" || node.kind === "goal" ? 22 : node.kind === "profile" ? 19 : 13,
     selected: selected === node.id,
-    activated: highlighted.has(node.id) || (hoverKind !== null && hoverKind === node.kind),
+    activated: highlighted.has(node.id) || (activeKind !== null && activeKind === node.kind),
     disabled: false,
-  }; }), [visible, selected, highlighted, hoverKind, preference]);
+  }; }), [visible, selected, highlighted, activeKind, preference]);
   const rels = useMemo(() => {
     const ids = new Set(visible.map(n => n.id));
     return graph.edges.filter(e => ids.has(e.source) && ids.has(e.target)).map(e => ({
@@ -106,8 +108,8 @@ export function WorkspaceGraph({ graph, selected, onSelect, highlighted, highlig
       <button onClick={() => { nvl.current?.setZoom?.((nvl.current?.getScale?.() ?? 1) * 1.25); syncLabelScale(); }} aria-label="그래프 확대">+</button>
     </div>
     <div className="workspace-legend" role="group" aria-label="노드 유형별 강조">
-      {[...counts].map(([kind, count]) => <button key={kind} onPointerEnter={() => setHoverKind(kind)} onPointerLeave={() => setHoverKind(null)}
-        onFocus={() => setHoverKind(kind)} onBlur={() => setHoverKind(null)} onClick={() => setHoverKind(previous => previous === kind ? null : kind)}>
+      {[...counts].map(([kind, count]) => <button key={kind} aria-pressed={pinnedKind === kind} onPointerEnter={() => setPreviewKind(kind)} onPointerLeave={() => setPreviewKind(null)}
+        onFocus={() => setPreviewKind(kind)} onBlur={() => setPreviewKind(null)} onClick={() => setPinnedKind(previous => previous === kind ? null : kind)}>
         <i style={{ background: colors[kind] }} />{nodeLabels[kind]} <span>{count}</span>
       </button>)}
     </div>

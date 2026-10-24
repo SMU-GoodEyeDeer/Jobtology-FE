@@ -4,6 +4,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { chatWorkspaceApi, type ChatEvent, type WorkspaceAnswer, type WorkspaceEvidence } from "../../services/chatWorkspace";
+import { roleEvidenceGraphApi } from "../../services/api";
 import { Chat } from "./Chat";
 
 const state = vi.hoisted(() => ({ goal: "second", select: vi.fn() }));
@@ -69,5 +70,17 @@ describe("graph-centered chat workspace", () => {
     await act(async () => callback({ type: "answer", data: answer }));
     expect(host.textContent).not.toContain(answer.reply);
     expect(chatWorkspaceApi.context).toHaveBeenLastCalledWith("first", expect.any(AbortSignal));
+  });
+  it("keeps the personal context error when both initial reads fail", async () => {
+    vi.mocked(chatWorkspaceApi.context).mockRejectedValue(new Error("personal offline"));
+    vi.spyOn(roleEvidenceGraphApi, "get").mockRejectedValue(new Error("catalog offline"));
+    await render();
+    expect(host.querySelector('[role="alert"]')?.textContent).toContain("내 정보를 불러오지 못했어요.");
+    expect(host.querySelector('[role="alert"]')?.textContent).not.toContain("참고 그래프 일부");
+  });
+  it("keeps the catalog error when personal context succeeds", async () => {
+    vi.spyOn(roleEvidenceGraphApi, "get").mockRejectedValue(new Error("catalog offline"));
+    await render();
+    expect(host.querySelector('[role="alert"]')?.textContent).toContain("참고 그래프 일부를 불러오지 못했어요.");
   });
 });

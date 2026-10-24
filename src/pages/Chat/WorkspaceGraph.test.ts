@@ -42,4 +42,22 @@ describe("native graph view behavior", () => {
     const element = native.props.nodes[0].html as HTMLSpanElement;
     expect(element.querySelector("img")).toBeNull(); expect(element.textContent).toContain("<img");
   });
+  it("keeps clicked legend emphasis pinned after pointer and keyboard previews end", async () => {
+    await render();
+    const [technology, capability] = [...host.querySelectorAll<HTMLButtonElement>(".workspace-legend button")];
+    const dimmed = (id: string) => (native.props.nodes.find((n: { id: string }) => n.id === id).html as HTMLSpanElement).dataset.dimmed;
+    await act(async () => { technology.dispatchEvent(new Event("pointerover", { bubbles: true })); });
+    await act(async () => technology.click());
+    expect(technology.getAttribute("aria-pressed")).toBe("true");
+    await act(async () => { technology.dispatchEvent(new Event("pointerout", { bubbles: true })); });
+    expect(dimmed("a")).toBe("false"); expect(dimmed("b")).toBe("true");
+    await act(async () => capability.focus());
+    expect(dimmed("a")).toBe("true"); expect(dimmed("b")).toBe("false");
+    expect(technology.getAttribute("aria-pressed")).toBe("true");
+    await act(async () => capability.blur());
+    expect(dimmed("a")).toBe("false"); expect(dimmed("b")).toBe("true");
+    await act(async () => technology.click());
+    expect(technology.getAttribute("aria-pressed")).toBe("false");
+    expect(dimmed("a")).toBe("false"); expect(dimmed("b")).toBe("false");
+  });
 });

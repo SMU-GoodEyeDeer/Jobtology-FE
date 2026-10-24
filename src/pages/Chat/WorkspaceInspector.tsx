@@ -12,7 +12,12 @@ const relationshipLabels: Record<string, string> = { REQUIRES: "검토된 요구
 function readable(key: string, value: unknown): string {
   const names: Record<string, string> = { CUSTOM: "직접 조정한 일정", SOLVER: "추천 일정", FAMILIAR: "접해 봄", GUIDED: "도움을 받아 수행", INDEPENDENT: "독립적으로 수행", PRODUCTION: "실무에서 수행", TODO: "예정", IN_PROGRESS: "진행 중", COMPLETED: "완료", ENROLLED: "재학", MATCHED: "역량에 연결됨", NEEDS_CLARIFICATION: "추가 설명 필요", UNUSED: "현재 목표에 미반영", EXPIRED: "유효기간 지남", skill: "역량", project: "프로젝트", experience: "경험", certification: "자격증", test: "시험", education: "학력", other: "기타" };
   if (typeof value === "boolean") return value ? "선호함" : "기본 설정";
-  if (typeof value === "string") return key.includes("planned_") || key === "target_by" || key === "current_start" || key === "current_end" ? formatPostingDateTime(value) : names[value] ?? value;
+  if (typeof value === "string") {
+    if (key.includes("planned_") || key === "target_by" || key === "current_start" || key === "current_end") {
+      return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : formatPostingDateTime(value);
+    }
+    return names[value] ?? value;
+  }
   if (value && typeof value === "object") {
     const record = value as Record<string, unknown>;
     if (key === "matching") return `${names[String(record.status)] ?? "연결 확인 필요"}${typeof record.credit === "number" ? ` · 계획 반영치 ${Math.round(record.credit * 100)}%` : ""}\n${record.message ?? ""}`;

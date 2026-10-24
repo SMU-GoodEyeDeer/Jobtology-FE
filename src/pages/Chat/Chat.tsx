@@ -63,7 +63,7 @@ export function Chat() {
       initialGraph.current = merged; setGraph(merged); setLoading(false);
       if (personal.status === "fulfilled") setWarnings([...personal.value.warnings, ...(merged.warnings ?? [])]);
       else setError("내 정보를 불러오지 못했어요. 다시 시도해 주세요.");
-      if (catalog.status === "rejected") setError("참고 그래프 일부를 불러오지 못했어요. 검색으로 다시 탐색할 수 있어요.");
+      if (personal.status === "fulfilled" && catalog.status === "rejected") setError("참고 그래프 일부를 불러오지 못했어요. 검색으로 다시 탐색할 수 있어요.");
     });
     return () => { epoch.current += 1; controller.abort(); turnController.current?.abort(); searchController.current?.abort(); };
   }, [selectedGoalId, selectedGoal?.occupation_id, goalsLoading]);
@@ -131,7 +131,7 @@ export function Chat() {
       <label className="workspace-goal"><span className="sr-only">목표 선택</span><select value={selectedGoalId ?? ""} onChange={e => setSelectedGoalId(e.target.value || null)} disabled={goalsLoading}>
         <option value="">전체 프로필</option>{goals.map(g => <option key={g.goal_id} value={g.goal_id}>{getGoalName(g)}</option>)}
       </select></label></header>
-    <section className="chat-body workspace-stage" aria-label="커리어 그래프 탐색">
+    <section className="chat-body workspace-stage" aria-label="커리어 그래프 탐색" style={{ "--floating-width": `min(${resize.size}px, max(320px, calc(100% - 320px)))` } as CSSProperties}>
       <div className="workspace-toolbar"><form onSubmit={e => { e.preventDefault(); void search(query); }}>
         <label className="sr-only" htmlFor="catalog-search">전체 카탈로그 검색</label>
         <input id="catalog-search" placeholder="역량·직무·자격·공고 검색" value={query} maxLength={120} onChange={e => setQuery(e.target.value)} />
@@ -148,7 +148,7 @@ export function Chat() {
       {selectedNode && <WorkspaceInspector node={selectedNode} graph={graph} goalId={selectedGoalId} onClose={() => { setSelected(null); requestAnimationFrame(() => document.querySelector<HTMLElement>(".workspace-node-list summary")?.focus()); }} busy={searching}
         onExpand={() => void search(undefined, selectedNode.id)} onAsk={() => { setChatOpen(true); setInput(`${selectedNode.label}에 대해 설명해줘`); requestAnimationFrame(() => inputRef.current?.focus()); }} />}
       <button ref={launcher} className="workspace-chat-launcher" aria-label="AI 대화 열기" aria-expanded={chatOpen} onClick={() => { setSelected(null); setChatOpen(true); requestAnimationFrame(() => inputRef.current?.focus()); }} hidden={chatOpen}>대화하기 <span>↗</span></button>
-      <section className={`workspace-chat-float${resize.resizing ? " is-resizing" : ""}`} hidden={!chatOpen} aria-label="AI 커리어 대화" style={{ "--floating-width": `${resize.size}px` } as CSSProperties}>
+      <section className={`workspace-chat-float${resize.resizing ? " is-resizing" : ""}`} hidden={!chatOpen} aria-label="AI 커리어 대화">
         <div className="workspace-chat-resize" {...resize.separatorProps} aria-label="대화창 너비 조절" />
         <header><div><span className="workspace-ai-dot" />커리어 도우미</div><button onClick={() => { setChatOpen(false); requestAnimationFrame(() => launcher.current?.focus()); }} aria-label="대화창 최소화">−</button></header>
         <div className="workspace-messages" role="log" aria-label="대화 내용">

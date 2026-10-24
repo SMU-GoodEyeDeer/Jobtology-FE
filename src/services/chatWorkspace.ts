@@ -52,9 +52,11 @@ export function mergeWorkspace(...graphs: WorkspaceGraph[]): WorkspaceGraph {
   const protectedNodes = [...all.values()].filter(n => ["profile", "goal", "role", "preferences"].includes(n.kind)).slice(0, 16);
   const protectedIds = new Set(protectedNodes.map(n => n.id));
   const nodes = [...protectedNodes, ...[...all.values()].filter(n => !protectedIds.has(n.id)).slice(-(160 - protectedNodes.length))], kept = new Set(nodes.map(n => n.id));
-  const edges = [...new Map(graphs.flatMap(g => g.edges).map(e => [e.id, e])).values()]
+  const allEdges = new Map<string, WorkspaceEdge>();
+  for (const graph of graphs) for (const edge of graph.edges) { allEdges.delete(edge.id); allEdges.set(edge.id, edge); }
+  const edges = [...allEdges.values()]
     .filter(e => kept.has(e.source) && kept.has(e.target));
-  return { nodes, edges: edges.slice(0, 320), truncated: graphs.some(g => g.truncated) || all.size > 160 || edges.length > 320,
+  return { nodes, edges: edges.slice(-320), truncated: graphs.some(g => g.truncated) || all.size > 160 || edges.length > 320,
     warnings: [...new Set(graphs.flatMap(g => g.warnings ?? []))] };
 }
 export function safeLocalHref(href?: string | null) { return href?.startsWith("/") && !href.startsWith("//") && !/[\\\u0000-\u0020]/.test(href) ? href : null; }
@@ -62,6 +64,15 @@ export function goalScopedHref(href: string, goalId?: string | null) {
   const url = new URL(href, "https://jobtology.local");
   if (goalId && ["/analysis", "/roadmap"].includes(url.pathname)) url.searchParams.set("goal_id", goalId);
   return url.pathname + url.search + url.hash;
+}
+
+function isWorkspaceAction(value: unknown): value is WorkspaceAction {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const action = value as Record<string, unknown>;
+  return typeof action.type === "string" && ["add", "highlight", "focus", "filter", "expand"].includes(action.type)
+    && Array.isArray(action.node_ids) && action.node_ids.every(id => typeof id === "string")
+    && Array.isArray(action.edge_ids) && action.edge_ids.every(id => typeof id === "string")
+    && Array.isArray(action.kinds) && action.kinds.every(kind => typeof kind === "string" && Object.hasOwn(nodeLabels, kind));
 }
 
 export async function readChatEvents(body: ReadableStream<Uint8Array>, onEvent: (event: ChatEvent) => void, signal?: AbortSignal) {
@@ -79,7 +90,7 @@ export async function readChatEvents(body: ReadableStream<Uint8Array>, onEvent: 
         || graph.nodes.some(n => !n || typeof n.id !== "string" || typeof n.label !== "string" || !Object.hasOwn(nodeLabels, n.kind) || !Object.hasOwn(basisLabels, n.basis))
         || graph.edges.some(e => !e || typeof e.id !== "string" || typeof e.source !== "string" || typeof e.target !== "string" || !Object.hasOwn(basisLabels, e.basis))
         || !Array.isArray(event.data.sources) || !Array.isArray(event.data.warnings)) throw new Error("자료 응답을 읽지 못했어요.");
-      if (event.type === "answer" && (typeof event.data.reply !== "string" || typeof event.data.explanation !== "string" || !Array.isArray(event.data.actions) || !Array.isArray(event.data.suggestions))) throw new Error("답변 응답을 읽지 못했어요.");
+      if (event.type === "answer" && (typeof event.data.reply !== "string" || typeof event.data.explanation !== "string" || !Array.isArray(event.data.actions) || event.data.actions.some(action => !isWorkspaceAction(action)) || !Array.isArray(event.data.suggestions))) throw new Error("답변 응답을 읽지 못했어요.");
     }
     if (event.type === "answer") answer = true;
     if (event.type === "done") { if (!answer) throw new Error("답변이 누락됐어요."); doneEvent = true; }
