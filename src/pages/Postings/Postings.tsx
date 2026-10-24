@@ -112,7 +112,6 @@ export function Postings() {
               : current.error ? <div className="postings-state" role="alert"><p>{current.error}</p><button onClick={() => setAttempt(value => value + 1)}>다시 시도</button></div>
               : current.data && <>
                 <div className="postings-list-heading"><h2 ref={listHeading} tabIndex={-1}>{occupation ? "직무 추론 연결" : "검색 결과"} <span>{current.data.total.toLocaleString()}건</span></h2><small>{offset + (current.data.items.length ? 1 : 0)}–{offset + current.data.items.length}</small></div>
-                <PostingsPagination total={current.data.total} page={page} pageSize={PAGE_SIZE} position="top" onChange={changePage} />
                 {current.data.items.length ? current.data.items.map((item, index) => <button className={`posting-card${postingId === item.posting_id ? " posting-card--selected" : ""}`} key={`${item.posting_id}:${index}`} aria-pressed={postingId === item.posting_id} onClick={() => update("posting", item.posting_id)}>
                   <span className="posting-card-header"><span className="posting-card-org">{item.organization_name || "기관명 미제공"}</span>{item.source_id && <span className="posting-card-source">{postingSourceName(item.source_id)}</span>}</span>
                   <strong>{item.title || "제목 미제공 공고"}</strong>

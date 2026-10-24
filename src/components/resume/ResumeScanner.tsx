@@ -34,6 +34,13 @@ export function ResumeScanner({ occupationId, disabled, existingCompetencyIds, o
   const [statusError, setStatusError] = useState(false);
   const [scan, setScan] = useState<ResumeScan | null>(null);
   const [scanning, setScanning] = useState(false);
+  const [mode, setMode] = useState<"ai" | "scan">("ai");
+  const [dragging, setDragging] = useState(false);
+  const [filename, setFilename] = useState("");
+  const [zoom, setZoom] = useState<number | null>(null);
+  const [documentPage, setDocumentPage] = useState(1);
+  const [documentInfo, setDocumentInfo] = useState({ zoom: 100, pages: 1 });
+  const [hovered, setHovered] = useState<ResumeSuggestion | null>(null);
   const [documentConsent, setDocumentConsent] = useState(false);
   const [progress, setProgress] = useState<{ completed: number; total: number } | null>(null);
   const [analysisNotice, setAnalysisNotice] = useState<string | null>(null);
@@ -51,33 +58,32 @@ export function ResumeScanner({ occupationId, disabled, existingCompetencyIds, o
   const [tab, setTab] = useState<"source" | "suggestions">("suggestions");
   const generation = useRef(0);
   const controller = useRef<AbortController | null>(null);
-  const blockNodes = useRef(new Map<string, HTMLButtonElement>());
+  const suggestionNodes = useRef(new Map<string, HTMLElement>());
+  const suggestionList = useRef<HTMLElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   const input = useRef<HTMLInputElement>(null);
   const active = scan?.blocks.find(block => block.block_id === selected);
   const activeSuggestion = scan?.suggestions.find(item => item.suggestion_id === selectedSuggestion);
+  const aiMode = mode === "ai" && status?.ai_available !== false;
+  const uploadAllowed = Boolean(status) && (!aiMode || documentConsent) && !disabled && !scanning && !aiBusy;
   async function loadStatus() {
     setStatusError(false);
     try { setStatus(await resumeApi.status()); } catch { setStatusError(true); }
   }
-  useEffect(() => { void loadStatus(); heading.current?.focus(); return () => { generation.current += 1; controller.current?.abort(); }; }, []);
-  useEffect(() => {
-    if (!selected || tab !== "source") return;
-    const node = blockNodes.current.get(selected);
-    node?.scrollIntoView?.({ block: "nearest", behavior: "instant" });
-    node?.focus({ preventScroll: true });
-  }, [selected, selectedSuggestion, tab]);
+  useEffect(() => { void loadStatus(); heading.current?.focus({ preventScroll: true }); return () => { generation.current += 1; controller.current?.abort(); }; }, []);
   async function upload(file: File) {
-    if (!status || disabled || scanning) return;
+    if (!status || disabled || scanning || aiBusy) return;
+    if (aiMode && !documentConsent) { setError("AI 분석 동의 후 파일을 선택해 주세요."); return; }
     const format = file.name.split(".").pop()?.toLowerCase() as ResumeFormat;
-    if (documentConsent && format !== "pdf") { setError("AI 분석은 3쪽 이하 PDF만 지원해요. PDF로 저장한 뒤 올려 주세요."); return; }
+    if (aiMode && format !== "pdf") { setError("AI 분석은 3쪽 이하 PDF만 지원해요. PDF로 저장한 뒤 올려 주세요."); return; }
     if (!status.formats.includes(format)) { setError("현재 서버가 지원하는 문서 형식을 선택해 주세요."); return; }
     if (!file.size || file.size > status.max_bytes) { setError("비어 있지 않은 10MB 이하 파일을 선택해 주세요."); return; }
     const id = ++generation.current;
     controller.current?.abort(); controller.current = new AbortController();
+    setFilename(file.name); setZoom(null); setDocumentPage(1); setDocumentInfo({ zoom: 100, pages: 1 }); setHovered(null);
     setScanning(true); setProgress(null); setAnalysisNotice(null); setPreview("document"); setError(null); setScan(null); setSaved(new Set()); setExcluded(new Set()); setAiOpen(false); setAiText(""); setAiNotice(null);
     try {
-      if (documentConsent) {
+      if (aiMode) {
         await resumeApi.analyze(file, occupationId, event => {
           if (id !== generation.current) return;
           if (event.type === "scan") {
@@ -95,7 +101,7 @@ export function ResumeScanner({ occupationId, disabled, existingCompetencyIds, o
         if (id !== generation.current) return;
         setScan(result); setSelected(result.blocks[0]?.block_id ?? null); setSelectedSuggestion(null); setTab("suggestions");
       }
-    } catch (cause) { if (id === generation.current) setError(resumeError(cause, documentConsent ? "ai" : "scan")); }
+    } catch (cause) { if (id === generation.current) setError(resumeError(cause, aiMode ? "ai" : "scan")); }
     finally { if (id === generation.current) { setScanning(false); if (input.current) input.current.value = ""; } }
   }
   function cancel() {
@@ -129,45 +135,85 @@ export function ResumeScanner({ occupationId, disabled, existingCompetencyIds, o
     } catch (cause) { if (id === generation.current) setError(resumeError(cause, "ai")); }
     finally { if (id === generation.current) setAiBusy(false); }
   }
-  const suggestions = scan?.suggestions.filter(item => !excluded.has(item.suggestion_id)) ?? [];
+  function chooseFromDocument(block: ResumeBlock) {
+    choose(block); setTab("suggestions");
+    const target = scan?.suggestions.find(item => item.block_id === block.block_id);
+    if (!target) return;
+    requestAnimationFrame(() => {
+      const node = suggestionNodes.current.get(target.suggestion_id), list = suggestionList.current;
+      if (!node || !list) return;
+      const top = node.getBoundingClientRect().top - list.getBoundingClientRect().top + list.scrollTop - 48;
+      list.scrollTo?.({ top: Math.max(0, top), behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
+    });
+  }
+  const suggestions = scan?.suggestions ?? [];
   const notes = scan?.warnings.filter(code => reviewNotes.has(code)) ?? [];
   const warnings = scan?.warnings.filter(code => !reviewNotes.has(code)) ?? [];
-  return <section className="resume-scanner" aria-label="이력서에서 스펙 가져오기">
-    <header className="resume-heading"><div><h3 ref={heading} tabIndex={-1}>파일 선택</h3></div><button type="button" className="spec-secondary" disabled={disabled} onClick={onClose}>가져오기 끝내기</button></header>
-    <details className="spec-explainer resume-privacy"><summary>파일·분석 안내</summary><p className="spec-help">파일은 읽은 뒤 삭제하며, 비정상 종료로 남은 파일은 15분 후 정리해요. 미리보기는 이 화면에만, 저장한 인용·정보는 내 스펙에 남아요. 동의하면 추출 문단을 AI로 분석하고, 동의하지 않으면 키워드로 찾아요.</p>{notes.map(code => <p className="spec-help" key={code}>{warningText[code]}</p>)}</details>
+  const reviewed = suggestions.filter(item => saved.has(item.suggestion_id) || excluded.has(item.suggestion_id)).length;
+  const previewSuggestion = hovered ?? activeSuggestion;
+  const previewBlock = hovered ? scan?.blocks.find(block => block.block_id === hovered.block_id) : active;
+  return <section className={`resume-scanner${scan ? " resume-scanner--review" : ""}`} aria-label="이력서에서 스펙 가져오기">
+    <header className="resume-heading"><h3 ref={heading} tabIndex={-1}>{scan ? filename : "이력서 가져오기"}</h3>{!scan && <button type="button" className="spec-secondary" disabled={disabled} onClick={onClose}>가져오기 끝내기</button>}</header>
+    <input ref={input} className="spec-sr-only" type="file" aria-label="이력서 파일" accept={aiMode ? ".pdf" : status?.formats.map(format => `.${format}`).join(",")} disabled={!uploadAllowed} onChange={event => { const file = event.target.files?.[0]; if (file) void upload(file); }} />
     {!status && <p role="status" className="spec-help">{statusError ? <><span>지원 형식을 확인하지 못했어요. </span><button type="button" onClick={() => void loadStatus()}>다시 확인</button></> : "지원 형식을 확인하는 중이에요…"}</p>}
-    {status && <div className="resume-upload"><label className="spec-check resume-bulk-consent"><input type="checkbox" checked={documentConsent} disabled={!status.ai_available || disabled || scanning || aiBusy} onChange={event => setDocumentConsent(event.target.checked)} />AI 분석 · 추출 문단을 {status.ai_provider ?? "설정된 AI"}에 전송하는 데 동의해요</label>{documentConsent && <p className="spec-help">최대 {status.ai_max_paragraphs ?? 64}문단 · {(status.ai_max_characters ?? 12000).toLocaleString()}자. 이름·주소·비공개 정보는 지운 뒤 올려 주세요.</p>}<label>{documentConsent ? "PDF 선택하고 AI로 항목 찾기" : "이력서·경력기술서 파일"}<input ref={input} type="file" accept={documentConsent ? ".pdf" : status.formats.map(format => `.${format}`).join(",")} disabled={disabled || scanning || aiBusy} onChange={event => { const file = event.target.files?.[0]; if (file) void upload(file); }} /></label><p className="spec-help">{documentConsent ? "PDF" : status.formats.map(format => format.toUpperCase()).join(" · ")} · 최대 10MB · PDF 최대 {documentConsent ? status.ai_max_pdf_pages ?? 3 : status.max_pdf_pages}쪽 · 암호 해제 필요</p>{!status.ai_available && <p className="spec-help">AI 연결 불가 · 키워드 검색과 직접 검토는 가능해요.</p>}{scan && <p className="spec-help">파일을 바꾸면 미리보기·미저장 제안만 지워져요.</p>}</div>}
-    {scanning && <div className="resume-progress" role="status">{progress ? <><progress max={Math.max(1, progress.total)} value={progress.completed} aria-label="AI 문단 분석 진행" /><span>{progress.completed}/{progress.total}문단 분석 · 항목이 도착하는 대로 표시해요</span></> : <span>문서를 읽는 중이에요… 최대 {status?.parse_timeout_seconds ?? 60}초 정도 걸릴 수 있어요.</span>}<button type="button" onClick={cancel}>{progress ? "분석 중단" : "읽기 취소"}</button></div>}
-    {analysisNotice && <p className="spec-notice" role="status">{analysisNotice}</p>}
+    {status && !scan && <div className="resume-upload">
+      <div className="resume-import-modes" role="group" aria-label="분석 방식"><button type="button" aria-pressed={aiMode} disabled={!status.ai_available || scanning} onClick={() => setMode("ai")}>AI로 항목 찾기</button><button type="button" aria-pressed={!aiMode} disabled={scanning} onClick={() => setMode("scan")}>AI 없이 직접 검토</button></div>
+      {aiMode && <label className="spec-check resume-bulk-consent"><input type="checkbox" checked={documentConsent} disabled={disabled || scanning || aiBusy} onChange={event => {
+        setDocumentConsent(event.target.checked); setError(null);
+        // Open in the same user gesture; the input is enabled before invoking the picker.
+        if (event.target.checked && input.current) { input.current.disabled = false; input.current.click(); }
+      }} />추출 문단을 {status.ai_provider ?? "설정된 AI"}에 보내 항목을 찾는 데 동의해요</label>}
+      <div className={`resume-dropzone${dragging ? " is-dragging" : ""}`} aria-disabled={!uploadAllowed} onDragOver={event => { event.preventDefault(); if (uploadAllowed) setDragging(true); }} onDragLeave={event => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setDragging(false); }} onDrop={event => {
+        event.preventDefault(); setDragging(false); const files = event.dataTransfer.files;
+        if (!uploadAllowed) { if (aiMode && !documentConsent) setError("AI 분석 동의 후 파일을 선택해 주세요."); return; }
+        if (files.length !== 1) { setError("한 번에 문서 하나를 올려 주세요."); return; } void upload(files[0]);
+      }}>
+        <span className="resume-upload-icon" aria-hidden="true">↥</span><strong>이력서를 여기에 놓으세요</strong>
+        <button type="button" className="spec-primary" disabled={!uploadAllowed} onClick={() => input.current?.click()}>파일 선택</button>
+        <p className="spec-help">{aiMode ? "PDF" : status.formats.map(format => format.toUpperCase()).join(" · ")} · 최대 10MB · PDF 최대 {aiMode ? status.ai_max_pdf_pages ?? 3 : status.max_pdf_pages}쪽</p>
+      </div>
+      {!status.ai_available && <p className="spec-help">AI 연결 불가 · 키워드 검색과 직접 검토는 가능해요.</p>}
+    </div>}
+    <details className="spec-explainer resume-privacy"><summary>파일·분석 안내{warnings.length ? ` · 알림 ${warnings.length}개` : ""}</summary><p className="spec-help">파일은 처리 후 삭제해요. 저장한 원문·정보는 내 스펙에 남아요.</p>{notes.map(code => <p className="spec-help" key={code}>{warningText[code]}</p>)}{warnings.map(code => <p className="spec-help" key={code}>{warningText[code] ?? "일부 정보를 읽지 못했어요. 원문을 확인해 주세요."}</p>)}{!!scan?.skipped_pages.length && <p className="spec-help">읽지 못한 페이지: {scan.skipped_pages.join(", ")}</p>}</details>
+    {scanning && <div className="resume-progress" role="status">{progress ? <><progress max={Math.max(1, progress.total)} value={progress.completed} aria-label="AI 문단 분석 진행" /><span>{progress.completed}/{progress.total}문단 분석</span></> : <span>문서를 읽고 있어요… 최대 {status?.parse_timeout_seconds ?? 60}초</span>}<button type="button" onClick={cancel}>{progress ? "분석 중단" : "읽기 취소"}</button></div>}
+    {analysisNotice && <p className="spec-notice resume-analysis-notice" role="status">{analysisNotice}</p>}
     {error && <p className="spec-error" role="alert">{error}</p>}
     {scan && <>
-      {(warnings.length > 0 || scan.skipped_pages.length > 0) && <ul className="resume-warnings">{warnings.map(code => <li key={code}>{warningText[code] ?? "일부 정보를 읽지 못했어요. 원문을 확인해 주세요."}</li>)}{!!scan.skipped_pages.length && <li>읽지 못한 페이지: {scan.skipped_pages.join(", ")}</li>}</ul>}
-      {!!scan.blocks.length && <>
-        <div className="resume-tabs" role="group" aria-label="이력서 검토 보기"><button type="button" aria-pressed={tab === "source"} onClick={() => setTab("source")}>추출한 원문</button><button type="button" aria-pressed={tab === "suggestions"} onClick={() => setTab("suggestions")}>제안 {suggestions.length}개</button></div>
-        <div className={`resume-workspace resume-workspace--${tab}`}>
-          <section className="resume-source" aria-label="추출한 원문"><h4>추출한 원문</h4>{scan.preview_html && <div className="resume-tabs" role="group" aria-label="원문 표시 방식"><button type="button" aria-pressed={preview === "document"} onClick={() => setPreview("document")}>문서 미리보기</button><button type="button" aria-pressed={preview === "text"} onClick={() => setPreview("text")}>텍스트 보기</button></div>}{scan.preview_html && preview === "document" ? <ResumeDocumentPreview html={scan.preview_html} blocks={scan.blocks} selected={active} suggestion={activeSuggestion} onSelect={block => { choose(block); setTab("suggestions"); }} /> : <div className="resume-source-scroll">{scan.blocks.map((block, index) => {
-            const selected = active?.block_id === block.block_id;
-            const start = selected && activeSuggestion?.block_id === block.block_id ? activeSuggestion.start : 0;
-            const end = selected && activeSuggestion?.block_id === block.block_id ? activeSuggestion.end : Array.from(block.text).length;
-            return <button type="button" key={block.block_id} ref={node => { if (node) blockNodes.current.set(block.block_id, node); else blockNodes.current.delete(block.block_id); }} className={`resume-block${selected ? " resume-block--selected" : ""}`} aria-pressed={selected} aria-label={`원문 문단 ${index + 1} 선택`} onClick={() => choose(block)}><small>{block.page ? `${block.page}쪽 · ` : ""}문단 {index + 1}{selected ? " · 선택됨" : ""}</small><span>{selected ? <>{pointSlice(block.text, 0, start)}<mark>{pointSlice(block.text, start, end)}</mark>{pointSlice(block.text, end)}</> : block.text}</span></button>;
-          })}</div>}</section>
-          <section className="resume-suggestions" aria-label="스펙 제안"><h4>확인이 필요한 제안</h4>
-            {!suggestions.length && <p className="spec-empty">자동으로 연결할 역량을 찾지 못했어요. 원문 문단을 선택해 직접 추가하거나 AI 도움으로 찾아보세요.</p>}
-            {suggestions.map(suggestion => {
-              const block = scan.blocks.find(value => value.block_id === suggestion.block_id);
-              const complete = saved.has(suggestion.suggestion_id);
-              const duplicate = suggestion.competencies.some(item => existingCompetencyIds.includes(item.entity_id));
-              const information = suggestion.category === "education" || suggestion.category === "other";
-              return <article key={suggestion.suggestion_id} className={`resume-candidate${selectedSuggestion === suggestion.suggestion_id || !selectedSuggestion && selected === suggestion.block_id ? " resume-candidate--selected" : ""}`}><small>{suggestion.method === "KEYWORD" ? "키워드 발견" : "AI 제안"} · {SPEC_CATEGORIES.find(category => category.value === suggestion.category)?.label}</small><h5>{suggestion.title}</h5><blockquote>{suggestion.quote}</blockquote>{!!Object.keys(suggestion.fields ?? {}).length && <dl className="resume-fields">{Object.entries(suggestion.fields ?? {}).map(([name, value]) => <div key={name}><dt>{RESUME_FIELDS[name] ?? name}</dt><dd>{value}</dd></div>)}</dl>}<ul>{suggestion.competencies.map(item => <li key={item.entity_id}>{item.label} <small>{item.source === "ONET" ? `O*NET · ${item.original_label} · NCS 등가 아님` : "NCS"}</small></li>)}</ul>{information ? <p className="spec-help">정보 기록 · 역량 점수 미반영</p> : !suggestion.competencies.length && <p className="spec-help">연결 역량 없음 · 저장 전 선택 가능</p>}{duplicate && <p className="spec-help">이미 등록한 역량이에요. 중복된 경험인지 확인해 주세요.</p>}<div className="resume-card-actions"><button type="button" className="spec-secondary" disabled={!block} onClick={() => { if (block) { choose(block, suggestion); setTab("source"); } }}>원문 근거 보기</button><button type="button" className="spec-primary" disabled={disabled || !block || complete} onClick={() => { if (block) { choose(block, suggestion); review(block, suggestion); } }}>{complete ? "저장 완료" : "검토하고 추가"}</button><button type="button" className="spec-text-button" disabled={disabled} onClick={() => setExcluded(previous => new Set([...previous, suggestion.suggestion_id]))}>제외</button></div></article>;
-            })}
-          </section>
-        </div>
-        {active && <section className="resume-selected" aria-label="선택한 문단 작업"><h4>선택한 문단으로 작업</h4><blockquote>{active.text}</blockquote><div className="resume-card-actions"><button type="button" className="spec-secondary" disabled={disabled || saved.has(`manual-${active.block_id}`)} onClick={() => review(active)}>{saved.has(`manual-${active.block_id}`) ? "이 문단 저장 완료" : "이 문단으로 직접 스펙 추가"}</button><button type="button" className="spec-text-button" disabled={disabled || scanning || !status?.ai_available} onClick={() => { setAiOpen(true); setAiText(redactContacts(active.text)); setAiConsent(false); setAiNotice(null); }}>역량을 못 찾겠어요 · AI 도움</button></div>{!status?.ai_available && <p className="spec-help">AI가 연결되지 않았어요. 직접 역량을 검색하고 추가할 수 있어요.</p>}
-          {aiOpen && <div className="resume-ai"><label>AI에 보낼 선택 구절<textarea value={aiText} maxLength={2000} rows={5} disabled={aiBusy || disabled} onChange={event => { setAiText(event.target.value); setAiConsent(false); }} /></label><p className="spec-help">이 구절만 {status?.ai_provider ?? "설정된 AI 서비스"}에 전송해요. 남은 개인정보·비공개 정보를 지워 주세요. 삭제한 내용은 원문 근거에서 제외돼요.</p><label className="spec-check"><input type="checkbox" checked={aiConsent} disabled={aiBusy || disabled} onChange={event => setAiConsent(event.target.checked)} />전송할 내용을 확인했고 AI 해석을 요청해요.</label><button type="button" className="spec-secondary" disabled={!aiConsent || !aiText.trim() || aiBusy || disabled} onClick={() => void interpret()}>{aiBusy ? "역량 제안 찾는 중…" : "이 구절만 AI로 해석"}</button></div>}
-          {aiNotice && <p className="spec-notice" role="status">{aiNotice}</p>}
-        </section>}
-        <p className="spec-source-note">O*NET® · USDOL/ETA · CC BY 4.0 · Jobtology 한국어 번역. 자격·점수 진위 및 NCS 동등성 미검증.</p>
-      </>}
+      <div className="resume-tabs resume-mobile-tabs" role="group" aria-label="이력서 검토 보기"><button type="button" aria-pressed={tab === "source"} onClick={() => setTab("source")}>원문</button><button type="button" aria-pressed={tab === "suggestions"} onClick={() => setTab("suggestions")}>제안 {suggestions.length}개</button></div>
+      <div className={`resume-workspace resume-workspace--${tab}`}>
+        <section className="resume-source" aria-label="추출한 원문"><h4>원문</h4>
+          {scan.preview_html && <div className="resume-document-view" hidden={preview !== "document"}><ResumeDocumentPreview html={scan.preview_html} blocks={scan.blocks} selected={previewBlock} suggestion={previewSuggestion} suggestions={suggestions} saved={saved} excluded={excluded} zoom={zoom} page={documentPage} onZoom={setZoom} onInfo={setDocumentInfo} onSelect={chooseFromDocument} /></div>}
+          <div className="resume-source-scroll" hidden={!!scan.preview_html && preview !== "text"}>{scan.blocks.map((block, index) => {
+            const isSelected = active?.block_id === block.block_id;
+            const entries = suggestions.filter(item => item.block_id === block.block_id);
+            const state = saved.has(`manual-${block.block_id}`) || entries.length && entries.every(item => saved.has(item.suggestion_id)) ? "added" : entries.length && entries.every(item => excluded.has(item.suggestion_id)) ? "excluded" : "pending";
+            const start = isSelected && activeSuggestion ? activeSuggestion.start : 0, end = isSelected && activeSuggestion ? activeSuggestion.end : Array.from(block.text).length;
+            return <button type="button" key={block.block_id} className={`resume-block${isSelected ? " resume-block--selected" : ""}`} data-review={state} aria-pressed={isSelected} aria-label={`원문 문단 ${index + 1} 선택`} onClick={() => chooseFromDocument(block)}><small>{block.page ? `${block.page}쪽 · ` : ""}문단 {index + 1}</small><span>{isSelected ? <>{pointSlice(block.text, 0, start)}<mark>{pointSlice(block.text, start, end)}</mark>{pointSlice(block.text, end)}</> : block.text}</span></button>;
+          })}</div>
+        </section>
+        <section ref={suggestionList} className="resume-suggestions" aria-label="스펙 제안"><h4>제안 <span>{suggestions.length}개</span><small>추가됨 <i className="resume-state-dot is-added" /> · 제외 <i className="resume-state-dot is-excluded" /></small></h4>
+          {!suggestions.length && <p className="spec-empty">연결할 역량을 찾지 못했어요. 원문을 선택해 직접 추가할 수 있어요.</p>}
+          {suggestions.map(suggestion => {
+            const block = scan.blocks.find(value => value.block_id === suggestion.block_id), complete = saved.has(suggestion.suggestion_id), dismissed = excluded.has(suggestion.suggestion_id);
+            const state = complete ? "added" : dismissed ? "excluded" : "pending";
+            return <article key={suggestion.suggestion_id} ref={node => { if (node) suggestionNodes.current.set(suggestion.suggestion_id, node); else suggestionNodes.current.delete(suggestion.suggestion_id); }} className={`resume-candidate${selectedSuggestion === suggestion.suggestion_id || !selectedSuggestion && selected === suggestion.block_id ? " resume-candidate--selected" : ""}`} data-review={state} onMouseEnter={() => setHovered(suggestion)} onMouseLeave={() => setHovered(null)} onFocus={() => setHovered(suggestion)} onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setHovered(null); }}>
+              <small>{SPEC_CATEGORIES.find(category => category.value === suggestion.category)?.label}<span className="resume-review-status">{complete ? "✓ 추가됨" : dismissed ? "− 제외됨" : "미검토"}</span></small><h5>{suggestion.title}</h5><blockquote>{suggestion.quote}</blockquote>
+              {!!Object.keys(suggestion.fields ?? {}).length && <dl className="resume-fields">{Object.entries(suggestion.fields ?? {}).map(([name, value]) => <div key={name}><dt>{RESUME_FIELDS[name] ?? name}</dt><dd>{value}</dd></div>)}</dl>}
+              {!!suggestion.competencies.length && <ul>{suggestion.competencies.map(item => <li key={item.entity_id}>{item.label} <small>{item.source === "ONET" ? "O*NET · NCS 등가 아님" : "NCS"}{existingCompetencyIds.includes(item.entity_id) ? " · 등록된 역량" : ""}</small></li>)}</ul>}
+              <div className="resume-card-actions"><button type="button" className="spec-primary" disabled={disabled || !block || complete} onClick={() => { if (block) { choose(block, suggestion); review(block, suggestion); } }}>검토하고 추가</button><button type="button" className="spec-secondary" aria-pressed={dismissed} disabled={disabled || complete} onClick={() => setExcluded(previous => { const next = new Set(previous); if (next.has(suggestion.suggestion_id)) next.delete(suggestion.suggestion_id); else next.add(suggestion.suggestion_id); return next; })}>제외</button></div>
+            </article>;
+          })}
+          {active && <section className="resume-selected" aria-label="선택한 문단 작업"><h4>문단 {scan.blocks.indexOf(active) + 1}</h4><p>{active.text}</p><div className="resume-card-actions"><button type="button" className="spec-secondary" disabled={disabled || saved.has(`manual-${active.block_id}`)} onClick={() => review(active)}>{saved.has(`manual-${active.block_id}`) ? "이 문단 저장 완료" : "이 문단으로 직접 스펙 추가"}</button><button type="button" className="spec-text-button" disabled={disabled || scanning || !status?.ai_available} onClick={() => { setAiOpen(true); setAiText(redactContacts(active.text)); setAiConsent(false); setAiNotice(null); }}>역량을 못 찾겠어요 · AI 도움</button></div>
+            {aiOpen && <div className="resume-ai"><label>AI에 보낼 선택 구절<textarea value={aiText} maxLength={2000} onChange={event => setAiText(event.target.value)} /></label><label className="spec-check"><input type="checkbox" checked={aiConsent} onChange={event => setAiConsent(event.target.checked)} />이 구절을 AI에 보내는 데 동의해요</label><button type="button" className="spec-secondary" disabled={!aiConsent || !aiText.trim() || aiBusy || disabled} onClick={() => void interpret()}>{aiBusy ? "해석 중…" : "이 구절만 AI로 해석"}</button>{aiNotice && <p className="spec-help" role="status">{aiNotice}</p>}</div>}
+          </section>}
+        </section>
+      </div>
+      <footer className="resume-dock">
+        <div className="resume-tabs" role="group" aria-label="원문 표시 방식"><button type="button" disabled={!scan.preview_html} aria-pressed={preview === "document" && !!scan.preview_html} onClick={() => { setPreview("document"); setTab("source"); }}>문서 미리보기</button><button type="button" aria-pressed={preview === "text" || !scan.preview_html} onClick={() => { setPreview("text"); setTab("source"); }}>텍스트 보기</button></div>
+        {scan.preview_html && <div className="resume-dock-document"><label><span className="spec-sr-only">문서 페이지</span><select aria-label="문서 페이지" value={documentPage} onChange={event => setDocumentPage(Number(event.target.value))}>{Array.from({ length: documentInfo.pages }, (_, index) => <option key={index} value={index + 1}>{index + 1} / {documentInfo.pages}쪽</option>)}</select></label><label><span className="spec-sr-only">문서 확대 비율</span><select aria-label="문서 확대 비율" value={zoom ?? "fit"} onChange={event => setZoom(event.target.value === "fit" ? null : Number(event.target.value))}><option value="fit">페이지 맞춤</option>{[...new Set([25, 50, 75, 100, 125, 150, 200, ...(zoom === null ? [] : [zoom])])].sort((a,b) => a-b).map(value => <option key={value} value={value}>{value}%</option>)}</select></label><small title="Ctrl + 스크롤로 확대 · 끌어서 이동">{documentInfo.zoom}% · Ctrl ⌘ ±</small></div>}
+        <span className="resume-review-count" role="status">{reviewed}/{suggestions.length} 검토 완료</span>
+        <div className="resume-dock-actions"><button type="button" className="spec-secondary" disabled={!uploadAllowed} onClick={() => input.current?.click()}>다른 파일</button><button type="button" className="spec-primary" disabled={disabled} onClick={onClose}>가져오기 끝내기</button></div>
+      </footer>
     </>}
   </section>;
 }

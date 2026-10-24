@@ -57,7 +57,8 @@ export function specDraft(item?: CapabilityDetailResponse | null, candidate?: Ch
 }
 export function specPayload(draft: SpecDraft): CapabilityWrite {
   const information = draft.category === "education" || draft.category === "other";
-  if (!information && !draft.proficiency) throw new Error("직접 수행한 수준을 선택해 주세요.");
+  const credential = draft.category === "certification" || draft.category === "test";
+  if (!information && !credential && !draft.proficiency) throw new Error("직접 수행한 수준을 선택해 주세요.");
   if (!draft.title.trim()) throw new Error("스펙 제목을 입력해 주세요.");
   if (draft.category === "certification" && !draft.issuer.trim()) throw new Error("자격증 발급 기관을 입력해 주세요.");
   if (draft.category === "test" && !draft.score.trim()) throw new Error("시험·어학 점수를 입력해 주세요.");
@@ -88,5 +89,5 @@ export function specPayload(draft: SpecDraft): CapabilityWrite {
     if (draft.category === "experience") details.organization = optional(draft.organization);
   }
   if (draft.category === "education") Object.assign(details, { school: optional(draft.school), degree: optional(draft.degree), major: optional(draft.major) });
-  return { category: draft.category, raw_text: draft.title.trim(), proficiency: information ? null : draft.proficiency || null, details };
+  return { category: draft.category, raw_text: draft.title.trim(), proficiency: information || credential ? null : draft.proficiency || null, details };
 }

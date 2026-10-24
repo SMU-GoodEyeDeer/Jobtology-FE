@@ -209,7 +209,6 @@ export function MyInfo() {
         </header>
 
         <main className="main-content">
-          <GoalManagement goals={goals} loading={goalsLoading} error={goalsError} refresh={refreshGoals} onProfileVersionChange={setProfileVersion} />
           {mutationNotice && <section className="mi-mutation-notice" aria-label="저장 결과">
             <p role="status">{mutationNotice}</p>
             <p className="mi-persistence-help">변경 후 다시 분석해 주세요. 진행 중인 로드맵은 자동으로 바뀌지 않아요.</p>
@@ -218,6 +217,8 @@ export function MyInfo() {
           </section>}
           <LoadingContent loading={goalsLoading || profileLoading}>
           <div className="mi-two-col">
+            <div className="mi-left-stack">
+              <GoalManagement goals={goals} loading={goalsLoading} error={goalsError} refresh={refreshGoals} onProfileVersionChange={setProfileVersion} />
 
             {/* 내 프로필 */}
             <div className="mi-profile-card">
@@ -294,10 +295,11 @@ export function MyInfo() {
               </button>
             </div>
 
+            </div>
             <div className="mi-spec-card">
               <SpecManager occupationId={goals.find(goal => goal.status === "ACTIVE")?.occupation_id} candidate={specCandidate}
                 disabled={savingProfile || reanalyzing} mutationLock={mutationInFlight} onBusyChange={setSpecBusy}
-                onCountChange={setCapabilityCount} onMutation={handleSpecMutation} />
+                onCountChange={setCapabilityCount} onMutation={handleSpecMutation} searchable />
             </div>
 
           </div>

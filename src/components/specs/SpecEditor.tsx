@@ -104,10 +104,11 @@ export function SpecEditor({ item, candidate, initialDraft, occupationId, busy, 
       <section className="spec-editor-section spec-editor-experience" aria-labelledby={`${id}-experience`}>
       <header className="spec-section-heading"><span>02</span><div><h3 id={`${id}-experience`}>{information ? "기록 내용" : "경험·근거"}</h3></div></header>
       <label>스펙 제목<input value={draft.title} required maxLength={500} onChange={event => change("title", event.target.value)} placeholder="예: Python 데이터 분석, 정보처리기사, 주문 API 프로젝트" /></label>
-      {!information && <label>직접 수행한 수준<select required value={draft.proficiency} onChange={event => change("proficiency", event.target.value as SpecDraft["proficiency"])}><option value="" disabled>직접 수행한 수준을 선택해 주세요</option>{PROFICIENCIES.map(value => <option key={value.value} value={value.value}>{value.label}</option>)}</select></label>}
+      {!information && !credential && <label>직접 수행한 수준<select required value={draft.proficiency} onChange={event => change("proficiency", event.target.value as SpecDraft["proficiency"])}><option value="" disabled>직접 수행한 수준을 선택해 주세요</option>{PROFICIENCIES.map(value => <option key={value.value} value={value.value}>{value.label}</option>)}</select></label>}
       {draft.category === "education" && <div className="spec-field-grid"><label>학교<input value={draft.school} maxLength={200} onChange={event => change("school", event.target.value)} /></label><label>전공<input value={draft.major} maxLength={200} onChange={event => change("major", event.target.value)} /></label><label>학위<input value={draft.degree} maxLength={200} onChange={event => change("degree", event.target.value)} /></label></div>}
       <label>수행 내용·근거<textarea value={draft.evidence} maxLength={2000} rows={4} onChange={event => change("evidence", event.target.value)} placeholder="직접 한 일, 사용한 방법, 결과를 구체적으로 적어 주세요." /></label>
-      <p className="spec-help spec-evidence-hint">{Array.from(draft.evidence.trim()).length}/2000자{!information && " · 분석 반영에는 목표와 연결된 역량·근거 20자 이상이 필요해요."}</p>
+      <p className="spec-help spec-evidence-hint">{Array.from(draft.evidence.trim()).length}/2000자{!information && !credential && " · 분석 반영에는 목표와 연결된 역량·근거 20자 이상이 필요해요."}</p>
+      {credential && <p className="spec-help">자격·점수를 기록해요. 수행 수준이나 역량 충족률에 자동 반영되지는 않아요.</p>}
       {credential && <div className="spec-field-grid">
         <label>발급·주관 기관<input value={draft.issuer} required={draft.category === "certification"} maxLength={200} onChange={event => change("issuer", event.target.value)} /></label>
         <label>자격·시험 코드<input value={draft.credential_code} maxLength={128} onChange={event => change("credential_code", event.target.value)} /></label>
@@ -127,7 +128,7 @@ export function SpecEditor({ item, candidate, initialDraft, occupationId, busy, 
         <label className="spec-check"><input type="checkbox" checked={draft.ongoing} onChange={event => change("ongoing", event.target.checked)} />현재 진행 중</label>
       </div>}
       <label>자료 링크 (선택)<input type="url" value={draft.url} maxLength={2000} onChange={event => change("url", event.target.value)} placeholder="https://" /></label>
-      {!information && <details className="spec-explainer"><summary>수행 수준과 분석 반영 기준</summary><p className="spec-help">수행 수준별 모델 반영 비율은 25%·50%·75%·100%이며, 검증된 실력이나 취업 확률은 아니에요. 같은 역량은 가장 높은 근거 하나만 반영하고, 역량 연결이나 근거가 없으면 반영하지 않아요.</p></details>}
+      {!information && !credential && <details className="spec-explainer"><summary>수행 수준과 분석 반영 기준</summary><p className="spec-help">수행 수준별 모델 반영 비율은 25%·50%·75%·100%이며, 검증된 실력이나 취업 확률은 아니에요. 같은 역량은 가장 높은 근거 하나만 반영하고, 역량 연결이나 근거가 없으면 반영하지 않아요.</p></details>}
       </section>
     </fieldset>
     {(validation || error) && <p className="spec-error" role="alert">{validation || error}</p>}

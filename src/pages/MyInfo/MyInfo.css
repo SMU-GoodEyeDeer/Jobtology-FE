@@ -510,3 +510,20 @@
   opacity: 0.5;
   cursor: default;
 }
+
+.mi-two-col { align-items: stretch; grid-template-columns: minmax(320px, 1fr) minmax(0, 1.25fr); }
+.mi-left-stack { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+.mi-left-stack .mi-goals-card { margin-bottom: 0; }
+.mi-spec-card { position: relative; min-height: 560px; }
+.mi-spec-card > .spec-manager { position: absolute; inset: 24px; display: flex; flex-direction: column; min-height: 0; }
+.mi-spec-card .spec-list { overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-gutter: stable; min-height: 0; grid-template-columns: minmax(0,1fr); padding: 0 3px 12px 0; margin-top: 14px; }
+.mi-spec-card .spec-manager-heading { flex-wrap: wrap; gap: 8px; flex: none; }
+.mi-spec-card .spec-manager h2 { font-size: 20px; }
+.mi-spec-card .spec-entry-actions { padding-bottom: 10px; }
+.spec-list-search { display: block; margin-top: 14px; }
+.spec-list-search input { width: 100%; box-sizing: border-box; padding: 9px 12px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-soft); color: var(--text); font: inherit; font-size: 12px; }
+@media (max-width: 1100px) {
+  .mi-two-col { grid-template-columns: minmax(0,1fr); }
+  .mi-spec-card { height: min(800px,85dvh); min-height: 480px; }
+}
+@media (max-width: 600px) { .mi-spec-card > .spec-manager { inset: 16px; } }

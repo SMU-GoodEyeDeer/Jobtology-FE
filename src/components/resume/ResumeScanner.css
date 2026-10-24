@@ -1,74 +1,94 @@
-.resume-scanner { container: resume / inline-size; margin: 18px 0; padding: 20px; border: 1px solid var(--accent-border); border-radius: 14px; background: var(--surface-soft); font-size: 13px; min-width: 0; }
-.resume-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
-.resume-heading h3 { margin: 0; font-size: 17px; color: var(--text); }
-.resume-upload { padding: 16px; border: 1px dashed var(--accent-border); border-radius: 10px; background: var(--surface); }
-.resume-upload label, .resume-ai > label { display: grid; gap: 10px; font-weight: 600; font-size: 12px; }
-.resume-upload input { width: 100%; min-width: 0; max-width: 100%; font: inherit; }
-.resume-upload input::file-selector-button { padding: 9px 12px; border: 1px solid var(--border); border-radius: 6px; margin-right: 10px; background: var(--surface-soft); color: var(--text-secondary); cursor: pointer; }
-.resume-progress { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 16px 0; color: var(--accent-strong); }
-.resume-warnings { margin: 16px 0; padding: 12px 12px 12px 28px; background: var(--warning-bg); color: var(--warning-text); border-radius: 8px; font-size: 12px; line-height: 1.8; }
-.resume-workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; margin-top: 20px; }
-.resume-workspace h4, .resume-selected h4 { margin: 0 0 8px; font-size: 13px; }
-.resume-source, .resume-suggestions { min-width: 0; padding: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
-.resume-source-scroll, .resume-suggestions { max-height: 560px; overflow-y: auto; scrollbar-width: thin; scrollbar-gutter: stable; }
-.resume-source-scroll { padding: 3px; }
-.resume-block { display: block; width: 100%; padding: 12px; margin: 0 0 8px; border: 1px solid var(--border); background: var(--surface); border-radius: 8px; text-align: left; font: inherit; color: var(--text-secondary); line-height: 1.8; transition: border-color .18s, box-shadow .18s, background-color .18s; }
-.resume-block small { display: block; font-size: 10px; margin-bottom: 5px; color: var(--muted); }
-.resume-block span { white-space: pre-wrap; overflow-wrap: anywhere; }
-.resume-block--selected { border-color: var(--accent-focus); box-shadow: inset 3px 0 var(--accent-focus); background: var(--surface-soft); }
-.resume-block mark { background: var(--accent-tint); color: var(--text); border-radius: 2px; }
-.resume-candidate { padding: 12px; margin: 12px 0 0; border: 1px solid var(--border); border-radius: 8px; transition: border-color .18s, background-color .18s; }
-.resume-candidate--selected { border-color: var(--accent-focus); }
-.resume-candidate small { color: var(--muted); font-size: 10px; }
-.resume-candidate h5 { font-size: 14px; margin: 7px 0; overflow-wrap: anywhere; }
-.resume-candidate blockquote, .resume-selected blockquote, .spec-import-evidence blockquote { margin: 8px 0; padding: 8px 10px; border-left: 2px solid var(--accent-border); background: var(--surface-soft); color: var(--text-secondary); font-size: 12px; line-height: 1.8; white-space: pre-wrap; overflow-wrap: anywhere; }
-.resume-candidate ul { padding-left: 16px; font-size: 12px; line-height: 1.8; }
+.resume-scanner { container: resume / inline-size; min-width: 0; color: var(--text); }
+.resume-heading { display: flex; flex: none; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.resume-heading h3 { margin: 0; color: var(--text-secondary); font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; outline: none; }
+.resume-privacy { margin: 0 0 12px; flex: none; }
+.resume-privacy[open] { max-height: 140px; overflow: auto; }
+.resume-upload { padding: 24px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface-soft); }
+.resume-import-modes { display: flex; gap: 8px; margin-bottom: 20px; }
+.resume-import-modes button, .resume-tabs button { border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; background: var(--surface); color: var(--text-secondary); font: inherit; font-size: 12px; transition: background-color .16s, color .16s, border-color .16s; }
+.resume-import-modes button[aria-pressed="true"], .resume-tabs button[aria-pressed="true"] { border-color: var(--accent-border); background: var(--accent-tint); color: var(--accent-strong); }
+.resume-bulk-consent { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 18px; color: var(--text-secondary); font-size: 13px; line-height: 1.7; }
+.resume-bulk-consent input { flex: none; margin-top: 4px; }
+.resume-dropzone { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; min-height: 220px; padding: 20px; border: 1px dashed var(--accent-border); border-radius: 12px; background: var(--surface); text-align: center; transition: background .18s, border-color .18s, box-shadow .18s; }
+.resume-dropzone[aria-disabled="true"] { opacity: .65; }
+.resume-dropzone.is-dragging { background: var(--accent-tint); border-color: var(--accent-focus); box-shadow: inset 0 0 0 2px var(--accent-border); }
+.resume-upload-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px; background: var(--accent-tint); color: var(--accent); font-size: 28px; }
+.resume-dropzone strong { font-size: 14px; font-weight: 550; }
+.resume-dropzone .spec-help { margin: 0; }
+.resume-progress { display: flex; flex: none; align-items: center; flex-wrap: wrap; gap: 10px; padding: 10px 12px; border: 1px solid var(--accent-border); border-radius: 10px; color: var(--text-secondary); font-size: 12px; margin-bottom: 10px; }
+.resume-progress progress { width: 120px; height: 7px; accent-color: var(--accent-solid); }
+.resume-progress button { margin-left: auto; border: 0; background: none; color: var(--accent); font: inherit; }
+.resume-analysis-notice { flex: none; margin: 0 0 10px; padding: 8px 12px; }
+.resume-scanner--review { display: flex; flex-direction: column; flex: 1; min-height: 0; height: 100%; }
+.spec-dialog-content[data-view="resume"] { display: flex; flex-direction: column; padding: 18px 24px 0; overflow: hidden; scrollbar-gutter: auto; }
+.spec-dialog-content[data-view="resume"] > div:not([hidden]) { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+.resume-workspace { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(280px, 1fr); gap: 16px; flex: 1; min-height: 0; }
+.resume-source, .resume-suggestions { box-sizing: border-box; min-width: 0; min-height: 0; margin: 0; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); }
+.resume-source { display: flex; flex-direction: column; overflow: hidden; }
+.resume-source > h4, .resume-suggestions > h4 { display: flex; align-items: center; gap: 6px; margin: 0; padding: 12px 16px; font-size: 12px; font-weight: 600; color: var(--text-secondary); border-bottom: 1px solid var(--border-soft); }
+.resume-suggestions { overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-gutter: stable; padding: 0 12px 12px; scroll-padding-top: 52px; }
+.resume-suggestions > h4 { position: sticky; top: 0; z-index: 1; margin: 0 -12px 12px; background: var(--surface); }
+.resume-suggestions > h4 span { color: var(--muted); font-weight: 400; }
+.resume-suggestions > h4 small { margin-left: auto; color: var(--muted); font-size: 10px; font-weight: 400; }
+.resume-state-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; }
+.resume-state-dot.is-added { background: var(--success-text); }
+.resume-state-dot.is-excluded { background: var(--danger-text); }
+.resume-document-view, .resume-preview-document { position: relative; display: flex; flex: 1; min-height: 0; }
+.resume-document-frame { display: block; width: 100%; height: 100%; flex: 1; min-height: 0; border: 0; background: var(--surface-soft); }
+.resume-anchor-note { position: absolute; bottom: 8px; left: 12px; right: 12px; margin: 0; background: var(--surface); color: var(--muted); padding: 8px; border-radius: 8px; font-size: 10px; text-align: center; }
+.resume-source-scroll { min-height: 0; overflow-y: auto; scrollbar-width: thin; padding: 12px; }
+.resume-block { display: block; width: 100%; box-sizing: border-box; padding: 12px; margin: 0 0 8px; border: 1px solid var(--border-soft); border-radius: 10px; background: var(--surface); color: var(--text-secondary); font: inherit; text-align: left; transition: background .18s, border-color .18s; }
+.resume-block small { display: block; margin-bottom: 6px; color: var(--muted); font-size: 10px; }
+.resume-block span { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; line-height: 1.8; }
+.resume-block mark { background: var(--accent-tint); color: inherit; }
+.resume-block--selected { border-color: var(--accent-border); }
+.resume-candidate { border: 1px solid var(--border); border-radius: 11px; padding: 14px; margin-bottom: 12px; transition: border-color .18s, background-color .18s, box-shadow .18s; animation: spec-content-in .18s ease-out; }
+.resume-candidate--selected, .resume-candidate:hover { border-color: var(--accent-border); box-shadow: 0 0 0 1px var(--accent-border); }
+.resume-candidate > small { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 10px; }
+.resume-candidate h5 { margin: 10px 0; color: var(--text); font-size: 14px; line-height: 1.5; }
+.resume-candidate blockquote { margin: 0 0 10px; padding: 10px 12px; border-radius: 8px; background: var(--surface-soft); color: var(--text-secondary); font-size: 12px; line-height: 1.8; white-space: pre-wrap; overflow-wrap: anywhere; }
+.resume-candidate ul { margin: 8px 0; padding-left: 16px; color: var(--text-secondary); font-size: 11px; line-height: 1.7; }
+.resume-candidate li small { color: var(--muted); }
+.resume-candidate[data-review="added"], .resume-block[data-review="added"] { border-color: var(--success-border); background: var(--success-bg); }
+.resume-candidate[data-review="excluded"], .resume-block[data-review="excluded"] { border-color: var(--danger-border); background: var(--danger-bg); }
+.resume-candidate[data-review="added"] .resume-review-status { color: var(--success-text); }
+.resume-candidate[data-review="excluded"] .resume-review-status { color: var(--danger-text); }
 .resume-card-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
-.resume-card-actions button { font-size: 11px; padding: 7px 9px; }
-.resume-selected { padding: 16px; background: var(--surface); border: 1px solid var(--accent-border); border-radius: 10px; margin-top: 16px; }
-.resume-ai { margin-top: 16px; padding: 14px; background: var(--accent-tint); border-radius: 8px; }
-.resume-ai textarea { box-sizing: border-box; width: 100%; border: 1px solid var(--border); border-radius: 6px; padding: 10px; font: inherit; font-weight: 400; line-height: 1.8; resize: vertical; }
-.resume-ai .spec-check { display: flex; align-items: center; gap: 8px; margin: 12px 0; line-height: 1.7; font-weight: 400; }
-.resume-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
-.resume-scanner > .resume-tabs { margin-top: 16px; }
-.resume-tabs button { border: 1px solid var(--border); border-radius: 7px; padding: 8px 12px; background: var(--surface); color: var(--text-secondary); font: inherit; font-size: 12px; }
-.resume-tabs button[aria-pressed="true"] { background: var(--accent-solid); border-color: var(--accent-solid); color: var(--on-accent); }
-.spec-import-evidence { padding: 12px; background: var(--surface); border: 1px solid var(--accent-border); border-radius: 8px; margin-bottom: 16px; font-size: 12px; }
-.resume-ai, .resume-candidate, .resume-progress { animation: spec-content-in .18s ease-out; }
-.resume-workspace--source .resume-source { animation: spec-editor-in .18s ease-out; }
-.resume-workspace--suggestions .resume-suggestions { animation: spec-resume-in .18s ease-out; }
-.resume-tabs button { transition: background-color .16s, color .16s, border-color .16s; }
-.resume-ai textarea { transition: border-color .18s, box-shadow .18s; }
-@container resume (max-width: 640px) {
-  .resume-heading { flex-wrap: wrap; }
-  .resume-workspace { display: block; margin-top: 0; }
-  .resume-workspace--source .resume-suggestions, .resume-workspace--suggestions .resume-source { display: none; }
-  .resume-source-scroll, .resume-suggestions { max-height: 430px; }
-}
-@media (max-width: 800px) { .resume-scanner { padding: 12px; } }
-.resume-privacy { margin: 10px 0 20px; background: var(--surface); }
-.spec-dialog .resume-scanner { margin: 0; padding: 0; border: 0; background: none; }
-.spec-dialog .resume-heading h3 { font-size: 15px; }
-.spec-dialog .resume-upload { padding: 24px; border-color: var(--accent-border); background: var(--surface-soft); border-radius: 14px; }
-.spec-dialog .resume-source, .spec-dialog .resume-suggestions { padding: 20px; border-radius: 14px; }
-.spec-dialog .resume-candidate { padding: 16px; }
-.spec-dialog .resume-workspace { gap: 22px; }
-.spec-dialog .resume-source-scroll, .spec-dialog .resume-suggestions { max-height: 480px; }
-@container resume (min-width: 641px) { .spec-dialog .resume-scanner > .resume-tabs { display: none; } }
-@media (max-width: 640px) {
-  .spec-dialog .resume-upload, .spec-dialog .resume-source, .spec-dialog .resume-suggestions { padding: 16px; }
-  .spec-dialog .resume-card-actions button { white-space: normal; }
-}
-.resume-upload .resume-bulk-consent { display: flex; align-items: flex-start; gap: 10px; line-height: 1.7; font-weight: 600; color: var(--text); }
-.resume-upload .resume-bulk-consent input { width: 16px; min-width: 16px; height: 16px; margin: 3px 0 0; accent-color: var(--accent-solid); }
-.resume-progress progress { width: 140px; max-width: 100%; height: 7px; accent-color: var(--accent-solid); }
-.resume-document-frame { display: block; width: 100%; height: 510px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
-.resume-preview-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin: 12px 0; color: var(--muted); font-size: 11px; }
-.resume-preview-toolbar label { display: flex; align-items: center; gap: 8px; }
-.resume-preview-toolbar select { padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); font: inherit; }
-.resume-fields { display: grid; gap: 6px; margin: 12px 0; font-size: 12px; line-height: 1.6; }
-.resume-fields > div { display: grid; grid-template-columns: minmax(65px, auto) minmax(0, 1fr); column-gap: 12px; }
+.resume-card-actions button { font-size: 11px; padding: 7px 10px; }
+.resume-card-actions button[aria-pressed="true"] { color: var(--danger-text); border-color: var(--danger-border); }
+.resume-selected { padding: 12px; border-radius: 10px; background: var(--surface-soft); border: 1px solid var(--border-soft); }
+.resume-selected h4 { margin: 0; font-size: 11px; color: var(--muted); }
+.resume-selected > p { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin: 8px 0; color: var(--text-secondary); font-size: 11px; line-height: 1.7; }
+.resume-ai { margin-top: 12px; font-size: 12px; }
+.resume-ai textarea { box-sizing: border-box; width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 10px; background: var(--surface); color: var(--text); font: inherit; line-height: 1.7; resize: vertical; min-height: 100px; }
+.resume-ai .spec-check { display: flex; align-items: center; gap: 8px; margin: 10px 0; line-height: 1.7; }
+.resume-tabs { display: flex; flex: none; gap: 4px; }
+.resume-mobile-tabs { display: none; margin-bottom: 10px; }
+.resume-dock { display: flex; flex: none; align-items: center; flex-wrap: wrap; gap: 8px 16px; margin: 16px -24px 0; padding: 12px 24px; border-top: 1px solid var(--border); background: var(--surface); box-shadow: 0 -8px 24px #101b3208; }
+.resume-dock-document { display: flex; align-items: center; gap: 6px; }
+.resume-dock select { padding: 7px 6px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface); color: var(--text-secondary); font: inherit; font-size: 11px; }
+.resume-dock-document small { color: var(--muted); font-size: 10px; }
+.resume-review-count { color: var(--text-secondary); font-size: 11px; font-variant-numeric: tabular-nums; }
+.resume-dock-actions { display: flex; gap: 8px; margin-left: auto; }
+.resume-dock-actions button { font-size: 12px; padding: 9px 12px; }
+.resume-fields { display: grid; gap: 5px; margin: 10px 0; font-size: 11px; line-height: 1.6; }
+.resume-fields > div { display: grid; grid-template-columns: minmax(65px, auto) minmax(0, 1fr); gap: 8px; }
 .resume-fields dt { color: var(--muted); }
 .resume-fields dd { margin: 0; color: var(--text-secondary); overflow-wrap: anywhere; white-space: pre-wrap; }
-@container resume (max-width: 640px) { .resume-document-frame { height: 410px; } }
-@media (prefers-reduced-motion: reduce) { .resume-candidate, .resume-progress { animation: none; } }
+.spec-import-evidence { padding: 12px; background: var(--surface-soft); border: 1px solid var(--accent-border); border-radius: 10px; margin-bottom: 16px; font-size: 12px; }
+@container resume (max-width: 640px) {
+  .resume-mobile-tabs { display: flex; }
+  .resume-workspace { grid-template-columns: minmax(0,1fr); }
+  .resume-workspace--source .resume-suggestions, .resume-workspace--suggestions .resume-source { display: none; }
+  .resume-dock-document small { display: none; }
+  .resume-upload { padding: 16px; }
+}
+@media (max-width: 640px) {
+  .spec-dialog-content[data-view="resume"] { padding: 12px 12px 0; }
+  .resume-dock { margin-inline: -12px; padding: 10px 12px max(10px, env(safe-area-inset-bottom)); gap: 8px; }
+  .resume-dock .resume-tabs button { padding: 7px; font-size: 11px; }
+  .resume-dock-actions { margin-left: auto; }
+  .resume-dock-actions button { font-size: 11px; padding: 8px; }
+}
+.resume-scanner [hidden] { display: none !important; }
+@media (prefers-reduced-motion: reduce) { .resume-scanner *, .resume-scanner *::before { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }

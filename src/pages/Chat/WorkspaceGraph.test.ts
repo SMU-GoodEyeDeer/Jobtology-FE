@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, createElement, forwardRef, useEffect, useImperativeHandle } from "react";
+import { StrictMode, act, createElement, forwardRef, useEffect, useImperativeHandle } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { EvidenceBasis, WorkspaceGraph as Graph, WorkspaceKind } from "../../services/chatWorkspace";
@@ -10,7 +10,7 @@ vi.mock("@neo4j-nvl/react", () => ({ InteractiveNvlWrapper: forwardRef((props: R
   native.props = props;
   useImperativeHandle(ref, () => ({ fit: native.fit, getScale: () => .5, setZoom: vi.fn() }));
   useEffect(() => { props.nvlCallbacks.onInitialization(); }, []);
-  return createElement("div", { "data-native-graph": true });
+  return createElement("div", { "data-native-graph": true, ref: (element: HTMLDivElement | null) => { if (element) element.replaceChildren(...props.nodes.map((node: {html:HTMLElement}) => node.html.cloneNode(true))); } });
 }) }));
 const graph: Graph = { nodes: [{ id: "a", kind: "technology", label: "SQL", basis: "REFERENCE" },
   { id: "b", kind: "capability", label: "내 경험", basis: "USER_REPORTED" }], edges: [], truncated: false };
@@ -84,4 +84,18 @@ describe("native graph view behavior", () => {
     expect(technology.getAttribute("aria-pressed")).toBe("false");
     expect(dimmed("a")).toBe("false"); expect(dimmed("b")).toBe("false");
   });
+});
+
+it("declutters rendered native label copies while preserving selected labels and popup anchors", async () => {
+  const boxes = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({ x:20,y:20,left:20,top:20,right:140,bottom:40,width:120,height:20,toJSON:()=>({}) });
+  vi.stubGlobal("requestAnimationFrame", (callback:FrameRequestCallback) => setTimeout(() => callback(0),0));
+  vi.stubGlobal("cancelAnimationFrame", (id:number) => clearTimeout(id));
+  const anchor=vi.fn();
+  await act(async()=>{root.render(createElement(StrictMode,null,createElement(WorkspaceGraph,{graph,selected:"b",onSelect:vi.fn(),onAnchor:anchor,highlighted:new Set<string>(),highlightedEdges:new Set<string>(),kinds:[],focus:{ids:[],revision:0},reset:0})));});
+  await act(async()=>{await new Promise(resolve=>setTimeout(resolve,10));});
+  expect(host.querySelector('[data-workspace-node-id="b"]')?.getAttribute("data-cluttered")).toBe("false");
+  expect(host.querySelector('[data-workspace-node-id="a"]')?.getAttribute("data-cluttered")).toBe("true");
+  expect(anchor).toHaveBeenCalledWith(expect.objectContaining({x:60}));
+  expect(native.props.nodes[0].html.isConnected).toBe(false);
+  boxes.mockRestore();
 });

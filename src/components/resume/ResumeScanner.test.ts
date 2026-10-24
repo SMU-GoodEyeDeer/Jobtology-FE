@@ -18,11 +18,12 @@ async function upload(filename = "resume.docx") {
 }
 beforeEach(async () => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-  vi.clearAllMocks();
+  vi.resetAllMocks();
   api.status.mockResolvedValue({ formats: ["docx", "pdf"], max_bytes: 10 * 1024 * 1024, max_pdf_pages: 20, ai_max_pdf_pages: 3, parse_timeout_seconds: 60, ai_available: true, ai_provider: "OpenAI" });
   api.scan.mockResolvedValue(structuredClone(result)); api.interpret.mockResolvedValue({ suggestions: [], rejected_count: 0 });
   container = document.createElement("div"); document.body.append(container); root = createRoot(container);
   await act(async () => root.render(createElement(ResumeScanner, { onReview: review, onClose: close, existingCompetencyIds: [], occupationId: "BACKEND" })));
+  await click("AI 없이 직접 검토");
 });
 afterEach(async () => { await act(async () => root.unmount()); container.remove(); });
 it("shows the page limit for the selected scan or AI upload mode", async () => {
@@ -30,6 +31,7 @@ it("shows the page limit for the selected scan or AI upload mode", async () => {
   api.scan.mockRejectedValueOnce(error); api.analyze.mockRejectedValueOnce(error);
   expect(container.textContent).toContain("PDF 최대 20쪽");
   await upload("resume.pdf"); expect(container.querySelector('[role="alert"]')?.textContent).toContain("20쪽");
+  await click("AI로 항목 찾기");
   await act(async () => container.querySelector<HTMLInputElement>('.resume-bulk-consent input')!.click());
   await upload("resume.pdf"); expect(container.querySelector('[role="alert"]')?.textContent).toContain("3쪽");
   expect(container.textContent).not.toContain("PDF 최대 20쪽");
@@ -40,10 +42,10 @@ it("scans without AI, highlights source and opens a draft with no inferred level
   expect(container.querySelector(".resume-warnings")).toBeNull();
   expect(container.querySelector<HTMLDetailsElement>(".resume-privacy")?.open).toBe(false);
   expect(container.querySelector(".resume-privacy")?.textContent).toContain("원본과 다를 수 있어요");
-  await click("원문 근거 보기"); expect(container.querySelector("mark")?.textContent).toBe(text);
+  expect(container.querySelector("mark")?.textContent).toBe(text);
   await click("검토하고 추가");
   expect(review.mock.calls[0][0]).toMatchObject({ proficiency: "", source: "DOCUMENT_IMPORT", category: "project", evidence: text });
-  await act(async () => review.mock.calls[0][1]()); expect(button("저장 완료").disabled).toBe(true);
+  await act(async () => review.mock.calls[0][1]()); expect(container.querySelector('.resume-candidate[data-review="added"] button')?.hasAttribute("disabled")).toBe(true);
 });
 it("requires explicit consent before transmitting only the reviewed passage", async () => {
   await upload(); await click("역량을 못 찾겠어요 · AI 도움");
@@ -58,8 +60,8 @@ it("renders hostile document content as text and explains partially unreadable P
   const hostile = '<img src=x onerror="alert(1)"><script>window.bad=true</script>';
   api.scan.mockResolvedValue({ ...result, suggestions: [], blocks: [{ ...result.blocks[0], text: hostile }], warnings: ["EXTRACTED_TEXT_REVIEW", "OCR_REQUIRED"], skipped_pages: [2] });
   await upload(); expect(container.textContent).toContain(hostile); expect(container.querySelector("img,script")).toBeNull();
-  expect(container.querySelector(".resume-warnings")?.textContent).toContain("OCR 미지원");
-  expect(container.querySelector(".resume-warnings")?.textContent).not.toContain("원본과 다를 수 있어요");
+  expect(container.querySelector(".resume-privacy")?.textContent).toContain("OCR 미지원");
+  expect(container.querySelector(".resume-privacy")?.textContent).toContain("원본과 다를 수 있어요");
   expect(container.textContent).toContain("읽지 못한 페이지: 2"); await click("이 문단으로 직접 스펙 추가"); expect(review.mock.calls[0][0].selected).toEqual([]);
 });
 it("ignores a late scan response after cancellation", async () => {
@@ -77,6 +79,7 @@ it("shows AI quota failures without losing direct review", async () => {
 it("requires document consent and a PDF, then streams multiple independently reviewable entries", async () => {
   let emit!: (event: ResumeAnalysisEvent) => void, finish!: () => void;
   api.analyze.mockImplementation((_file, _occupation, callback) => { emit = callback; return new Promise<void>(resolve => { finish = resolve; }); });
+  await click("AI로 항목 찾기");
   await act(async () => container.querySelector<HTMLInputElement>('.resume-bulk-consent input')!.click());
   expect(container.querySelector<HTMLInputElement>('input[type="file"]')!.accept).toBe(".pdf");
   await upload(); expect(api.analyze).not.toHaveBeenCalled(); expect(container.textContent).toContain("PDF만 지원");
@@ -93,13 +96,14 @@ it("requires document consent and a PDF, then streams multiple independently rev
     emit({ type: "done", completed: 2, total: 2, failed: 0, rejected_count: 0, omitted_count: 0, timed_out: false }); finish();
   });
   expect(container.querySelectorAll(".resume-candidate")).toHaveLength(2);
-  expect(button("저장 완료").disabled).toBe(true);
-  await click("검토하고 추가"); expect(review).toHaveBeenCalledTimes(2);
+  expect(container.querySelector('.resume-candidate[data-review="added"] button')?.hasAttribute("disabled")).toBe(true);
+  await act(async () => [...container.querySelectorAll<HTMLButtonElement>(".resume-candidate button")].find(node => node.textContent === "검토하고 추가" && !node.disabled)!.click()); expect(review).toHaveBeenCalledTimes(2);
   expect(review.mock.calls[1][0]).toMatchObject({ category: "education", proficiency: "", selected: [] });
 });
 it("keeps streamed suggestions on cancellation and ignores late results", async () => {
   let emit!: (event: ResumeAnalysisEvent) => void, finish!: () => void;
   api.analyze.mockImplementation((_file, _occupation, callback) => { emit = callback; return new Promise<void>(resolve => { finish = resolve; }); });
+  await click("AI로 항목 찾기");
   await act(async () => container.querySelector<HTMLInputElement>('.resume-bulk-consent input')!.click());
   await upload("resume.pdf");
   await act(async () => { emit({ type: "scan", scan: result }); });
@@ -107,4 +111,27 @@ it("keeps streamed suggestions on cancellation and ignores late results", async 
   await act(async () => { emit({ type: "paragraph", block_id: result.blocks[0].block_id, completed: 1, total: 1, suggestions: [{ ...result.suggestions[0], suggestion_id: "late" }], error_code: null, rejected_count: 0 }); finish(); });
   expect(container.querySelectorAll(".resume-candidate")).toHaveLength(1);
   expect(container.textContent).toContain("도착한 제안은 검토할 수 있어요");
+});
+it("gates both the file picker and dropped files on AI consent, then opens the chooser on agreement", async () => {
+  await click("AI로 항목 찾기");
+  const input = container.querySelector<HTMLInputElement>('input[type="file"]')!;
+  expect(input.disabled).toBe(true); expect(button("파일 선택").disabled).toBe(true);
+  const dropped = new Event("drop", { bubbles: true, cancelable: true });
+  Object.defineProperty(dropped, "dataTransfer", { value: { files: [new File(["pdf"], "resume.pdf")] } });
+  await act(async () => container.querySelector(".resume-dropzone")!.dispatchEvent(dropped));
+  expect(api.scan).not.toHaveBeenCalled(); expect(api.analyze).not.toHaveBeenCalled();
+  const picker = vi.spyOn(input, "click").mockImplementation(() => {});
+  await act(async () => container.querySelector<HTMLInputElement>(".resume-bulk-consent input")!.click());
+  expect(picker).toHaveBeenCalledOnce(); expect(input.disabled).toBe(false); picker.mockRestore();
+});
+it("accepts a dropped document and keeps excluded and added suggestions visible with review status", async () => {
+  const dropped = new Event("drop", { bubbles: true, cancelable: true });
+  Object.defineProperty(dropped, "dataTransfer", { value: { files: [new File(["test"], "resume.docx")] } });
+  await act(async () => container.querySelector(".resume-dropzone")!.dispatchEvent(dropped));
+  expect(api.scan).toHaveBeenCalledOnce(); expect(container.querySelector(".resume-upload")).toBeNull();
+  await click("제외"); expect(container.querySelector('.resume-candidate[data-review="excluded"]')).not.toBeNull(); expect(container.textContent).toContain("1/1 검토 완료");
+  await click("제외"); expect(container.querySelector('.resume-candidate[data-review="pending"]')).not.toBeNull();
+  await click("검토하고 추가"); await act(async () => review.mock.calls[0][1]());
+  expect(container.querySelector('.resume-candidate[data-review="added"]')).not.toBeNull(); expect(container.textContent).toContain("1/1 검토 완료");
+  expect(container.querySelector(".resume-dock")?.textContent).toContain("다른 파일"); expect(container.textContent).not.toContain("원문 근거 보기");
 });

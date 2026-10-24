@@ -15,7 +15,7 @@
 .spec-text-button { border: 0; background: none; color: var(--accent-strong); font-size: 12px; padding: 8px 0; text-align: left; text-decoration: underline; text-underline-offset: 3px; }
 .spec-help, .spec-source-note { color: var(--muted); font-size: 12px; line-height: 1.8; margin: 8px 0; }
 .spec-source-note { font-size: 11px; }
-.spec-entry-actions { display: flex; gap: 8px; flex-wrap: wrap; padding-top: 8px; }
+.spec-entry-actions { display: flex; gap: 8px; flex-wrap: wrap; padding: 8px 0 18px; }
 .spec-explainer { padding: 12px 14px; border-radius: 10px; background: var(--surface-soft); font-size: 12px; color: var(--muted); line-height: 1.7; }
 .spec-explainer summary, .spec-item-detail > summary { cursor: pointer; font-weight: 500; }
 .spec-explainer[open] summary { color: var(--text-secondary); }
@@ -46,7 +46,9 @@
 .spec-fields input::placeholder, .spec-fields textarea::placeholder { color: var(--tertiary); }
 .spec-fields :disabled { opacity: .65; }
 .spec-manager :focus-visible { outline: 2px solid var(--accent-focus); outline-offset: 3px; }
-.spec-picker { padding: 0; }
+.spec-picker { padding: 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-soft); }
+.spec-picker > label:first-of-type { font-weight: 650; color: var(--text); }
+.spec-picker > input[type="search"] { background: var(--surface); border-color: var(--accent-border); }
 .spec-picker > label { margin-bottom: 8px; }
 .spec-fields .spec-check { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 12px; }
 .spec-check input, .spec-skill-option input { accent-color: var(--accent-solid); flex: none; width: 15px; height: 15px; }

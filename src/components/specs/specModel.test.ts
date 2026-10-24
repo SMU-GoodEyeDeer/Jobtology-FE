@@ -52,3 +52,6 @@ describe("structured spec payloads", () => {
     expect(specPayload({ ...draft, selected: draft.selected.filter(value => !value.unavailable) }).details.competency_ids).toEqual(["ncs:known"]);
   });
 });
+it.each(["certification", "test"] as const)("saves %s without inventing a performance level", category => {
+  expect(specPayload({ ...specDraft(), category, title: "자격·시험 기록", proficiency: "", issuer: "주관 기관", score: "900" }).proficiency).toBeNull();
+});
