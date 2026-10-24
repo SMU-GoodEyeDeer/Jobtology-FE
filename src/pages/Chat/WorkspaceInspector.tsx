@@ -60,7 +60,7 @@ export function WorkspaceInspector({ node, graph, onClose, onExpand, busy, onAsk
     {node.source_id && !fields.some(([key, value]) => key === "source_id" && value != null) && <p className="workspace-provenance">출처: {node.source_id}</p>}
     {node.source_pin && <details><summary>출처 버전</summary><code>{node.source_pin}</code></details>}
     {node.sourceMetadata && <GraphEvidenceMetadata node={node.sourceMetadata} edges={graph.edges.flatMap(e => e.sourceMetadata && (e.source === node.id || e.target === node.id) ? [e.sourceMetadata] : [])} />}
-    {node.kind === "posting_evidence" && node.occupation_code && <PostingEvidence occupation={node.occupation_code} />}
+    {node.kind === "posting_evidence" && <PostingEvidence occupation={node.occupation_code} />}
     {node.basis === "METADATA_INFERRED" && <p className="workspace-note">공고 분류로 추정한 관계예요. 검토된 요구 역량이나 역량 충족을 의미하지 않아요.</p>}
     {node.kind === "onet_occupation" || node.kind === "onet_skill" ? <p className="workspace-note">O*NET 참고 자료는 NCS 역량과 자동으로 동등하게 처리하지 않아요.</p> : null}
     {node.qualification_code && <QualificationCard qualification={{ code: node.qualification_code, name: node.label }} />}

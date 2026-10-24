@@ -8,6 +8,15 @@ import { formatPostingDateTime } from "../../services/resourcesApi";
 import { WorkspaceInspector } from "./WorkspaceInspector";
 
 describe("workspace inspector dates", () => {
+  it("shows posting guidance and a search link when the group has no occupation code", () => {
+    const node = { id: "posting-search:sample", kind: "posting_evidence" as const, label: "공고 검색", basis: "APPLICATION_CONTEXT_SELECTION" as const };
+    const markup = renderToStaticMarkup(createElement(MemoryRouter, null, createElement(WorkspaceInspector, {
+      node, graph: emptyGraph(), onClose: vi.fn(), onExpand: vi.fn(), onAsk: vi.fn(), busy: false,
+    })));
+    const host = document.createElement("div"); host.innerHTML = markup;
+    expect(host.textContent).toContain("이 연결에는 조회할 직무 코드가 제공되지 않았어요.");
+    expect([...host.querySelectorAll("a")].find(a => a.textContent === "채용공고에서 검색하기 →")?.getAttribute("href")).toBe("/postings");
+  });
   it("shows Korean posting metadata and keeps closed status separate from association freshness", () => {
     const node = { id: "posting:sample", kind: "posting" as const, label: "개발자", basis: "REFERENCE" as const,
       source_id: "jobkorea", detail: JSON.stringify({ source_id: "jobkorea", source_status: "CLOSED", closing_date: "2026-10-01", regions: ["서울", "경기"], ongoing: false }) };

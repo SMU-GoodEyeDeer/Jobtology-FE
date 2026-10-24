@@ -7,6 +7,31 @@ const answer = { ...evidence, reply: "자료를 확인했어요", explanation: "
 function stream(...chunks: string[]) { return new ReadableStream<Uint8Array>({ start(controller) { chunks.forEach(chunk => controller.enqueue(new TextEncoder().encode(chunk))); controller.close(); } }); }
 
 describe("chat evidence stream", () => {
+  it.each(["\n", "\r", "\r\n"])("accepts SSE line endings %j across every byte boundary", async separator => {
+    const text = [": heartbeat", "", "event: answer", 'data: {"type":"answer",',
+      `data: "data":${JSON.stringify(answer)}}`, "", "event: done", 'data: {"type":"done"}', "", ""].join(separator);
+    const bytes = new TextEncoder().encode(text), received: string[] = [];
+    const split = new ReadableStream<Uint8Array>({ start(controller) {
+      for (const byte of bytes) controller.enqueue(new Uint8Array([byte]));
+      controller.close();
+    }});
+    await readChatEvents(split, event => received.push(event.type), undefined, "sse");
+    expect(received).toEqual(["answer", "done"]);
+  });
+  it.each(["ndjson", "sse"] as const)("accepts a large %s chunk containing several bounded events", async format => {
+    const events = [{ type: "progress", stage: "searching", message: "x".repeat(360_000) },
+      { type: "progress", stage: "answering", message: "x".repeat(360_000) }, { type: "answer", data: answer }, { type: "done" }];
+    const text = events.map(event => format === "sse" ? `data: ${JSON.stringify(event)}\n\n` : `${JSON.stringify(event)}\n`).join("");
+    const received: string[] = [];
+    expect(text.length).toBeGreaterThan(700_000);
+    await readChatEvents(stream(text), event => received.push(event.type), undefined, format);
+    expect(received).toEqual(["progress", "progress", "answer", "done"]);
+  });
+  it.each(["ndjson", "sse"] as const)("keeps the %s unfinished-line and individual-event bounds", async format => {
+    await expect(readChatEvents(stream("x".repeat(700_001)), () => {}, undefined, format)).rejects.toThrow("응답이 너무 커요.");
+    const line = JSON.stringify({ type: "progress", stage: "searching", message: "x".repeat(700_001) });
+    await expect(readChatEvents(stream(format === "sse" ? `data: ${line}\n\n` : `${line}\n`), () => {}, undefined, format)).rejects.toThrow("응답이 너무 커요.");
+  });
   it("decodes SSE frames, heartbeat comments, CRLF and incremental tool/text events", async () => {
     const events = [{type:"tool",call_id:"one",name:"search_postings",label:"채용공고 검색",status:"started"},
       {type:"tool",call_id:"one",name:"search_postings",label:"채용공고 검색",status:"completed",node_count:6},

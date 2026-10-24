@@ -2,7 +2,7 @@ import { InteractiveNvlWrapper } from "@neo4j-nvl/react";
 import { useEffect, useMemo, useRef, useState, type ComponentRef } from "react";
 import { useReducedMotion } from "motion/react";
 import { useTheme } from "../../context/ThemeContext";
-import { nodeLabels, type WorkspaceGraph as Graph, type WorkspaceKind } from "../../services/chatWorkspace";
+import { basisLabels, nodeLabels, type WorkspaceGraph as Graph, type WorkspaceKind } from "../../services/chatWorkspace";
 
 const colors: Record<WorkspaceKind, string> = {
   role: "#7056c7", goal: "#7056c7", profile: "#345d79", preferences: "#64748b",
@@ -57,7 +57,9 @@ export function WorkspaceGraph({ graph, selected, onSelect, highlighted, highlig
     return graph.edges.filter(e => ids.has(e.source) && ids.has(e.target)).map(e => ({
       id: e.id, from: e.source, to: e.target, color: highlightedEdges.has(e.id) ? "#8d6de0" : preference === "dark" ? "#49536b" : "#c0c7d6",
       width: highlightedEdges.has(e.id) ? 3 : 1.5, selected: highlightedEdges.has(e.id),
-      caption: e.source_freshness === "STALE" || e.catalog_freshness === "STALE" ? "과거 추론 연결" : e.basis === "PROPOSED" ? "제안 연결" : highlightedEdges.has(e.id) ? e.kind : undefined,
+      caption: e.source_freshness === "STALE" || e.catalog_freshness === "STALE"
+        ? e.basis === "METADATA_INFERRED" ? "과거 추론 연결" : `과거 ${basisLabels[e.basis]}`
+        : e.basis === "PROPOSED" ? "제안 연결" : highlightedEdges.has(e.id) ? e.kind : undefined,
     }));
   }, [graph, visible, highlightedEdges, preference]);
   const options = useMemo(() => ({

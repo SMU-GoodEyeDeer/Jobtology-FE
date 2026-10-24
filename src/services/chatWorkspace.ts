@@ -81,11 +81,12 @@ function isWorkspaceAction(value: unknown): value is WorkspaceAction {
 
 export async function readChatEvents(body: ReadableStream<Uint8Array>, onEvent: (event: ChatEvent) => void, signal?: AbortSignal, format: "ndjson" | "sse" = "ndjson") {
   const reader = body.getReader(), decoder = new TextDecoder();
-  let buffer = "", doneEvent = false, answer = false, textSize = 0, eventName = "";
+  let buffer = "", doneEvent = false, answer = false, textSize = 0, eventName = "", skipLf = false;
   let eventData: string[] = [], eventSize = 0;
   const abort = () => { void reader.cancel().catch(() => {}); };
   signal?.addEventListener("abort", abort, { once: true });
   function consumeEvent(line: string) {
+    if (line.length > 700_000) throw new Error("응답이 너무 커요.");
     if (!line.trim()) return;
     const event = JSON.parse(line) as ChatEvent;
     if (!event || !["evidence", "progress", "tool", "answer_delta", "answer", "done", "error"].includes(event.type)) throw new Error("알 수 없는 응답이에요.");
@@ -114,7 +115,6 @@ export async function readChatEvents(body: ReadableStream<Uint8Array>, onEvent: 
   }
   function consume(line: string) {
     if (format === "ndjson") { consumeEvent(line); return; }
-    if (line.endsWith("\r")) line = line.slice(0, -1);
     if (!line) {
       if (eventData.length) consumeEvent(eventData.join("\n"));
       eventData = []; eventName = ""; eventSize = 0; return;
@@ -131,9 +131,20 @@ export async function readChatEvents(body: ReadableStream<Uint8Array>, onEvent: 
       const { value, done } = await reader.read();
       if (signal?.aborted) throw new DOMException("Cancelled", "AbortError");
       buffer += decoder.decode(value, { stream: !done });
+      let start = 0;
+      for (let end = 0; end < buffer.length; end++) {
+        const character = buffer[end];
+        if (skipLf) {
+          skipLf = false;
+          if (character === "\n") { start = end + 1; continue; }
+        }
+        if (character !== "\n" && (format !== "sse" || character !== "\r")) continue;
+        consume(buffer.slice(start, end));
+        start = end + 1;
+        skipLf = format === "sse" && character === "\r";
+      }
+      buffer = buffer.slice(start);
       if (buffer.length > 700_000) throw new Error("응답이 너무 커요.");
-      let end: number;
-      while ((end = buffer.indexOf("\n")) >= 0) { consume(buffer.slice(0, end)); buffer = buffer.slice(end + 1); }
       if (done) { if (format === "ndjson") consume(buffer); break; }
     }
     if (!doneEvent || format === "sse" && (buffer.trim() || eventData.length)) throw new Error("연결이 끊겼어요. 받은 자료는 그래프에서 확인할 수 있어요.");

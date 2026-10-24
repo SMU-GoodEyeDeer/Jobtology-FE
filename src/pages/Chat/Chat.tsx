@@ -112,6 +112,7 @@ export function Chat() {
     const history: ChatMessagePayload[] = next.filter(t => !t.incomplete && !t.streaming).slice(-20).map(t => ({ role: t.role, text: t.text.slice(0, 2000) }));
     followAnswer.current = true;
     setTurns([...next, { role: "assistant", text: "", streaming: true }].slice(-40) as Turn[]); setInput(""); setBusy(true); setError(null); setProgress("내 정보와 연결 근거를 확인하고 있어요.");
+    let pendingAnswer: WorkspaceAnswer | null = null, completed = false;
     try {
       await chatWorkspaceApi.stream(history, selectedGoalId, selected ? [selected] : [], event => {
         if (epoch.current !== current || controller.signal.aborted) return;
@@ -124,13 +125,16 @@ export function Chat() {
           setTurns(previous => previous.map((turn, index) => index === previous.length - 1 && turn.streaming ? { ...turn, text: turn.text + event.delta } : turn));
         }
         if (event.type === "evidence") { setGraph(previous => mergeWorkspace(previous, event.data.graph)); setWarnings(event.data.warnings); }
-        if (event.type === "answer") {
-          setTurns(previous => [...(previous.at(-1)?.streaming ? previous.slice(0, -1) : previous),
-            { role: "assistant" as const, text: event.data.reply, answer: event.data, tools: previous.at(-1)?.tools }].slice(-40));
-          showEvidence(event.data); setWarnings(event.data.warnings);
-          if (event.data.suggestions.length) setSuggestions(event.data.suggestions);
-        }
+        if (event.type === "answer") pendingAnswer = event.data;
+        if (event.type === "done") completed = true;
       }, controller.signal);
+      if (epoch.current !== current || controller.signal.aborted) return;
+      if (!completed || !pendingAnswer) throw new Error("답변이 완료되지 않았어요.");
+      const answer = pendingAnswer as WorkspaceAnswer;
+      setTurns(previous => [...(previous.at(-1)?.streaming ? previous.slice(0, -1) : previous),
+        { role: "assistant" as const, text: answer.reply, answer, tools: previous.at(-1)?.tools }].slice(-40));
+      showEvidence(answer); setWarnings(answer.warnings);
+      if (answer.suggestions.length) setSuggestions(answer.suggestions);
     } catch (cause) { if (epoch.current === current && !controller.signal.aborted) { setError((cause as Error).message); interruptAnswer(); } }
     finally { if (epoch.current === current && !controller.signal.aborted) { setBusy(false); setProgress(""); } }
   }
