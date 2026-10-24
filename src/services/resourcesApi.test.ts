@@ -28,6 +28,8 @@ describe("live resource navigation and transport", () => {
     expect(fetchMock).toHaveBeenLastCalledWith("/api/v2/live/occupation-context?occupation_codes=20010203%2C15-1252.00&limit=20&offset=40", expect.objectContaining({ credentials: "include" }));
     await resourcesApi.rolePostingContext("BACKEND_DEVELOPER", 3);
     expect(fetchMock).toHaveBeenLastCalledWith("/api/v2/roles/BACKEND_DEVELOPER/posting-context?limit=3&offset=0", expect.objectContaining({ credentials: "include" }));
+    await resourcesApi.crosswalk("onet:occupation:15-1252.00", 6, 12);
+    expect(fetchMock).toHaveBeenLastCalledWith("/api/v2/live/crosswalk?node_id=onet%3Aoccupation%3A15-1252.00&limit=6&offset=12", expect.objectContaining({ credentials: "include" }));
     expect(new URL(postingsHref({ occupation: "20010203,15-1252.00", offset: 40 }), "https://app.example").searchParams.get("occupation")).toBe("20010203,15-1252.00");
   });
   it("keeps closed, policy rolling, and dated deadlines distinct", () => {

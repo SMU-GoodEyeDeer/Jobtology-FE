@@ -27,6 +27,7 @@ function roleGraph(value: RoleEvidenceGraph): Graph {
 const warningLabels: Record<string, string> = {
   SKILL_CATALOG_UNAVAILABLE: "역량 카탈로그를 확인하지 못해 현재 스펙 반영치를 계산할 수 없어요.",
   POSTING_CONTEXT_UNAVAILABLE: "공고 연결 집계를 확인하지 못했어요.",
+  CROSSWALK_UNAVAILABLE: "NCS·O*NET 연결 일부를 불러오지 못했어요.",
   FOCUSED_SOURCE_UNAVAILABLE: "선택한 항목의 최신 자료를 확인하지 못했어요.",
   NO_ANALYSIS: "아직 분석 결과가 없어요.", NO_ROADMAP: "저장된 로드맵이 없어요.",
   ANALYSIS_PROFILE_OUTDATED: "분석 이후 프로필이 바뀌었어요. 새 분석에서 반영돼요.",
@@ -65,6 +66,12 @@ export function Chat() {
   const resize = usePanelResize({ storageKey: "jobtology.chat.floatingWidth", initial: 400, min: 320, max: 560, direction: -1 });
 
   useEffect(() => { chatApi.status().then(r => setAvailable(r.available)).catch(() => setAvailable(false)); }, []);
+  useEffect(() => {
+    const narrow = window.matchMedia("(max-width: 1000px)");
+    const sync = () => { if (narrow.matches && selected) setChatOpen(false); };
+    sync(); narrow.addEventListener("change", sync);
+    return () => narrow.removeEventListener("change", sync);
+  }, [selected]);
   useEffect(() => { void loadWorkspaceGraph().catch(() => {}); }, []);
   useEffect(() => {
     if (goalsLoading) return;

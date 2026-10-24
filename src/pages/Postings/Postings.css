@@ -98,3 +98,13 @@
 }
 @media (prefers-reduced-motion: reduce) { .postings-page *, .postings-page *::before { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
 .posting-detail { animation: postings-detail-in .18s ease-out; }
+.posting-classifications { margin: 20px 0; padding: 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-soft); }
+.posting-classifications h3 { margin: 0 0 8px; color: var(--text); font-size: 14px; }
+.posting-classifications > p { margin: 6px 0; color: var(--muted); font-size: 12px; line-height: 1.65; }
+.posting-classifications ul { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 12px; }
+.posting-classifications li > a { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; color: var(--accent-strong); text-decoration: none; font-size: 13px; }
+.posting-classifications li > a:hover { text-decoration: underline; }
+.posting-classifications a span, .posting-classifications a small { color: var(--muted); font-size: 11px; font-weight: 400; }
+.posting-classifications .occupation-association-provenance { margin-top: 14px; padding-top: 10px; }
+.posting-classifications .occupation-association-provenance dl div { grid-template-columns: 85px minmax(0,1fr); }
+.posting-card-classifications { display: grid; gap: 3px; color: var(--muted); }

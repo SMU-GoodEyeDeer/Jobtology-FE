@@ -8,6 +8,7 @@ import { formatPostingDateTime } from "../../services/resourcesApi";
 import { PostingEvidence } from "./PostingEvidence";
 import { GraphEvidenceMetadata } from "./GraphEvidenceMetadata";
 import { postingsHref } from "../../services/resourcesApi";
+import { CrosswalkLinks } from "./CrosswalkLinks";
 
 const postingFieldLabels: Record<string, string> = {
   organization_name: "기업·기관", education: "학력", regions: "지역", employment_types: "고용 형태", recruitment_type: "모집 유형",
@@ -18,6 +19,7 @@ const postingRelationshipLabels: Record<string, string> = { SEARCH_RESULT: "검�
 const freshnessLabels = { CURRENT: "최신", STALE: "과거 기준", UNKNOWN: "미확인" };
 
 const relationshipLabels: Record<string, string> = { REQUIRES: "검토된 요구 역량", TEACHES: "학습할 역량", HAS_GOAL: "내 목표", TARGETS: "목표 직무", REPORTED: "본인 입력", MATCHED_TO: "역량 연결", PLANNED_WITH: "계획 선호 반영", ANALYZED_BY: "분석 결과", PLANNED_ACTIVITY: "학습 계획", PREREQUISITE: "선행 활동", DEVELOPS: "학습할 역량", EVALUATED_AS: "반영 결과", SATISFIED: "충족", PARTIAL: "부분 반영", UNMET: "미충족", NEEDS_INPUT: "추가 정보 필요", MAPPED_TO: "직무 분류", CLASSIFIED_AS: "직무 분류", QUALIFIED_BY: "관련 자격", QUALIFICATION_MAPPING: "관련 자격", HAS_EXAM_SESSION: "시험 일정", EVIDENCED_BY: "공고 연결", CONTEXT_FOR: "탐색 참고", MATCHED_ONET: "공고를 통한 참고 연결", ESSENTIAL_SKILL: "O*NET 주요 역량", ONET_ESSENTIAL_SKILL: "O*NET 주요 역량", HOT_TECHNOLOGY: "주요 기술", ONET_SOFTWARE_EXAMPLE: "기술 활용 예시", SUGGESTED_LINK: "학습 연결 제안" };
+Object.assign(relationshipLabels, { CROSSWALK_RELATED: "분류 간 참고 연결", CROSSWALK_PARTIAL: "분류 간 부분 대응", CROSSWALK_EXACT: "분류 간 동등 범위" });
 function readable(key: string, value: unknown): string {
   const names: Record<string, string> = { CUSTOM: "직접 조정한 일정", SOLVER: "추천 일정", FAMILIAR: "접해 봄", GUIDED: "도움을 받아 수행", INDEPENDENT: "독립적으로 수행", PRODUCTION: "실무에서 수행", TODO: "예정", IN_PROGRESS: "진행 중", COMPLETED: "완료", ENROLLED: "재학", MATCHED: "역량에 연결됨", NEEDS_CLARIFICATION: "추가 설명 필요", UNUSED: "현재 목표에 미반영", EXPIRED: "유효기간 지남", skill: "역량", project: "프로젝트", experience: "경험", certification: "자격증", test: "시험", education: "학력", other: "기타" };
   if (typeof value === "boolean") return key === "ongoing" ? value ? "예" : "아니요" : value ? "선호함" : "기본 설정";
@@ -65,6 +67,9 @@ export function WorkspaceInspector({ node, graph, onClose, onExpand, busy, onAsk
     {node.kind === "posting_evidence" && <PostingEvidence occupation={node.occupation_code} />}
     {node.basis === "METADATA_INFERRED" && <p className="workspace-note">공고 분류로 추정한 관계예요. 검토된 요구 역량이나 역량 충족을 의미하지 않아요.</p>}
     {node.kind === "onet_occupation" || node.kind === "onet_skill" ? <p className="workspace-note">O*NET 참고 자료는 NCS 역량과 자동으로 동등하게 처리하지 않아요.</p> : null}
+    {(["ncs_occupation", "ncs_competency", "onet_occupation", "onet_skill"].includes(node.kind)
+      || node.kind === "technology" && node.id.startsWith("urn:jobtology:onet-detail:"))
+      && <CrosswalkLinks nodeId={node.id} nodeScheme={node.kind.startsWith("ncs_") ? "NCS" : "ONET"} onExpand={onExpand} busy={busy} />}
     {node.qualification_code && <QualificationCard qualification={{ code: node.qualification_code, name: node.label }} />}
     {!!links.length && <details open><summary>연결 근거 · {links.length}</summary><ul>{links.slice(0, 12).map(e => {
       const other = graph.nodes.find(n => n.id === (e.source === node.id ? e.target : e.source));

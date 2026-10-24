@@ -96,7 +96,7 @@ export function Postings() {
       <main className="postings-content">
         <form className="postings-filters" onSubmit={search} aria-label="채용공고 검색">
           <label className="postings-search">공고·기관 검색<input value={draft.q} onChange={event => setDraft({ ...draft, q: event.target.value })} placeholder="공고명 또는 기관명" maxLength={200} /></label>
-          <label>NCS 분야 코드<input value={draft.category} onChange={event => setDraft({ ...draft, category: event.target.value })} placeholder="예: 200102" pattern="[0-9]*" maxLength={20} inputMode="numeric" /></label>
+          <label>NCS 코드 · 원문/최신 추론<input value={draft.category} onChange={event => setDraft({ ...draft, category: event.target.value })} placeholder="예: 200102" pattern="[0-9]*" maxLength={20} inputMode="numeric" /></label>
           <label>근무 지역<input value={draft.region} onChange={event => setDraft({ ...draft, region: event.target.value })} placeholder="예: 서울" maxLength={100} /></label>
           <label>접수 기간에 포함할 날짜<input type="date" value={draft.openOn} onChange={event => setDraft({ ...draft, openOn: event.target.value })} /></label>
           <button className="postings-primary" type="submit">검색</button>
@@ -117,6 +117,7 @@ export function Postings() {
                   <strong>{item.title || "제목 미제공 공고"}</strong>
                   <span>{[item.regions.join(" · "), item.employment_types.join(" · ")].filter(Boolean).join(" / ") || "지역·고용 형태 미제공"}</span>
                   <small>{postingDeadlineLabel(item)}</small>
+                  {item.occupation_associations?.some(association => association.occupation_scheme === "NCS") && <span className="posting-card-classifications">{item.occupation_associations.filter(association => association.occupation_scheme === "NCS").slice(0, 2).map(association => <span key={association.association_id}>NCS {association.occupation_name || association.occupation_code} · {association.source_freshness === "CURRENT" && association.catalog_freshness === "CURRENT" ? association.catalog_revalidation ? "분류 동일 재확인" : "최신 추론" : "과거·미확인 연결"}</span>)}</span>}
                   {current.context && current.context.items.filter(association => association.posting?.posting_id === item.posting_id).map(association => <AssociationStatus key={association.association_id} item={association} />)}
                 </button>) : <p className="postings-state">조건에 맞는 수집 공고가 없어요. 다른 검색어나 날짜로 찾아보세요.</p>}
                 {current.context?.items.some(association => !association.posting) && <p className="postings-note">일부 연결 공고는 현재 원문 정보를 제공하지 않아 목록에 표시되지 않아요.</p>}

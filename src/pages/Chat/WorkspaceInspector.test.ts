@@ -8,6 +8,17 @@ import { formatPostingDateTime } from "../../services/resourcesApi";
 import { WorkspaceInspector } from "./WorkspaceInspector";
 
 describe("workspace inspector dates", () => {
+  it.each([
+    ["urn:jobtology:onet-detail:software:python", true],
+    ["technology:python", false],
+  ])("only loads crosswalk details for native O*NET software identities: %s", (id, supported) => {
+    const node = { id, kind: "technology" as const, label: "Python", basis: "REFERENCE" as const };
+    const markup = renderToStaticMarkup(createElement(MemoryRouter, null, createElement(WorkspaceInspector, {
+      node, graph: emptyGraph(), onClose: vi.fn(), onExpand: vi.fn(), onAsk: vi.fn(), busy: false,
+    })));
+    const host = document.createElement("div"); host.innerHTML = markup;
+    expect(!!host.querySelector('[aria-label="NCS와 O*NET 연결"]')).toBe(supported);
+  });
   it("shows posting guidance and a search link when the group has no occupation code", () => {
     const node = { id: "posting-search:sample", kind: "posting_evidence" as const, label: "공고 검색", basis: "APPLICATION_CONTEXT_SELECTION" as const };
     const markup = renderToStaticMarkup(createElement(MemoryRouter, null, createElement(WorkspaceInspector, {
