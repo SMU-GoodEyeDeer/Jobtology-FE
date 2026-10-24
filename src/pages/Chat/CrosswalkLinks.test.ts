@@ -29,6 +29,18 @@ async function render(nodeId = response.items[0].source.id, nodeScheme: "NCS" | 
   await act(async () => root.render(createElement(MemoryRouter, null, createElement(CrosswalkLinks, { nodeId, nodeScheme, onExpand: expand, busy: false }))));
 }
 describe("NCS and O*NET crosswalk details", () => {
+  it("adds returned connections automatically and focuses the clicked mapping rather than a generic expansion", async () => {
+    const graph = { nodes: [], edges: [], truncated: false };
+    vi.mocked(resourcesApi.crosswalk).mockResolvedValue({ ...response, graph });
+    const connect = vi.fn(), show = vi.fn();
+    await act(async () => root.render(createElement(MemoryRouter, null, createElement(CrosswalkLinks, {
+      nodeId: response.items[0].source.id, nodeScheme: "NCS", onExpand: expand, busy: false, onConnections: connect, onShowMapping: show,
+    }))));
+    expect(connect).toHaveBeenCalledWith(graph);
+    await act(async () => [...host.querySelectorAll<HTMLButtonElement>("button")].find(button => button.textContent === "지도에서 보기")!.click());
+    expect(show).toHaveBeenCalledWith(expect.objectContaining({ graph }), "mapping:one");
+    expect(expand).not.toHaveBeenCalled();
+  });
   it("labels inferred proposals, stale catalog pins and their retrieval-only purpose", async () => {
     await render();
     expect(resourcesApi.crosswalk).toHaveBeenCalledWith(response.items[0].source.id, 6);

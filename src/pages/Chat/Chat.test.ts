@@ -6,6 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { chatWorkspaceApi, readChatEvents, type ChatEvent, type WorkspaceAnswer, type WorkspaceEvidence } from "../../services/chatWorkspace";
 import { roleEvidenceGraphApi } from "../../services/api";
 import { resetWorkspaceCache } from "../../services/workspaceCache";
+import { resourcesApi } from "../../services/resourcesApi";
+import { clearPostingsCache } from "../../services/postingsCache";
 import { Chat } from "./Chat";
 
 const state = vi.hoisted(() => ({ goal: "second", account: "account-a", goalsLoading: false, select: vi.fn() }));
@@ -20,7 +22,7 @@ vi.mock("../../services/api", () => ({ chatApi: { status: async () => ({ availab
   roleEvidenceGraphApi: { get: async () => ({ nodes: [], edges: [] }) }, getCsrfToken: () => "csrf", request: vi.fn() }));
 vi.mock("./WorkspaceGraph", () => ({ WorkspaceGraph: ({ graph, onSelect, highlighted, kinds, focus }: {
   graph: WorkspaceEvidence["graph"]; onSelect: (id: string) => void; highlighted: Set<string>; kinds: string[]; focus: { ids: string[] };
-}) => createElement("div", { "data-testid": "graph", "data-highlighted": [...highlighted].join(","), "data-focus": focus.ids.join(",") },
+}) => createElement("div", { "data-testid": "graph", "data-highlighted": [...highlighted].join(","), "data-focus": focus.ids.join(","), "data-edges": graph.edges.map(edge => edge.id).join(",") },
   graph.nodes.filter(n => !kinds.length || kinds.includes(n.kind)).map(n => createElement("button", { key: n.id, onClick: () => onSelect(n.id) }, n.label))) }));
 const graph = { nodes: [{ id: "personal", label: "내 경험", kind: "capability" as const, basis: "USER_REPORTED" as const }], edges: [], truncated: false };
 const evidence: WorkspaceEvidence = { goal_id: "second", occupation_id: "ROLE_B", graph, sources: [], warnings: [] };
@@ -30,7 +32,7 @@ let root: Root, host: HTMLDivElement;
 beforeEach(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   vi.stubGlobal("matchMedia", () => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
-  state.goal = "second"; state.account = "account-a"; state.goalsLoading = false; state.select.mockReset(); localStorage.clear(); resetWorkspaceCache();
+  state.goal = "second"; state.account = "account-a"; state.goalsLoading = false; state.select.mockReset(); localStorage.clear(); resetWorkspaceCache(); clearPostingsCache();
   vi.spyOn(chatWorkspaceApi, "context").mockResolvedValue(evidence);
   host = document.createElement("div"); document.body.append(host); root = createRoot(host);
 });
@@ -50,6 +52,34 @@ describe("graph-centered chat workspace", () => {
     expect(host.querySelectorAll(".workspace-loading-map circle").length).toBeGreaterThan(1);
     await act(async () => resolve(evidence));
     expect(host.querySelector(".workspace-loading")).toBeNull();
+  });
+  it("draws mappings between initial NCS and O*NET categories without opening an inspector", async () => {
+    vi.spyOn(roleEvidenceGraphApi, "get").mockResolvedValue({ occupation_id: "ROLE_B", name: "role", nodes: [
+      { id: "ncs:occupation:20010202", kind: "ncs_occupation", label: "NCS 직무", detail: null, weight: null },
+      { id: "urn:jobtology:onet:occupation:15-1252.00", kind: "onet_occupation", label: "O*NET 직무", detail: null, weight: null },
+    ], edges: [] });
+    const source = "ncs:occupation:20010202", target = "urn:jobtology:onet:occupation:15-1252.00";
+    vi.spyOn(resourcesApi, "crosswalk").mockResolvedValue({ contract_version: "jobtology-ncs-onet-crosswalk-v1", basis: "CATALOG_CROSSWALK", competency_evidence: false,
+      limit: 100, offset: 0, total: 0, items: [], graph: { nodes: [], edges: [
+        { id: "visible-crosswalk", source, target, kind: "CROSSWALK_RELATED", basis: "PROPOSED" },
+      ], truncated: false } });
+    await render();
+    expect(host.querySelector('[data-testid="graph"]')?.getAttribute("data-edges")).toContain("visible-crosswalk");
+    expect(host.querySelector(".workspace-inspector")).toBeNull();
+  });
+  it("ignores a previous account's delayed automatic mappings", async () => {
+    vi.spyOn(roleEvidenceGraphApi, "get").mockResolvedValue({ occupation_id: "ROLE_B", name: "role", nodes: [
+      { id: "onet", kind: "onet_occupation", label: "O*NET 직무", detail: null, weight: null },
+    ], edges: [] });
+    let resolve!: (value: Awaited<ReturnType<typeof resourcesApi.crosswalk>>) => void;
+    vi.spyOn(resourcesApi, "crosswalk").mockReturnValue(new Promise(done => { resolve = done; }));
+    await render();
+    state.account = "account-b";
+    vi.mocked(roleEvidenceGraphApi.get).mockResolvedValue({ occupation_id: "ROLE_B", name: "role", nodes: [], edges: [] });
+    await render();
+    await act(async () => resolve({ contract_version: "jobtology-ncs-onet-crosswalk-v1", basis: "CATALOG_CROSSWALK", competency_evidence: false,
+      limit: 100, offset: 0, total: 0, items: [], graph: { nodes: [], edges: [{ id: "old-mapping", source: "personal", target: "onet", kind: "CROSSWALK_RELATED", basis: "PROPOSED" }], truncated: false } }));
+    expect(host.querySelector('[data-testid="graph"]')?.getAttribute("data-edges")).not.toContain("old-mapping");
   });
   it("restores a recently loaded graph immediately on page return, including while goals reload", async () => {
     await render();

@@ -9,6 +9,7 @@ import { PostingEvidence } from "./PostingEvidence";
 import { GraphEvidenceMetadata } from "./GraphEvidenceMetadata";
 import { postingsHref } from "../../services/resourcesApi";
 import { CrosswalkLinks } from "./CrosswalkLinks";
+import type { CrosswalkResponse } from "../../services/resourcesApi";
 
 const postingFieldLabels: Record<string, string> = {
   organization_name: "기업·기관", education: "학력", regions: "지역", employment_types: "고용 형태", recruitment_type: "모집 유형",
@@ -42,9 +43,11 @@ function readable(key: string, value: unknown): string {
   return String(value);
 }
 
-export function WorkspaceInspector({ node, graph, onClose, onExpand, busy, onAsk, goalId, position }: {
+export function WorkspaceInspector({ node, graph, onClose, onExpand, busy, onAsk, goalId, position, contextNodes, onConnections, onShowMapping }: {
   node: WorkspaceNode; graph: WorkspaceGraph; onClose: () => void; onExpand: () => void; busy: boolean; onAsk: () => void;
   goalId?: string | null; position?: { x: number; y: number } | null;
+  contextNodes?: readonly string[]; onConnections?: (graph: WorkspaceGraph) => void;
+  onShowMapping?: (data: CrosswalkResponse, mappingId: string) => void;
 }) {
   const reduced = useReducedMotion();
   const inspector = useRef<HTMLElement>(null);
@@ -69,7 +72,8 @@ export function WorkspaceInspector({ node, graph, onClose, onExpand, busy, onAsk
     {node.kind === "onet_occupation" || node.kind === "onet_skill" ? <p className="workspace-note">O*NET 참고 자료는 NCS 역량과 자동으로 동등하게 처리하지 않아요.</p> : null}
     {(["ncs_occupation", "ncs_competency", "onet_occupation", "onet_skill"].includes(node.kind)
       || node.kind === "technology" && node.id.startsWith("urn:jobtology:onet-detail:"))
-      && <CrosswalkLinks nodeId={node.id} nodeScheme={node.kind.startsWith("ncs_") ? "NCS" : "ONET"} onExpand={onExpand} busy={busy} />}
+      && <CrosswalkLinks nodeId={node.id} nodeScheme={node.kind.startsWith("ncs_") ? "NCS" : "ONET"} onExpand={onExpand} busy={busy}
+        contextNodes={contextNodes} onConnections={onConnections} onShowMapping={onShowMapping} />}
     {node.qualification_code && <QualificationCard qualification={{ code: node.qualification_code, name: node.label }} />}
     {!!links.length && <details open><summary>연결 근거 · {links.length}</summary><ul>{links.slice(0, 12).map(e => {
       const other = graph.nodes.find(n => n.id === (e.source === node.id ? e.target : e.source));

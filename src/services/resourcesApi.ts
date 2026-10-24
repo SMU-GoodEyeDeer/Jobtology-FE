@@ -1,4 +1,5 @@
 import { request } from "./api";
+import type { WorkspaceGraph } from "./chatWorkspace";
 
 export interface LiveSource {
   readonly source_id: string;
@@ -107,6 +108,7 @@ export interface CrosswalkResponse {
   readonly offset: number;
   readonly total: number;
   readonly items: readonly CrosswalkLink[];
+  readonly graph?: WorkspaceGraph | null;
 }
 export interface OccupationContextResponse {
   readonly role_context?: { readonly role_id: string; readonly version: "posting-context-v1"; readonly basis: "APPLICATION_CONTEXT_SELECTION"; readonly onet_occupations: readonly { readonly code: string; readonly name: string }[] };
@@ -170,7 +172,7 @@ export function safeSourceUrl(value: string | null | undefined): string | null {
   try { const url = new URL(value); return ["https:", "http:"].includes(url.protocol) ? url.href : null; } catch { return null; }
 }
 export const resourcesApi = {
-  crosswalk: (nodeId: string, limit = 6, offset = 0) => request<CrosswalkResponse>("GET", `/v2/live/crosswalk?${new URLSearchParams({ node_id: nodeId, limit: String(limit), offset: String(offset) })}`),
+  crosswalk: (nodeId: string, limit = 6, offset = 0, contextNodes: readonly string[] = []) => request<CrosswalkResponse>("GET", `/v2/live/crosswalk?${new URLSearchParams({ node_id: nodeId, limit: String(limit), offset: String(offset), ...(contextNodes.length ? { context_nodes: contextNodes.join(",") } : {}) })}`),
   occupationContext: (occupationCodes: string, limit = 20, offset = 0) => request<OccupationContextResponse>("GET", `/v2/live/occupation-context?${new URLSearchParams({ occupation_codes: occupationCodes, limit: String(limit), offset: String(offset) })}`),
   rolePostingContext: (occupationId: string, limit = 3, offset = 0) => request<OccupationContextResponse>("GET", `/v2/roles/${encodeURIComponent(occupationId)}/posting-context?${new URLSearchParams({ limit: String(limit), offset: String(offset) })}`),
   postings: (filters: PostingFilters = {}) => request<PostingsResponse>("GET", `/v2/live/postings?${postingSearchParams(filters)}`),
