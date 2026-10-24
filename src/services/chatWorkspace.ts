@@ -25,6 +25,9 @@ export interface WorkspaceNode {
 export interface WorkspaceEdge {
   id: string; source: string; target: string; kind: string; basis: EvidenceBasis; explanation?: string;
   sourceMetadata?: EvidenceEdge;
+  association_id?: string | null; source_freshness?: "CURRENT" | "STALE" | "UNKNOWN" | null;
+  catalog_freshness?: "CURRENT" | "STALE" | "UNKNOWN" | null; review_status?: string | null;
+  source_run_id?: string | null; catalog_pin?: string | null;
 }
 export interface WorkspaceGraph { nodes: WorkspaceNode[]; edges: WorkspaceEdge[]; truncated: boolean; warnings?: string[] }
 export interface ChatSource {
@@ -41,7 +44,8 @@ export interface WorkspaceAction {
 export interface WorkspaceAnswer extends WorkspaceEvidence {
   reply: string; explanation: string; actions: WorkspaceAction[]; suggestions: string[];
 }
-export type ChatEvent = { type: "progress"; stage: string; message: string }
+export interface ToolEvent { type: "tool"; call_id: string; name: string; label: string; status: "started" | "completed" | "failed"; node_count?: number }
+export type ChatEvent = { type: "progress"; stage: string; message: string } | ToolEvent | { type: "answer_delta"; delta: string }
   | { type: "evidence"; data: WorkspaceEvidence } | { type: "answer"; data: WorkspaceAnswer }
   | { type: "done" } | { type: "error"; code: string };
 export const emptyGraph = (): WorkspaceGraph => ({ nodes: [], edges: [], truncated: false });
@@ -75,20 +79,32 @@ function isWorkspaceAction(value: unknown): value is WorkspaceAction {
     && Array.isArray(action.kinds) && action.kinds.every(kind => typeof kind === "string" && Object.hasOwn(nodeLabels, kind));
 }
 
-export async function readChatEvents(body: ReadableStream<Uint8Array>, onEvent: (event: ChatEvent) => void, signal?: AbortSignal) {
+export async function readChatEvents(body: ReadableStream<Uint8Array>, onEvent: (event: ChatEvent) => void, signal?: AbortSignal, format: "ndjson" | "sse" = "ndjson") {
   const reader = body.getReader(), decoder = new TextDecoder();
-  let buffer = "", doneEvent = false, answer = false;
-  function consume(line: string) {
+  let buffer = "", doneEvent = false, answer = false, textSize = 0, eventName = "";
+  let eventData: string[] = [], eventSize = 0;
+  const abort = () => { void reader.cancel().catch(() => {}); };
+  signal?.addEventListener("abort", abort, { once: true });
+  function consumeEvent(line: string) {
     if (!line.trim()) return;
     const event = JSON.parse(line) as ChatEvent;
-    if (!event || !["evidence", "progress", "answer", "done", "error"].includes(event.type)) throw new Error("알 수 없는 응답이에요.");
+    if (!event || !["evidence", "progress", "tool", "answer_delta", "answer", "done", "error"].includes(event.type)) throw new Error("알 수 없는 응답이에요.");
+    if (eventName && eventName !== event.type) throw new Error("응답 종류가 일치하지 않아요.");
     if (doneEvent) throw new Error("완료 후 응답이 도착했어요.");
     if (event.type === "error") throw new Error(event.code === "CHAT_BUSY" ? "요청이 많아요. 잠시 후 다시 시도해 주세요." : "답변을 완료하지 못했어요. 다시 시도해 주세요.");
+    if (event.type === "answer_delta") {
+      if (answer || typeof event.delta !== "string" || (textSize += event.delta.length) > 6000) throw new Error("답변 조각을 읽지 못했어요.");
+    }
+    if (event.type === "tool" && (typeof event.call_id !== "string" || !event.call_id || event.call_id.length > 160
+      || !["read_personal_records", "search_catalog", "search_postings", "get_posting", "expand_connections", "unknown"].includes(event.name)
+      || typeof event.label !== "string" || event.label.length > 100 || !["started", "completed", "failed"].includes(event.status)
+      || event.node_count != null && (!Number.isInteger(event.node_count) || event.node_count < 0 || event.node_count > 160))) throw new Error("도구 응답을 읽지 못했어요.");
     if (event.type === "evidence" || event.type === "answer") {
       const graph = event.data?.graph;
       if (!graph || !Array.isArray(graph.nodes) || graph.nodes.length > 160 || !Array.isArray(graph.edges) || graph.edges.length > 320
         || graph.nodes.some(n => !n || typeof n.id !== "string" || typeof n.label !== "string" || !Object.hasOwn(nodeLabels, n.kind) || !Object.hasOwn(basisLabels, n.basis))
         || graph.edges.some(e => !e || typeof e.id !== "string" || typeof e.source !== "string" || typeof e.target !== "string" || !Object.hasOwn(basisLabels, e.basis))
+        || graph.edges.some(e => [e.source_freshness, e.catalog_freshness].some(value => value != null && !["CURRENT", "STALE", "UNKNOWN"].includes(value)))
         || !Array.isArray(event.data.sources) || !Array.isArray(event.data.warnings)) throw new Error("자료 응답을 읽지 못했어요.");
       if (event.type === "answer" && (typeof event.data.reply !== "string" || typeof event.data.explanation !== "string" || !Array.isArray(event.data.actions) || event.data.actions.some(action => !isWorkspaceAction(action)) || !Array.isArray(event.data.suggestions))) throw new Error("답변 응답을 읽지 못했어요.");
     }
@@ -96,18 +112,32 @@ export async function readChatEvents(body: ReadableStream<Uint8Array>, onEvent: 
     if (event.type === "done") { if (!answer) throw new Error("답변이 누락됐어요."); doneEvent = true; }
     onEvent(event);
   }
+  function consume(line: string) {
+    if (format === "ndjson") { consumeEvent(line); return; }
+    if (line.endsWith("\r")) line = line.slice(0, -1);
+    if (!line) {
+      if (eventData.length) consumeEvent(eventData.join("\n"));
+      eventData = []; eventName = ""; eventSize = 0; return;
+    }
+    if (line.startsWith(":")) return;
+    const colon = line.indexOf(":"), key = colon < 0 ? line : line.slice(0, colon);
+    let value = colon < 0 ? "" : line.slice(colon + 1); if (value.startsWith(" ")) value = value.slice(1);
+    if (key === "event") eventName = value;
+    if (key === "data") { eventSize += value.length; if (eventSize > 700_000) throw new Error("응답이 너무 커요."); eventData.push(value); }
+  }
   try {
     while (true) {
       if (signal?.aborted) throw new DOMException("Cancelled", "AbortError");
       const { value, done } = await reader.read();
+      if (signal?.aborted) throw new DOMException("Cancelled", "AbortError");
       buffer += decoder.decode(value, { stream: !done });
       if (buffer.length > 700_000) throw new Error("응답이 너무 커요.");
       let end: number;
       while ((end = buffer.indexOf("\n")) >= 0) { consume(buffer.slice(0, end)); buffer = buffer.slice(end + 1); }
-      if (done) { consume(buffer); break; }
+      if (done) { if (format === "ndjson") consume(buffer); break; }
     }
-    if (!doneEvent) throw new Error("연결이 끊겼어요. 받은 자료는 그래프에서 확인할 수 있어요.");
-  } finally { await reader.cancel().catch(() => {}); reader.releaseLock(); }
+    if (!doneEvent || format === "sse" && (buffer.trim() || eventData.length)) throw new Error("연결이 끊겼어요. 받은 자료는 그래프에서 확인할 수 있어요.");
+  } finally { signal?.removeEventListener("abort", abort); await reader.cancel().catch(() => {}); reader.releaseLock(); }
 }
 
 const base = (import.meta.env.VITE_API_BASE_URL ?? "/api").replace(/\/$/, "");
@@ -119,11 +149,11 @@ export const chatWorkspaceApi = {
     const csrf = getCsrfToken();
     const response = await fetch(`${base}/v1/chat/stream`, {
       method: "POST", credentials: "include", signal,
-      headers: { "Content-Type": "application/json", ...(csrf ? { "X-CSRF-Token": csrf } : {}) },
+      headers: { "Content-Type": "application/json", "Accept": "text/event-stream", ...(csrf ? { "X-CSRF-Token": csrf } : {}) },
       body: JSON.stringify({ messages, goal_id: goalId, focus_node_ids: focusIds.slice(0, 8) }),
     });
     if (!response.ok) throw Object.assign(new Error(response.status === 429 ? "요청이 많아요. 잠시 후 다시 시도해 주세요." : "AI 연결을 확인해 주세요."), { status: response.status });
     if (!response.body) throw new Error("답변을 읽지 못했어요.");
-    await readChatEvents(response.body, onEvent, signal);
+    await readChatEvents(response.body, onEvent, signal, response.headers.get("Content-Type")?.includes("text/event-stream") ? "sse" : "ndjson");
   },
 };

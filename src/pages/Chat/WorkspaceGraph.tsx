@@ -57,7 +57,7 @@ export function WorkspaceGraph({ graph, selected, onSelect, highlighted, highlig
     return graph.edges.filter(e => ids.has(e.source) && ids.has(e.target)).map(e => ({
       id: e.id, from: e.source, to: e.target, color: highlightedEdges.has(e.id) ? "#8d6de0" : preference === "dark" ? "#49536b" : "#c0c7d6",
       width: highlightedEdges.has(e.id) ? 3 : 1.5, selected: highlightedEdges.has(e.id),
-      caption: e.basis === "PROPOSED" ? "제안 연결" : highlightedEdges.has(e.id) ? e.kind : undefined,
+      caption: e.source_freshness === "STALE" || e.catalog_freshness === "STALE" ? "과거 추론 연결" : e.basis === "PROPOSED" ? "제안 연결" : highlightedEdges.has(e.id) ? e.kind : undefined,
     }));
   }, [graph, visible, highlightedEdges, preference]);
   const options = useMemo(() => ({

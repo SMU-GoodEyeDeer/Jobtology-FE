@@ -83,4 +83,40 @@ describe("graph-centered chat workspace", () => {
     await render();
     expect(host.querySelector('[role="alert"]')?.textContent).toContain("참고 그래프 일부를 불러오지 못했어요.");
   });
+  it("renders tool activity and partial text before replacing it with one final cited answer", async()=>{
+    let emit!: (event:ChatEvent)=>void, finish!: ()=>void;
+    vi.spyOn(chatWorkspaceApi,"stream").mockImplementation(async(_m,_g,_f,event)=>{
+      emit=event; await new Promise<void>(resolve=>{finish=resolve;});
+    });
+    await render();await question();
+    await act(async()=>{
+      emit({type:"tool",call_id:"one",name:"search_postings",label:"채용공고 검색",status:"started"});
+      emit({type:"answer_delta",delta:"작성 중인 답변"});
+    });
+    expect(host.textContent).toContain("작성 중인 답변");expect(host.textContent).toContain("채용공고 검색");
+    expect(host.querySelector(".workspace-citations")).toBeNull();
+    await act(async()=>{emit({type:"answer",data:answer});emit({type:"done"});finish();});
+    expect(host.textContent).not.toContain("작성 중인 답변");
+    expect(host.querySelectorAll(".workspace-message--assistant")).toHaveLength(1);
+    expect(host.textContent).toContain(answer.reply);
+  });
+  it("labels stopped partial answers as incomplete and ignores late tokens",async()=>{
+    let emit!: (event:ChatEvent)=>void;
+    vi.spyOn(chatWorkspaceApi,"stream").mockImplementation(async(_m,_g,_f,event,signal)=>{
+      emit=event;await new Promise<void>((_,reject)=>signal.addEventListener("abort",()=>reject(new DOMException("cancelled","AbortError"))));
+    });
+    await render();await question();
+    await act(async()=>emit({type:"answer_delta",delta:"중간 답변"}));
+    await act(async()=>host.querySelector<HTMLButtonElement>('[aria-label="답변 중지"]')!.click());
+    await act(async()=>emit({type:"answer_delta",delta:"늦은 토큰"}));
+    expect(host.textContent).toContain("중간 답변");expect(host.textContent).toContain("답변이 완료되지 않았어요.");
+    expect(host.textContent).not.toContain("늦은 토큰");
+  });
+  it("seeds actual posting nodes by expanding an initial posting context group",async()=>{
+    vi.spyOn(roleEvidenceGraphApi,"get").mockResolvedValue({occupation_id:"ROLE_B",name:"role",nodes:[{id:"postings:onet:15-1252.00",kind:"posting_evidence",label:"추론 공고",occupation_code:"15-1252.00",detail:null,weight:6}],edges:[]});
+    const expand=vi.spyOn(chatWorkspaceApi,"expand").mockResolvedValue({...graph,nodes:[{id:"posting:one",kind:"posting",label:"백엔드 채용",basis:"REFERENCE"}]});
+    await render();
+    expect(expand).toHaveBeenCalledWith("postings:onet:15-1252.00",0,expect.any(AbortSignal));
+    expect(host.querySelector('[data-testid="graph"]')?.textContent).toContain("백엔드 채용");
+  });
 });
