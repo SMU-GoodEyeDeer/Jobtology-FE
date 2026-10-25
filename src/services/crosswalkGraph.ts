@@ -1,11 +1,38 @@
-import { mergeWorkspace, type WorkspaceGraph } from "./chatWorkspace";
+import { edgeIdentity, mergeWorkspace, type WorkspaceGraph, type WorkspaceNode } from "./chatWorkspace";
 import { resourcesApi } from "./resourcesApi";
 import { readPostingsCache } from "./postingsCache";
 
+export function crosswalkNodeId(node: WorkspaceNode): string | null {
+  const id = node.id.replace(/^urn:jobtology:ncs:/, "ncs:");
+  if (node.kind === "ncs_competency") {
+    if (/^ncs:unit:\d{10}(?:_\d{2,4}v\d+)?$/.test(id)) return id;
+    return /^\d{10}$/.test(node.ncs_base_code ?? "") ? `ncs:unit:${node.ncs_base_code}` : null;
+  }
+  if (node.kind === "ncs_occupation") {
+    if (/^ncs:occupation:\d{8}$/.test(id)) return id;
+    return /^\d{8}$/.test(node.occupation_code ?? "") ? `ncs:occupation:${node.occupation_code}` : null;
+  }
+  if (node.kind === "onet_occupation") {
+    if (/^urn:jobtology:onet:occupation:\d{2}-\d{4}\.\d{2}$/.test(id)) return id;
+    if (/^onet:occupation:\d{2}-\d{4}\.\d{2}$/.test(id)) return `urn:jobtology:${id}`;
+    return /^\d{2}-\d{4}\.\d{2}$/.test(node.occupation_code ?? "") ? `urn:jobtology:onet:occupation:${node.occupation_code}` : null;
+  }
+  if (["onet_skill", "technology"].includes(node.kind) && /^(?:onet:skill:|urn:jobtology:onet-detail:)/.test(id)) return id;
+  return null;
+}
+
 export function crosswalkContext(graph: WorkspaceGraph): string[] {
-  return graph.nodes.filter(node => ["ncs_occupation", "onet_occupation", "ncs_competency", "onet_skill"].includes(node.kind))
+  return [...new Set([...graph.nodes]
     .sort((a, b) => Number(!a.kind.endsWith("occupation")) - Number(!b.kind.endsWith("occupation")) || a.id.localeCompare(b.id))
-    .slice(0, 48).map(node => node.id);
+    .flatMap(node => crosswalkNodeId(node) ?? []))].slice(0, 48);
+}
+
+export function crosswalkReference(graph: WorkspaceGraph, node: WorkspaceNode, catalogId: string): WorkspaceGraph {
+  if (node.id === catalogId || !graph.nodes.some(item => item.id === catalogId)) return graph;
+  return mergeWorkspace(graph, { nodes: [node], edges: [{
+    id: edgeIdentity(node.id, "CATALOG_REFERENCE", catalogId), source: node.id, target: catalogId,
+    kind: "CATALOG_REFERENCE", basis: "REFERENCE", explanation: "현재 카탈로그 탐색용 연결 · 저장된 분석의 평가 근거는 유지돼요.",
+  }], truncated: false });
 }
 
 export function readCrosswalk(nodeId: string, limit: number, contextNodes: readonly string[] = []) {

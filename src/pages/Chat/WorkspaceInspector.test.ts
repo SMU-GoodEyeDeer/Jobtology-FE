@@ -1,13 +1,36 @@
 // @vitest-environment jsdom
-import { createElement } from "react";
+import { act, createElement } from "react";
+import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { emptyGraph } from "../../services/chatWorkspace";
-import { formatPostingDateTime } from "../../services/resourcesApi";
+import { formatPostingDateTime, resourcesApi } from "../../services/resourcesApi";
+import { clearPostingsCache } from "../../services/postingsCache";
 import { WorkspaceInspector } from "./WorkspaceInspector";
 
 describe("workspace inspector dates", () => {
+  it("loads a requirement's catalog alias and connects it without repeating requests on graph rerenders", async () => {
+    (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    clearPostingsCache();
+    const node = { id: "requirement:BACKEND_DEVELOPER:2001020406", kind: "ncs_competency" as const, label: "분석 역량", basis: "REVIEWED_REQUIREMENT" as const, ncs_base_code: "2001020406" };
+    const catalogId = "ncs:unit:2001020406", connect = vi.fn();
+    const read = vi.spyOn(resourcesApi, "crosswalk").mockResolvedValue({
+      contract_version: "jobtology-ncs-onet-crosswalk-v1", basis: "CATALOG_CROSSWALK", competency_evidence: false,
+      limit: 6, offset: 0, total: 0, items: [], graph: { ...emptyGraph(), nodes: [{ ...node, id: catalogId, basis: "REFERENCE" }] },
+    });
+    const host = document.createElement("div"); document.body.append(host); const root = createRoot(host);
+    try {
+      const props = { node, graph: emptyGraph(), onClose: vi.fn(), onExpand: vi.fn(), onAsk: vi.fn(), busy: false, onConnections: connect };
+      await act(async () => root.render(createElement(MemoryRouter, null, createElement(WorkspaceInspector, props))));
+      expect(read).toHaveBeenCalledWith(catalogId, 6);
+      expect(connect.mock.calls[0][0].edges.some((edge: { kind: string }) => edge.kind === "CATALOG_REFERENCE")).toBe(true);
+      await act(async () => root.render(createElement(MemoryRouter, null, createElement(WorkspaceInspector, { ...props, node: { ...node } }))));
+      expect(connect).toHaveBeenCalledTimes(1);
+    } finally {
+      await act(async () => root.unmount()); host.remove(); read.mockRestore(); clearPostingsCache();
+    }
+  });
   it.each([
     ["urn:jobtology:onet-detail:software:python", true],
     ["technology:python", false],
