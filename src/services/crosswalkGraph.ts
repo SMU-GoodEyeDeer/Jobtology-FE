@@ -17,7 +17,7 @@ export function crosswalkNodeId(node: WorkspaceNode): string | null {
     if (/^onet:occupation:\d{2}-\d{4}\.\d{2}$/.test(id)) return `urn:jobtology:${id}`;
     return /^\d{2}-\d{4}\.\d{2}$/.test(node.occupation_code ?? "") ? `urn:jobtology:onet:occupation:${node.occupation_code}` : null;
   }
-  if (["onet_skill", "technology"].includes(node.kind) && /^(?:onet:skill:|urn:jobtology:onet-detail:)/.test(id)) return id;
+  if (["onet_skill", "technology"].includes(node.kind) && /^(?:onet:skill:|urn:jobtology:onet-detail:)\S+$/.test(id)) return id;
   return null;
 }
 

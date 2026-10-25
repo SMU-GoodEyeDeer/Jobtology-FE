@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { connectCrosswalk, crosswalkContext, crosswalkNodeId, crosswalkReference } from "./crosswalkGraph";
-import type { WorkspaceGraph } from "./chatWorkspace";
+import type { WorkspaceGraph, WorkspaceNode } from "./chatWorkspace";
 
 const current: WorkspaceGraph = { nodes: [
   { id: "ncs", kind: "ncs_competency", label: "내 역량", basis: "REVIEWED_REQUIREMENT", source_pin: "approved" },
@@ -16,6 +16,21 @@ const incoming: WorkspaceGraph = { nodes: [
 ], truncated: false };
 
 describe("crosswalk canvas connections", () => {
+  it.each<[WorkspaceNode["kind"], string, string | null]>([
+    ["onet_skill", "onet:skill:", null],
+    ["onet_skill", "urn:jobtology:onet-detail:", null],
+    ["technology", "onet:skill:", null],
+    ["technology", "urn:jobtology:onet-detail:", null],
+    ["onet_skill", "onet:skill: ", null],
+    ["technology", "urn:jobtology:onet-detail:\t", null],
+    ["onet_skill", "onet:skill:2.B.3.e", "onet:skill:2.B.3.e"],
+    ["onet_skill", "urn:jobtology:onet-detail:element:2.A.2.a", "urn:jobtology:onet-detail:element:2.A.2.a"],
+    ["technology", "urn:jobtology:onet-detail:software:python", "urn:jobtology:onet-detail:software:python"],
+    ["technology", "technology:python", null],
+    ["qualification", "onet:skill:2.B.3.e", null],
+  ])("requires a nonempty O*NET identifier for %s: %s", (kind, id, expected) => {
+    expect(crosswalkNodeId({ id, kind, label: "항목", basis: "REFERENCE" })).toBe(expected);
+  });
   it("resolves requirement cards to catalog IDs and deduplicates context without mutating the graph", () => {
     const requirement = { id: "requirement:BACKEND_DEVELOPER:2001020406", kind: "ncs_competency" as const, label: "평가", basis: "REVIEWED_REQUIREMENT" as const, ncs_base_code: "2001020406" };
     const graph: WorkspaceGraph = { ...current, nodes: [requirement,
