@@ -110,6 +110,17 @@ describe("chat evidence stream", () => {
 });
 
 describe("bounded graph state", () => {
+  it("keeps existing catalog provenance when posting classifications connect to it while refreshing the posting", () => {
+    const occupation = { id: "ncs:occupation:20010202", kind: "ncs_occupation" as const, label: "현재 카탈로그", detail: "카탈로그 설명", basis: "REFERENCE" as const, source_pin: "current-catalog" };
+    const posting = { id: "posting:one", kind: "posting" as const, label: "개발자", detail: "모집 중", basis: "REFERENCE" as const };
+    const merged = mergeWorkspace({ ...emptyGraph(), nodes: [occupation, posting] }, {
+      ...emptyGraph(), nodes: [{ ...occupation, label: "과거 추론 이름", detail: "추론 분류", source_pin: null }, { ...posting, detail: "모집 종료" }],
+      edges: [{ id: "classification", source: posting.id, target: occupation.id, kind: "INFERRED_POSTING_OCCUPATION", basis: "METADATA_INFERRED", catalog_pin: "old-catalog", catalog_freshness: "STALE" }],
+    });
+    expect(merged.nodes.find(node => node.id === occupation.id)).toEqual(occupation);
+    expect(merged.nodes.find(node => node.id === posting.id)?.detail).toBe("모집 종료");
+    expect(merged.edges[0].catalog_pin).toBe("old-catalog");
+  });
   it("preserves stable identities, merges updates and discards dangling relationships", () => {
     const merged = mergeWorkspace(graph, { nodes: [{ ...graph.nodes[0], label: "SQL 최신" }],
       edges: [{ id: edgeIdentity("sql", "LINK", "missing"), source: "sql", target: "missing", kind: "LINK", basis: "REFERENCE" }], truncated: false });
