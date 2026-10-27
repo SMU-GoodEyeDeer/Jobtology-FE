@@ -28,10 +28,12 @@ describe('Onboarding page', () => {
     expect(html).not.toContain('충족률')
   })
 
-  it('links Google login through the same API origin', () => {
+  it('requires security verification before Google login', () => {
     const html = renderToStaticMarkup(createElement(MemoryRouter, null, createElement(Onboarding)))
 
-    expect(html).toContain('href="/api/v1/auth/google/login"')
+    expect(html).toContain('aria-label="보안 확인"')
+    expect(html).toContain('disabled=""')
+    expect(html).not.toContain('href="/api/v1/auth/google/login"')
     expect(html).toContain('Google로 시작하기')
   })
 

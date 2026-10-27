@@ -114,6 +114,7 @@ const del = <T>(path: string, body?: unknown) => request<T>("DELETE", path, body
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
 export const authApi = {
+  startGoogleLogin: (token: string) => post<{ authorization_url: string }>("/v1/auth/google/login", { "cf-turnstile-response": token }),
   getSession: () => get<SessionResponse>("/v1/auth/session"),
   logout: () => post<void>("/v1/auth/logout", undefined),
   deleteAccount: () => del<void>("/v1/me/account"),
