@@ -22,8 +22,18 @@ flow, use a local backend with an appropriately registered Google callback and
 post-login URL. Saves made through the default proxy use the live backend.
 
 `VITE_API_BASE_URL` overrides the API address when explicitly set, for example
-when using a local backend. Requests and the Google login link use same-origin
+when using a local backend. Requests and Google login use same-origin
 `/api` in production unless overridden.
+
+Google login is gated by the existing Turnstile widget. The frontend sends its
+single-use token in a JSON POST to `/api/v1/auth/google/login` and navigates to the
+returned Google authorization URL. The public site key is included in the build;
+`VITE_TURNSTILE_SITE_KEY` may override it for a separate development widget. Keep
+the widget secret only in the backend's Coolify Runtime secret
+`JOBTOLOGY_TURNSTILE_SECRET`, and configure
+`JOBTOLOGY_TURNSTILE_HOSTNAMES=["jobtology.yeongmin.net"]` there. Deploy the matching
+FE/BE versions together. Local widgets need their own allowed hostname and matching
+backend configuration; a local test widget will not authenticate against production.
 
 ## Checks
 
