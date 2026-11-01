@@ -257,6 +257,8 @@
   .wp-gantt-label { flex-wrap: wrap; gap: 4px; padding: 6px; }
   .wp-week-name { flex: 1 1 90px; }
   .wp-gantt-label > .wp-field-dot { display: none; }
+  .wp-gantt-label--open .wp-why { flex-basis: 100%; min-width: 0; }
+  .wp-popover { position: static; width: 100%; margin-top: 6px; max-height: min(380px, 50dvh); overflow-wrap: anywhere; }
   .wp-hours-input { flex-wrap: wrap; }
   .wp-gantt-scroll { scroll-padding-left: var(--wp-label-width); }
   .wp-toolbar { align-items: stretch; }
