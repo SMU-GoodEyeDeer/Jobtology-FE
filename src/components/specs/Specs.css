@@ -139,3 +139,20 @@
   .spec-manager *, .spec-manager *::before, .spec-manager *::after, .spec-manager details::details-content { animation: none !important; transition: none !important; }
   .spec-manager button:active:not(:disabled) { transform: none; }
 }
+
+/* Viewport fallback also covers engines without container-query layout. */
+@media (max-width: 860px) {
+  .spec-fields { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+}
+@media (max-width: 760px) {
+  .spec-manager-heading, .spec-item-heading { flex-wrap: wrap; gap: 12px; }
+  .spec-field-grid { grid-template-columns: minmax(0, 1fr); }
+  .spec-entry-actions { width: 100%; gap: 10px; }
+  .spec-entry-actions > button { flex: 1 1 120px; white-space: normal; }
+  .spec-primary, .spec-secondary, .spec-item-actions button { min-height: 44px; }
+  .spec-item-actions { flex-direction: row; flex-wrap: wrap; }
+  .spec-item { padding: 16px; }
+  .spec-selected li { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+  .spec-save-hint { flex-basis: 100%; }
+  .spec-dialog-heading { padding-top: max(16px, env(safe-area-inset-top)); }
+}

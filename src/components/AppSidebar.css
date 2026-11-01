@@ -201,3 +201,21 @@
 .sidebar-logout-error { position: fixed; z-index: 1000; left: 50%; bottom: 20px; transform: translateX(-50%); width: min(360px, calc(100vw - 32px)); padding: 16px; box-sizing: border-box; border: 1px solid var(--danger-border); border-radius: 12px; background: var(--surface); color: var(--text); font-size: 13px; line-height: 1.65; }
 .sidebar-logout-error p { margin: 0 0 10px; }
 .sidebar-logout-error button { padding: 8px 12px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface-soft); color: var(--text); font: inherit; cursor: pointer; }
+
+/* Phones get the whole content width; navigation opens in the native top layer. */
+.mobile-app-bar { display: flex; flex: none; align-items: center; justify-content: space-between; gap: 12px; padding: max(6px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 6px max(16px, env(safe-area-inset-left)); min-height: 56px; background: var(--surface); border-bottom: 1px solid var(--border); }
+.mobile-brand { font-size: 23px; }
+.mobile-menu-trigger { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 44px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text); font: inherit; font-size: 14px; cursor: pointer; }
+.mobile-menu-trigger:focus-visible, .mobile-navigation button:focus-visible { outline: 2px solid var(--accent-focus); outline-offset: 2px; }
+.mobile-navigation { position: fixed; inset: 0 0 0 auto; margin: 0; width: min(340px, 90vw); max-width: none; height: 100vh; height: 100dvh; max-height: none; border: 0; border-left: 1px solid var(--border); padding: max(20px, env(safe-area-inset-top)) 0 max(16px, env(safe-area-inset-bottom)); background: var(--surface); color: var(--text); overflow-y: auto; overscroll-behavior: contain; }
+.mobile-navigation[open] { display: flex; flex-direction: column; animation: mobile-menu-in .18s ease-out; }
+.mobile-navigation::backdrop { background: #0f172a80; }
+.mobile-navigation .sidebar-logo { flex: none; padding-bottom: 12px; }
+.mobile-navigation .sidebar-toggle { width: 44px; height: 44px; }
+.mobile-navigation .sidebar-nav { flex: none; padding-block: 8px 16px; }
+.mobile-navigation .nav-item { height: 46px; font-size: 15px; }
+.mobile-navigation .nav-item--active { background: var(--strong-bg); }
+.mobile-navigation .sidebar-bottom { margin-top: auto; flex-shrink: 0; overflow: visible; }
+.mobile-navigation .sidebar-logout-btn { min-height: 44px; }
+@keyframes mobile-menu-in { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .mobile-navigation[open] { animation: none; } }

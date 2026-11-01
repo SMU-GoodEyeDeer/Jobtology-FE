@@ -25,7 +25,7 @@ export function NcsDegreeNote({ level, levels = [] }: { readonly level?: number 
 export function NcsLevel({ level, compact = false }: { readonly level?: number | null; readonly compact?: boolean }) {
   const id = useId();
   const trigger = useRef<HTMLButtonElement>(null);
-  const popup = useRef<HTMLDivElement>(null);
+  const popup = useRef<HTMLDialogElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const selected = NCS_LEVELS.find(item => item.level === level);
@@ -62,7 +62,8 @@ export function NcsLevel({ level, compact = false }: { readonly level?: number |
   }, [open]);
 
   function close() {
-    popup.current?.hidePopover();
+    const node = popup.current;
+    if (node?.open) node.close(); else node?.hidePopover?.();
     setOpen(false);
     trigger.current?.focus({ preventScroll: true });
   }
@@ -70,12 +71,18 @@ export function NcsLevel({ level, compact = false }: { readonly level?: number |
   return <div className={`ncs-level${compact ? " ncs-level--compact" : ""}`}>
     <button ref={trigger} type="button" className="ncs-level-trigger" aria-haspopup="dialog" aria-controls={id} aria-expanded={open} onClick={() => {
       if (open) close();
-      else { popup.current?.showPopover(); setOpen(true); }
+      else {
+        const node = popup.current;
+        if (node?.showPopover) node.showPopover(); else node?.showModal();
+        setOpen(true);
+      }
     }}>
       {selected ? `NCS ${level}수준` : "NCS 수준 안내"}
       <svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="7.25" stroke="currentColor" strokeWidth="1.5" /><path d="M10 9v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /><circle cx="10" cy="6.5" r=".9" fill="currentColor" /></svg>
     </button>
-    <div ref={popup} id={id} popover="auto" className="ncs-level-popup" role="dialog" aria-labelledby={`${id}-title`} aria-hidden={!open} inert={!open}
+    <dialog ref={popup} id={id} popover="auto" className="ncs-level-popup" aria-labelledby={`${id}-title`} aria-hidden={!open} inert={!open}
+      onCancel={event => { event.preventDefault(); close(); }}
+      onClose={() => { if (popup.current?.isConnected && !popup.current.open) { setOpen(false); trigger.current?.focus({ preventScroll: true }); } }}
       onToggle={event => setOpen((event.nativeEvent as ToggleEvent).newState === "open")}>
       <header className="ncs-level-popup-heading"><h3 id={`${id}-title`}>NCS 수준 안내</h3><button ref={closeButton} type="button" className="ncs-level-close" aria-label="NCS 수준 안내 닫기" disabled={!open} onClick={close}><svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m5 5 10 10M15 5 5 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg></button></header>
       <div className="ncs-level-help">
@@ -87,6 +94,6 @@ export function NcsLevel({ level, compact = false }: { readonly level?: number |
       <p className="ncs-level-caution">학력·자격 예시는 이해를 돕는 대략적인 참고이며 동등 학력, 응시 자격이나 채용 요건을 보장하지 않아요.</p>
       <a href="https://www.ncs.go.kr/mobile/rm01/TH10200103.do" target="_blank" rel="noopener noreferrer" tabIndex={open ? 0 : -1}>NCS 공식 수준 체계 보기 ↗</a>
       </div>
-    </div>
+    </dialog>
   </div>;
 }

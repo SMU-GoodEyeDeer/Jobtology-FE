@@ -30,7 +30,7 @@ export function PlanWeeks({ plan, draft, changedIds, busy, onChange, onSelect }:
   const weekCount = Math.max(1, plan.total_weeks, targetWeek ?? 0, ...plan.rest_weeks);
   const weeks = Array.from({ length: weekCount }, (_, i) => i + 1);
   const fields = [...new Set(plan.steps.map(s => s.field_code))].sort();
-  const columns: CSSProperties = { gridTemplateColumns: `${draft ? 420 : 330}px repeat(${weekCount}, minmax(25px, 1fr))` };
+  const columns: CSSProperties = { gridTemplateColumns: `var(--wp-label-width) repeat(${weekCount}, minmax(25px, 1fr))` };
   function toggleRest(week: number) {
     if (!draft || busy) return;
     onChange({ ...draft, rest_weeks: draft.rest_weeks.includes(week) ? draft.rest_weeks.filter(w => w !== week) : [...draft.rest_weeks, week].sort((a, b) => a - b) });
@@ -52,7 +52,7 @@ export function PlanWeeks({ plan, draft, changedIds, busy, onChange, onSelect }:
           <button aria-label="1시간 늘리기" disabled={busy || draft.weekly_hours >= 60} onClick={() => onChange({ ...draft, weekly_hours: draft.weekly_hours + 1 })}>+</button>
         </div><span>총 <b>{plan.total_hours}시간</b> · {plan.total_weeks}주</span><small id="wp-drag-help">순서: 핸들 드래그·↑↓ 키 · 쉬는 주: 주차 번호 선택</small>
       </div> : <header className="wp-gantt-heading"><h2>주차 플랜</h2></header>}
-      <div className="wp-gantt-scroll"><div ref={containerRef} {...containerProps} className="wp-gantt" style={{ minWidth: (draft ? 420 : 330) + weekCount * 25 }}>
+      <div className="wp-gantt-scroll" tabIndex={0} role="region" aria-label="주차 일정 · 가로로 스크롤"><div ref={containerRef} {...containerProps} className="wp-gantt" style={{ minWidth: `calc(var(--wp-label-width) + ${weekCount * 25}px)` }}>
         <div className="wp-gantt-headers">
           <div className="wp-gantt-months" style={columns}><span className="wp-gantt-label" />{months.map(m => <span key={m.start} style={{ gridColumn: `${m.start + 1} / ${m.end + 2}` }}>{m.label}</span>)}</div>
           <div className="wp-gantt-week-head" style={columns}><span className="wp-gantt-label">학습 우선순위 · {plan.steps.length}단계</span>{weeks.map(week => <button key={week} disabled={!draft || busy || week > 104}

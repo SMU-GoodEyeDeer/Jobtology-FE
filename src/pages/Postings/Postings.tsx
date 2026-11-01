@@ -27,6 +27,7 @@ export function Postings() {
   const postingId = params.get("posting");
   const [draft, setDraft] = useState({ q, category, region, openOn });
   const [attempt, setAttempt] = useState(0);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [result, setResult] = useState<{ key: string; data?: PostingsResponse; context?: OccupationContextResponse; error?: string } | null>(null);
   const listHeading = useRef<HTMLHeadingElement>(null);
   const pageChanged = useRef(false);
@@ -94,7 +95,8 @@ export function Postings() {
     <div className="main-area">
       <header className="main-header"><h1 className="main-title">채용공고</h1></header>
       <main className="postings-content">
-        <form className="postings-filters" onSubmit={search} aria-label="채용공고 검색">
+        <button type="button" className="postings-filter-toggle" aria-controls="postings-filters" aria-expanded={filtersOpen} onClick={() => setFiltersOpen(value => !value)}>검색 조건{q || category || region || openOn ? " · 적용 중" : ""}<span aria-hidden="true">{filtersOpen ? "−" : "+"}</span></button>
+        <form id="postings-filters" className="postings-filters" data-expanded={filtersOpen} onSubmit={search} aria-label="채용공고 검색">
           <label className="postings-search">공고·기관 검색<input value={draft.q} onChange={event => setDraft({ ...draft, q: event.target.value })} placeholder="공고명 또는 기관명" maxLength={200} /></label>
           <label>NCS 코드 · 원문/최신 추론<input value={draft.category} onChange={event => setDraft({ ...draft, category: event.target.value })} placeholder="예: 200102" pattern="[0-9]*" maxLength={20} inputMode="numeric" /></label>
           <label>근무 지역<input value={draft.region} onChange={event => setDraft({ ...draft, region: event.target.value })} placeholder="예: 서울" maxLength={100} /></label>

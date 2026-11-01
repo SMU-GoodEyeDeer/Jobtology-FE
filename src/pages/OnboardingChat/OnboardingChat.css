@@ -510,3 +510,13 @@
 .ob-specs { width: 100%; padding: 24px; box-sizing: border-box; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
 .ob-specs-finish { margin-top: 24px; }
 @media (max-width: 600px) { .ob-specs { padding: 14px; } }
+
+@media (max-width: 600px) {
+  .ob-header-inner { grid-template-columns: minmax(0, 1fr) auto; gap: 8px; padding-top: max(10px, env(safe-area-inset-top)); }
+  .ob-progress { grid-row: 2; grid-column: 1 / -1; justify-self: center; max-width: 240px; }
+  .ob-stop { grid-column: 2; grid-row: 1; min-height: 44px; }
+  .ob-chat--center { justify-content: flex-start; padding-top: 24px; }
+  .ob-input { min-width: 0; }
+  .ob-input-bar { margin-bottom: max(12px, env(safe-area-inset-bottom)); }
+  .ob-chat, .ob-ai, .ob-user { overflow-wrap: anywhere; }
+}

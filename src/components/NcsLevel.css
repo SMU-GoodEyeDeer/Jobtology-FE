@@ -5,6 +5,8 @@
 .ncs-level--compact .ncs-level-trigger { font-size: 12px; }
 .ncs-level-popup { position: fixed; inset: auto; margin: 0; padding: 0; width: min(430px, calc(100vw - 32px)); max-height: min(660px, calc(100dvh - 32px)); overflow-y: auto; overscroll-behavior: contain; box-sizing: border-box; border: 1px solid var(--accent-border); border-radius: 16px; background: var(--surface); color: var(--text-secondary); box-shadow: 0 16px 48px #1e1b4b26; text-align: left; font-family: inherit; scrollbar-width: thin; }
 .ncs-level-popup:popover-open { animation: ncs-popup-in .14s ease-out; }
+.ncs-level-popup[open] { animation: ncs-popup-in .14s ease-out; }
+.ncs-level-popup::backdrop { background: transparent; }
 .ncs-level-popup-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 18px; border-bottom: 1px solid var(--border-soft); }
 .ncs-level-popup .ncs-level-popup-heading h3 { margin: 0; font-size: 15px; color: var(--text); }
 .ncs-level-close { display: grid; place-items: center; flex: none; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 6px; background: var(--surface-soft); color: var(--muted); cursor: pointer; }

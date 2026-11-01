@@ -163,3 +163,9 @@
 .landing-particle { position: absolute; border-radius: 50%; background: var(--landing-violet); opacity: var(--particle-opacity); }
 .landing-particle--bubble { border: 1px solid color-mix(in srgb, var(--landing-violet) 45%, transparent); background: radial-gradient(circle at 28% 23%, var(--landing-card), transparent 55%), color-mix(in srgb, var(--landing-violet) 8%, transparent); box-shadow: inset -2px -3px 6px color-mix(in srgb, var(--landing-violet) 12%, transparent); }
 @media (max-width: 600px) { .landing-particle { scale: .7; opacity: calc(var(--particle-opacity) * .7); } }
+
+@media (max-width: 760px) {
+  .landing-page { padding-left: max(18px, env(safe-area-inset-left)); padding-right: max(18px, env(safe-area-inset-right)); }
+  .landing-header { padding-top: max(20px, env(safe-area-inset-top)); }
+  .landing-hero > p { max-width: 100%; line-height: 1.8; }
+}

@@ -417,3 +417,14 @@
 .pg-step-dot--todo { background: var(--border); }
 .pg-step-name { flex: 1; color: var(--text-secondary); }
 .pg-step-state { font-size: 12px; color: var(--tertiary); }
+
+@media (max-width: 760px) {
+  .pg-goal-card, .pg-summary-card { padding: 18px; }
+  .pg-fulfillment-body { flex-direction: column; }
+  .pg-summary-header, .pg-goal-header { flex-wrap: wrap; gap: 12px; }
+  .pg-tab-row { flex-wrap: wrap; }
+  .pg-tab, .pg-copy-btn { min-height: 44px; }
+  .pg-schedule-title-row, .pg-change-item { flex-wrap: wrap; gap: 6px; }
+  .pg-schedule-title { white-space: normal; overflow-wrap: anywhere; }
+  .pg-step-name { min-width: 0; overflow-wrap: anywhere; }
+}

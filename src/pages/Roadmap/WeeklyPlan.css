@@ -133,7 +133,8 @@
 @keyframes wp-dim-out { from { opacity: 1; } to { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .wp-dialog::backdrop, .wp-dialog[data-exiting="true"]::backdrop { animation: none; } }
 .wp-weeks { display: flex; flex-direction: column; gap: 12px; }
-.wp-gantt-card { padding: 20px; min-width: 0; }
+.wp-gantt-card { --wp-label-width: 330px; padding: 20px; min-width: 0; }
+.wp-gantt-card--editing { --wp-label-width: 420px; }
 .wp-gantt-heading { display: flex; align-items: baseline; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
 .wp-gantt-scroll { overflow: auto; max-height: 550px; border: 1px solid var(--sd-border); border-radius: 12px; isolation: isolate; }
 .wp-gantt-card--editing .wp-gantt-scroll { max-height: none; overflow-y: hidden; }
@@ -223,7 +224,7 @@
 @media (max-width: 600px) {
   .roadmap-page .main-header { flex-wrap: wrap; gap: 12px; padding: 16px; }
   .roadmap-page .main-title { font-size: 18px; }
-  .roadmap-page .goal-button { min-width: 140px; }
+  .roadmap-page .goal-button { min-width: 0; }
   .roadmap-page .main-content { padding-inline: 12px; }
   .roadmap-page .rm-section { flex-direction: column; align-items: stretch; }
   .wp-toolbar-actions { width: 100%; justify-content: flex-end; }
@@ -248,4 +249,23 @@
   .wp-phase-count { font-size: 11px; }
   .wp-save-bar { bottom: 0; }
   .wp-save-bar .wp-text-button { margin-left: 0; }
+}
+
+@media (max-width: 760px) {
+  .wp-gantt-card { --wp-label-width: 170px; }
+  .wp-gantt-card--editing { --wp-label-width: 190px; }
+  .wp-gantt-label { flex-wrap: wrap; gap: 4px; padding: 6px; }
+  .wp-week-name { flex: 1 1 90px; }
+  .wp-gantt-label > .wp-field-dot { display: none; }
+  .wp-hours-input { flex-wrap: wrap; }
+  .wp-gantt-scroll { scroll-padding-left: var(--wp-label-width); }
+  .wp-toolbar { align-items: stretch; }
+  .wp-toolbar-actions { flex-wrap: wrap; }
+  .wp-toolbar-actions button, .wp-tabs button, .wp-detail-footer button { min-height: 44px; }
+  .wp-phases { max-height: none; }
+  .wp-phase-header { flex-wrap: wrap; }
+  .wp-phase-progress { flex-basis: 100%; }
+  .wp-week-tasks { padding: 16px; }
+  .wp-save-bar { padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+  .wp-dialog { padding-bottom: env(safe-area-inset-bottom); }
 }
