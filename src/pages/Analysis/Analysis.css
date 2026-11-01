@@ -385,3 +385,8 @@
   .an-reanalyze-btn { margin: 0 0 0 auto; min-height: 44px; }
   .an-retry-btn, .an-goto-roadmap-btn { min-height: 44px; }
 }
+
+@media (max-width: 600px) {
+  .analysis-page .main-header > .goal-wrapper { flex-basis: 100%; }
+  .analysis-page .main-header .goal-button { width: 100%; justify-content: flex-start; }
+}

@@ -5,6 +5,7 @@ import { useReducedMotion } from "motion/react";
 import { useTheme } from "../../context/ThemeContext";
 import { basisLabels, nodeLabels, type WorkspaceGraph as Graph, type WorkspaceKind } from "../../services/chatWorkspace";
 import { WorkspaceLoading } from "./WorkspaceLoading";
+import { attachGraphTouchGestures } from "./graphTouchGestures";
 
 const colors: Record<WorkspaceKind, string> = {
   role: "#7056c7", goal: "#7056c7", profile: "#345d79", preferences: "#64748b",
@@ -27,6 +28,7 @@ export function WorkspaceGraph({ graph, selected, onSelect, highlighted, highlig
   const [failed, setFailed] = useState(false);
   const [ready, setReady] = useState(false);
   const [laidOut, setLaidOut] = useState(false);
+  const [layoutColumns, setLayoutColumns] = useState(7);
   const fitted = useRef(false);
   const fittingIds = useRef<string[] | null>(null);
   const [previewKind, setPreviewKind] = useState<WorkspaceKind | null>(null);
@@ -38,7 +40,7 @@ export function WorkspaceGraph({ graph, selected, onSelect, highlighted, highlig
   const labelScale = useRef(0);
   const hoveredNode = useRef<string | null>(null);
   const layoutFrame = useRef(0), lastLayout = useRef(0);
-  const viewState = useRef({ selected, anchorId, highlighted, visible: graph.nodes, onAnchor });
+  const viewState = useRef({ selected, anchorId, highlighted, visible: graph.nodes, onAnchor, onSelect });
   useEffect(() => () => { cancelAnimationFrame(layoutFrame.current); layoutFrame.current = 0; }, []);
   function syncOverlays() {
     if (layoutFrame.current) return;
@@ -70,7 +72,12 @@ export function WorkspaceGraph({ graph, selected, onSelect, highlighted, highlig
     if (Math.abs(next - labelScale.current) > .01) { canvas.current?.style.setProperty("--node-label-scale", String(next)); labelScale.current = next; }
   }
   const visible = useMemo(() => graph.nodes.filter(n => !kinds.length || kinds.includes(n.kind)), [graph, kinds]);
-  viewState.current = { selected, anchorId, highlighted, visible, onAnchor };
+  const hasVisibleNodes = visible.length > 0;
+  viewState.current = { selected, anchorId, highlighted, visible, onAnchor, onSelect };
+  useEffect(() => {
+    if (!ready || failed || !hasVisibleNodes || !canvas.current || !nvl.current) return;
+    return attachGraphTouchGestures(canvas.current, nvl.current, id => viewState.current.onSelect(id), zoom => syncLabelScale(zoom));
+  }, [ready, failed, hasVisibleNodes]);
   useEffect(() => { syncOverlays(); }, [visible, selected, anchorId, highlighted, activeKind, preference]);
   useEffect(() => {
     if (!canvas.current) return;
@@ -114,7 +121,19 @@ export function WorkspaceGraph({ graph, selected, onSelect, highlighted, highlig
     disableTelemetry: true, disableWebGL: true, maxFps: 30, minZoom: .08, maxZoom: 2,
     styling: { selectedBorderColor: "#9b84ec" },
   }), [preference, reduced]);
-  const positions = useMemo(() => reduced ? visible.map((n, index) => ({ id: n.id, x: (index % 7) * 135, y: Math.floor(index / 7) * 120 })) : undefined, [visible, reduced]);
+  useEffect(() => {
+    const element = canvas.current;
+    if (!reduced || !element) return;
+    // Static positions need to wrap before fitting a phone-sized canvas.
+    const update = () => {
+      if (element.clientWidth) setLayoutColumns(Math.max(2, Math.min(7, Math.floor(element.clientWidth / 150))));
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [reduced]);
+  const positions = useMemo(() => reduced ? visible.map((n, index) => ({ id: n.id, x: (index % layoutColumns) * 135, y: Math.floor(index / layoutColumns) * 120 })) : undefined, [visible, reduced, layoutColumns]);
   function fitAll() { fittingIds.current = null; nvl.current?.fit?.(visible.map(n => n.id), { animated: !reduced, maxZoom: 1.2 }); }
   const kindKey = kinds.join("|");
   useEffect(() => { if (ready) fitAll(); }, [reset, ready, kindKey]);
@@ -123,6 +142,17 @@ export function WorkspaceGraph({ graph, selected, onSelect, highlighted, highlig
     if (ready && focus.ids.length) nvl.current?.fit?.(focus.ids.filter(id => visible.some(n => n.id === id)), { animated: !reduced, maxZoom: 1.2 });
   }, [focus, ready, reduced]);
   const currentView = useRef({ visible, focus }); currentView.current = { visible, focus };
+  useEffect(() => {
+    if (!ready || !reduced) return;
+    // Let NVL apply the new positions before fitting and measuring its labels.
+    let frame = requestAnimationFrame(() => {
+      const nodes = currentView.current.visible;
+      const ids = (fittingIds.current ?? []).filter(id => nodes.some(node => node.id === id));
+      nvl.current?.fit?.(ids.length ? ids : nodes.map(node => node.id), { animated: false, maxZoom: 1.2 });
+      frame = requestAnimationFrame(() => syncLabelScale());
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [ready, reduced, layoutColumns]);
   useEffect(() => {
     if (!ready || !canvas.current) return;
     let frame = 0;
@@ -145,7 +175,7 @@ export function WorkspaceGraph({ graph, selected, onSelect, highlighted, highlig
   const counts = new Map<WorkspaceKind, number>();
   for (const node of graph.nodes) counts.set(node.kind, (counts.get(node.kind) ?? 0) + 1);
   return <>
-    <div ref={canvas} className="workspace-canvas" aria-label="커리어 근거 그래프">
+    <div ref={canvas} className="workspace-canvas" data-static-layout={!!reduced} aria-label="커리어 근거 그래프">
       {!laidOut && !failed && nodes.length > 0 && <WorkspaceLoading label="그래프를 준비하고 있어요" />}
       {!failed && nodes.length > 0 && <InteractiveNvlWrapper ref={nvl} nodes={nodes} rels={rels} positions={positions}
         style={{ width: "100%", height: "100%" }} nvlOptions={options}

@@ -196,7 +196,8 @@
 .wp-hours-input input { width: 54px; padding: 4px; border: 1px solid var(--sd-border); border-radius: 6px; font-size: 12px; color: var(--sd-text); background: var(--sd-surface); }
 .wp-hours-input small { font-size: 10px; }
 .wp-save-bar { position: sticky; bottom: 12px; z-index: 8; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px; margin-top: 12px; font-size: 12px; box-shadow: 0 4px 20px #11182712; }
-.wp-save-bar .wp-text-button { margin-left: auto; }
+.wp-save-summary { flex: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.wp-save-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-left: auto; }
 .wp-week-tasks { display: grid; grid-template-columns: 1fr 320px; gap: 24px; padding: 20px; }
 .wp-week-tasks h3 { color: var(--sd-primary); margin-bottom: 8px; }
 .wp-week-tasks p { font-size: 13px; line-height: 1.7; }
@@ -248,7 +249,6 @@
   .wp-phase-row { gap: 6px; }
   .wp-phase-count { font-size: 11px; }
   .wp-save-bar { bottom: 0; }
-  .wp-save-bar .wp-text-button { margin-left: 0; }
 }
 
 @media (max-width: 760px) {
@@ -267,5 +267,17 @@
   .wp-phase-progress { flex-basis: 100%; }
   .wp-week-tasks { padding: 16px; }
   .wp-save-bar { padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+  .wp-save-summary { flex-basis: 100%; }
+  .wp-completion-change { order: 1; flex-basis: 100%; line-height: 1.6; }
+  .wp-save-actions { width: 100%; }
+  .wp-save-actions > .wp-text-button { flex: 1; min-width: 0; min-height: 44px; text-align: left; font-size: 12px !important; }
+  .wp-save-actions > .wp-button { flex: none; min-height: 44px; }
+  .wp-detail:not(.wp-dialog) { height: auto; max-height: none; }
+  .wp-detail:not(.wp-dialog) .wp-detail-body { flex: none; overflow: visible; }
+  .rm-edit-btn { min-height: 44px; }
   .wp-dialog { padding-bottom: env(safe-area-inset-bottom); }
+}
+
+@media (max-width: 760px) and (max-height: 700px) {
+  .wp-save-bar { position: static; }
 }

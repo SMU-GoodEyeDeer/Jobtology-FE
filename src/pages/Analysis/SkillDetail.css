@@ -141,6 +141,6 @@
 @media (max-width: 760px) {
   .sd-panel--overlay { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); border-radius: 0; }
   .sd-panel-header, .sd-panel-body, .sd-panel-footer { padding-inline: 18px; }
-  .sd-filters { flex-wrap: wrap; gap: 8px; }
+  .sd-filters { flex-wrap: nowrap; gap: 4px; }
   .sd-filters button, .sd-step-link { min-height: 44px; }
 }

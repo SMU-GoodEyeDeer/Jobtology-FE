@@ -542,6 +542,7 @@
 
 .step-box {
   flex: 1;
+  min-width: 0;
   padding: 14px 18px;
   border-radius: 10px;
   border: 2px solid;
@@ -577,6 +578,9 @@
   font-weight: 700;
   color: var(--text);
   margin: 0;
+  line-height: 1.55;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
 
 .step-arrow {
@@ -637,4 +641,12 @@
 @media (max-width: 380px) {
   .main-header > .goal-wrapper { flex-basis: 100%; }
   .main-header .goal-button { width: 100%; }
+}
+
+@media (max-width: 600px) {
+  .continue-section { padding: 18px; }
+  .continue-steps { flex-direction: column; gap: 8px; }
+  .continue-steps .step-box { flex: none; width: 100%; padding: 14px 16px; }
+  .continue-steps .step-arrow { width: 20px; height: 20px; transform: rotate(90deg); }
+  .action-btn { min-height: 44px; }
 }

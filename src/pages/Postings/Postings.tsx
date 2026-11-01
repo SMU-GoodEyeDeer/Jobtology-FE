@@ -94,7 +94,7 @@ export function Postings() {
     <AppSidebar />
     <div className="main-area">
       <header className="main-header"><h1 className="main-title">채용공고</h1></header>
-      <main className="postings-content">
+      <main className="postings-content" data-filters-open={filtersOpen}>
         <button type="button" className="postings-filter-toggle" aria-controls="postings-filters" aria-expanded={filtersOpen} onClick={() => setFiltersOpen(value => !value)}>검색 조건{q || category || region || openOn ? " · 적용 중" : ""}<span aria-hidden="true">{filtersOpen ? "−" : "+"}</span></button>
         <form id="postings-filters" className="postings-filters" data-expanded={filtersOpen} onSubmit={search} aria-label="채용공고 검색">
           <label className="postings-search">공고·기관 검색<input value={draft.q} onChange={event => setDraft({ ...draft, q: event.target.value })} placeholder="공고명 또는 기관명" maxLength={200} /></label>

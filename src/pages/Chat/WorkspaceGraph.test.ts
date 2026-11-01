@@ -4,11 +4,11 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { EvidenceBasis, WorkspaceGraph as Graph, WorkspaceKind } from "../../services/chatWorkspace";
 import { WorkspaceGraph } from "./WorkspaceGraph";
-const native = vi.hoisted(() => ({ props: {} as Record<string, any>, reduced: false, fit: vi.fn(), point: { x: 120, y: 90 } }));
+const native = vi.hoisted(() => ({ props: {} as Record<string, any>, reduced: false, fit: vi.fn(), hits: vi.fn(() => ({ nvlTargets: { nodes: [] } })), point: { x: 120, y: 90 } }));
 vi.mock("motion/react", () => ({ useReducedMotion: () => native.reduced }));
 vi.mock("@neo4j-nvl/react", () => ({ InteractiveNvlWrapper: forwardRef((props: Record<string, any>, ref) => {
   native.props = props;
-  useImperativeHandle(ref, () => ({ fit: native.fit, getScale: () => .5, setZoom: vi.fn(), getNodes: () => props.nodes.map((node: { id: string }) => ({ id: node.id, clientPosition: native.point })) }));
+  useImperativeHandle(ref, () => ({ fit: native.fit, getScale: () => .5, getPan: () => ({ x: 0, y: 0 }), getHits: native.hits, setZoom: vi.fn(), getNodes: () => props.nodes.map((node: { id: string }) => ({ id: node.id, clientPosition: native.point })) }));
   useEffect(() => { props.nvlCallbacks.onInitialization(); }, []);
   return createElement("div", { "data-native-graph": true, ref: (element: HTMLDivElement | null) => { if (element) element.replaceChildren(...props.nodes.map((node: {html:HTMLElement}) => node.html.cloneNode(true))); } });
 }) }));
@@ -18,13 +18,31 @@ let host: HTMLDivElement, root: Root;
 beforeEach(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
-  native.reduced = false; native.point = { x: 120, y: 90 }; native.fit.mockClear(); host = document.createElement("div"); document.body.append(host); root = createRoot(host);
+  native.reduced = false; native.point = { x: 120, y: 90 }; native.fit.mockClear(); native.hits.mockClear(); host = document.createElement("div"); document.body.append(host); root = createRoot(host);
 });
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.unstubAllGlobals(); });
 async function render(kinds: WorkspaceKind[] = [], ids: string[] = [], revision = 0, data = graph, highlightedEdges = new Set<string>()) {
   await act(async () => root.render(createElement(WorkspaceGraph, { graph: data, selected: null, onSelect: vi.fn(), highlighted: new Set<string>(), highlightedEdges, kinds, focus: { ids, revision }, reset: 0 })));
 }
 describe("native graph view behavior", () => {
+  it("detaches touch gestures while filters hide all nodes and reconnects when they return", async () => {
+    await render();
+    const canvas = host.querySelector<HTMLElement>(".workspace-canvas")!;
+    canvas.setPointerCapture = vi.fn(); canvas.hasPointerCapture = () => false;
+    const touch = () => {
+      const event = new MouseEvent("pointerdown", { bubbles: true, cancelable: true, clientX: 50, clientY: 50 });
+      Object.defineProperties(event, { pointerId: { value: 1 }, pointerType: { value: "touch" } });
+      canvas.dispatchEvent(event);
+    };
+    touch();
+    expect(native.hits).toHaveBeenCalledTimes(1);
+    await render(["qualification"]);
+    touch();
+    expect(native.hits).toHaveBeenCalledTimes(1);
+    await render();
+    touch();
+    expect(native.hits).toHaveBeenCalledTimes(2);
+  });
   it("distinguishes source and inferred posting classifications on their graph edges", async () => {
     await render([], [], 0, { ...graph, edges: [
       { id: "source", source: "a", target: "b", kind: "SOURCE_NCS_CLASSIFICATION", basis: "REFERENCE" },
@@ -79,6 +97,30 @@ describe("native graph view behavior", () => {
     await render(["capability"]); native.fit.mockClear();
     await render([], ["a"], 1);
     expect(native.fit).toHaveBeenLastCalledWith(["a"], expect.objectContaining({ maxZoom: 1.2 }));
+  });
+  it("reflows the reduced-motion graph on narrow canvases without losing nodes or citation focus", async () => {
+    native.reduced = true;
+    const resize: Array<() => void> = [];
+    vi.stubGlobal("ResizeObserver", class {
+      constructor(callback: () => void) { resize.push(callback); }
+      observe() {}
+      disconnect() {}
+    });
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => setTimeout(() => callback(0), 0));
+    vi.stubGlobal("cancelAnimationFrame", (id: number) => clearTimeout(id));
+    const data = { ...graph, nodes: Array.from({ length: 8 }, (_, i) => ({ ...graph.nodes[0], id: `node-${i}` })) };
+    await render([], ["node-0"], 0, data);
+    const canvas = host.querySelector<HTMLElement>(".workspace-canvas")!;
+    Object.defineProperty(canvas, "clientWidth", { configurable: true, value: 390 });
+    await act(async () => { resize.forEach(callback => callback()); await new Promise(resolve => setTimeout(resolve, 10)); });
+    expect(native.props.positions).toHaveLength(data.nodes.length);
+    expect(native.props.positions.every((point: { x: number }) => point.x < canvas.clientWidth)).toBe(true);
+    expect(new Set(native.props.positions.map((point: { y: number }) => point.y)).size).toBeGreaterThan(2);
+    expect(native.fit).toHaveBeenLastCalledWith(["node-0"], expect.objectContaining({ animated: false }));
+    Object.defineProperty(canvas, "clientWidth", { configurable: true, value: 1200 });
+    await act(async () => { resize.forEach(callback => callback()); await new Promise(resolve => setTimeout(resolve, 10)); });
+    expect(native.props.positions.some((point: { x: number }) => point.x > 390)).toBe(true);
+    expect(native.fit).toHaveBeenLastCalledWith(["node-0"], expect.objectContaining({ animated: false }));
   });
   it("renders untrusted node labels as text rather than executable HTML", async () => {
     await render([], [], 0, { ...graph, nodes: [{ ...graph.nodes[0], label: '<img src=x onerror="alert(1)">' }] });
