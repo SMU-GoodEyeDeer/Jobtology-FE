@@ -1,8 +1,9 @@
 /* Layout */
 .home-layout {
   display: flex;
-  width: 100vw;
+  width: 100%;
   height: 100vh;
+  height: 100dvh;
   background: var(--surface-hover);
   overflow: hidden;
 }
@@ -541,6 +542,7 @@
 
 .step-box {
   flex: 1;
+  min-width: 0;
   padding: 14px 18px;
   border-radius: 10px;
   border: 2px solid;
@@ -576,6 +578,9 @@
   font-weight: 700;
   color: var(--text);
   margin: 0;
+  line-height: 1.55;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
 
 .step-arrow {
@@ -618,3 +623,30 @@
   .main-content { padding-inline: 12px; }
 }
 .hero-card a.hero-btn { text-decoration: none; display: inline-flex; align-items: center; }
+
+@media (max-width: 760px) {
+  .home-layout { flex-direction: column; }
+  .main-area { min-height: 0; }
+  .main-header { min-height: 68px; flex-wrap: wrap; gap: 12px; padding: 16px 16px 12px; }
+  .main-title, .rm-heading { min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+  .goal-wrapper { min-width: 0; max-width: 100%; margin-left: auto; }
+  .goal-button { min-width: 0; max-width: 100%; height: auto; min-height: 44px; padding-block: 10px; white-space: normal; overflow-wrap: anywhere; text-align: left; }
+  .goal-dropdown { right: 0; width: min(300px, calc(100vw - 32px)); max-height: min(400px, 60dvh); overflow-y: auto; }
+  .main-content { padding: 4px max(16px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); gap: 16px; }
+  .hero-card { flex-direction: column; align-items: flex-start; padding: 22px; }
+  .hero-left { min-width: 0; }
+  .hero-name, .hero-role { overflow-wrap: anywhere; }
+  .hero-name { font-size: 23px; }
+}
+@media (max-width: 380px) {
+  .main-header > .goal-wrapper { flex-basis: 100%; }
+  .main-header .goal-button { width: 100%; }
+}
+
+@media (max-width: 600px) {
+  .continue-section { padding: 18px; }
+  .continue-steps { flex-direction: column; gap: 8px; }
+  .continue-steps .step-box { flex: none; width: 100%; padding: 14px 16px; }
+  .continue-steps .step-arrow { width: 20px; height: 20px; transform: rotate(90deg); }
+  .action-btn { min-height: 44px; }
+}

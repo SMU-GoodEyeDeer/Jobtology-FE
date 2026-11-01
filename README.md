@@ -80,6 +80,14 @@ type/MMDD_작업내용_순번
 | `refact/0707_api_1` | 7/7, API 리팩토링 1차 |
 | `refact/0720_api_2` | 7/20, API 리팩토링 2차 (이어서 작업) |
 
+## 화면·브라우저 확인
+
+- 760px 이하에서는 사이드바 대신 메뉴 버튼을 사용합니다. 320/390/760/1024/1440px 너비와 가로 화면, 화면 확대를 확인해 주세요.
+- Chrome/Edge, Firefox, macOS Safari, iOS Safari, Android Chrome의 현재 버전을 대상으로 합니다. 빌드 성공만으로 실제 브라우저 검증을 대신하지 않습니다.
+- 모바일 메뉴의 Escape·닫기·화면 전환, 폼 입력과 키보드, 이력서 원문/제안 전환, 채용공고 검색·페이지 이동, 채팅창 최소화와 그래프 선택을 밝은/어두운 테마에서 확인해 주세요.
+- UI 글꼴은 `public/fonts/pretendard-variable-1.3.9.woff2`로 배포합니다. 원본은 [Pretendard 1.3.9](https://github.com/orioncactus/pretendard/tree/v1.3.9/packages/pretendard/dist/web/variable), 라이선스는 같은 디렉터리의 `Pretendard-LICENSE.txt`입니다. 외부 글꼴 CDN 요청은 필요하지 않습니다.
+- `npm test`와 `npm run build` 후, `BASE_URL=<미리보기 주소> npm run test:integration`으로 배포된 글꼴 파일까지 확인합니다.
+
 ## Commit 메세지 구조
 
 기본적인 커밋 메시지 구조는 브랜치 이름과 동일하게 합니다.

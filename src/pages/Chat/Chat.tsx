@@ -49,7 +49,7 @@ export function Chat() {
   const [mappingLoading, setMappingLoading] = useState(false);
   const [turns, setTurns] = useState<Turn[]>([]), [input, setInput] = useState("");
   const [busy, setBusy] = useState(false), [progress, setProgress] = useState(""), [finalizing, setFinalizing] = useState(false);
-  const [chatOpen, setChatOpen] = useState(() => !window.matchMedia("(max-width:640px)").matches), [selected, setSelected] = useState<string | null>(null);
+  const [chatOpen, setChatOpen] = useState(() => !window.matchMedia("(max-width:760px)").matches), [selected, setSelected] = useState<string | null>(null);
   const [questionTarget, setQuestionTarget] = useState<{ id: string; label: string } | null>(null);
   const [highlighted, setHighlighted] = useState<Set<string>>(new Set()), [highlightedEdges, setHighlightedEdges] = useState<Set<string>>(new Set());
   const [focus, setFocus] = useState({ ids: [] as string[], revision: 0 }), [reset, setReset] = useState(0);
@@ -265,7 +265,7 @@ export function Chat() {
       <label className="workspace-goal"><span className="sr-only">목표 선택</span><select value={selectedGoalId ?? ""} onChange={e => setSelectedGoalId(e.target.value || null)} disabled={goalsLoading}>
         <option value="">전체 프로필</option>{goals.map(g => <option key={g.goal_id} value={g.goal_id}>{getGoalName(g)}</option>)}
       </select></label></header>
-    <section ref={stage} className="chat-body workspace-stage" aria-label="커리어 그래프 탐색" style={{ "--floating-width": `min(${resize.size}px, max(320px, calc(100% - 320px)))` } as CSSProperties}>
+    <section ref={stage} className="chat-body workspace-stage" aria-label="커리어 그래프 탐색" data-chat-open={chatOpen} data-notices={!!(error || goalsError || mappingLoading || graph.truncated || warnings.some(w => warningLabels[w]))} style={{ "--floating-width": `min(${resize.size}px, max(320px, calc(100% - 320px)))` } as CSSProperties}>
       <div className="workspace-toolbar"><form onSubmit={e => { e.preventDefault(); void search(query); }}>
         <label className="sr-only" htmlFor="catalog-search">전체 카탈로그 검색</label>
         <input id="catalog-search" placeholder="역량·직무·자격·공고 검색" value={query} maxLength={120} onChange={e => setQuery(e.target.value)} />

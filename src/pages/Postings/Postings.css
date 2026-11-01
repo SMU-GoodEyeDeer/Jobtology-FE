@@ -108,3 +108,26 @@
 .posting-classifications .occupation-association-provenance { margin-top: 14px; padding-top: 10px; }
 .posting-classifications .occupation-association-provenance dl div { grid-template-columns: 85px minmax(0,1fr); }
 .posting-card-classifications { display: grid; gap: 3px; color: var(--muted); }
+
+.postings-filter-toggle { display: none; }
+@media (max-width: 760px) {
+  .postings-filter-toggle { display: flex; flex: none; align-items: center; justify-content: space-between; width: 100%; min-height: 44px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text); font-size: 14px; cursor: pointer; }
+  .postings-filters[data-expanded="false"] { display: none; }
+  .postings-filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 10px; max-height: none; flex: none; overflow: visible; }
+  .postings-filters label { min-width: 0; grid-column: 1 / -1; }
+  .postings-content[data-filters-open="true"] { overflow-y: auto; }
+  .postings-content[data-filters-open="true"] .postings-grid { flex: none; height: max(360px, 60dvh); }
+  .postings-content { padding: 0 12px max(12px, env(safe-area-inset-bottom)); }
+  .postings-grid { min-height: 160px; }
+  .postings-content > .postings-note { font-size: 11px; }
+  .postings-list-heading { flex-wrap: wrap; gap: 8px; }
+  .postings-page-controls { flex-wrap: wrap; }
+  .postings-pagination button { min-width: 36px; min-height: 44px; }
+  .postings-page-count { white-space: normal; line-height: 1.6; }
+  .posting-detail dl div { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .postings-close, .postings-filters button { min-height: 44px; }
+}
+@media (max-width: 760px) and (max-height: 500px) {
+  .postings-content { overflow-y: auto; }
+  .postings-grid { flex: none; height: 320px; }
+}

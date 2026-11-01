@@ -49,6 +49,21 @@ afterEach(async () => {
 });
 
 describe("NCS popup focus and dismissal", () => {
+  it("falls back to a modal dialog when the Popover API is unavailable", async () => {
+    delete (HTMLElement.prototype as Partial<HTMLElement>).showPopover;
+    delete (HTMLElement.prototype as Partial<HTMLElement>).hidePopover;
+    await act(async () => root.render(createElement(NcsLevel, { level: 4 })));
+    const trigger = container.querySelector<HTMLButtonElement>(".ncs-level-trigger")!;
+    await act(async () => trigger.click());
+    const dialog = container.querySelector("dialog")!;
+    expect(dialog.open).toBe(true);
+    expect(trigger.getAttribute("aria-expanded")).toBe("true");
+    expect(document.activeElement).toBe(dialog.querySelector("button"));
+    await act(async () => dialog.dispatchEvent(new Event("cancel", { cancelable: true })));
+    expect(dialog.open).toBe(false);
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+    expect(document.activeElement).toBe(trigger);
+  });
   it("labels partial competency credit and remaining learning without claiming verified proficiency", async () => {
     await act(async () => root.render(createElement(MemoryRouter, null, createElement(SkillDetailPanel, {
       skill: { name: "부분 역량", type: "필수", status: "PARTIAL", credit: .75, estimated_hours: 10, base_estimated_hours: 40, hours_basis: "ESTIMATED" }, roadmap: { state: "ready", data: null }, overlay: false, onClose: vi.fn(),

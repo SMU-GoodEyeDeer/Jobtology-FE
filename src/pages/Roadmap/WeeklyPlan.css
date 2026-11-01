@@ -133,7 +133,8 @@
 @keyframes wp-dim-out { from { opacity: 1; } to { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .wp-dialog::backdrop, .wp-dialog[data-exiting="true"]::backdrop { animation: none; } }
 .wp-weeks { display: flex; flex-direction: column; gap: 12px; }
-.wp-gantt-card { padding: 20px; min-width: 0; }
+.wp-gantt-card { --wp-label-width: 330px; padding: 20px; min-width: 0; }
+.wp-gantt-card--editing { --wp-label-width: 420px; }
 .wp-gantt-heading { display: flex; align-items: baseline; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
 .wp-gantt-scroll { overflow: auto; max-height: 550px; border: 1px solid var(--sd-border); border-radius: 12px; isolation: isolate; }
 .wp-gantt-card--editing .wp-gantt-scroll { max-height: none; overflow-y: hidden; }
@@ -195,7 +196,8 @@
 .wp-hours-input input { width: 54px; padding: 4px; border: 1px solid var(--sd-border); border-radius: 6px; font-size: 12px; color: var(--sd-text); background: var(--sd-surface); }
 .wp-hours-input small { font-size: 10px; }
 .wp-save-bar { position: sticky; bottom: 12px; z-index: 8; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px; margin-top: 12px; font-size: 12px; box-shadow: 0 4px 20px #11182712; }
-.wp-save-bar .wp-text-button { margin-left: auto; }
+.wp-save-summary { flex: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.wp-save-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-left: auto; }
 .wp-week-tasks { display: grid; grid-template-columns: 1fr 320px; gap: 24px; padding: 20px; }
 .wp-week-tasks h3 { color: var(--sd-primary); margin-bottom: 8px; }
 .wp-week-tasks p { font-size: 13px; line-height: 1.7; }
@@ -223,7 +225,7 @@
 @media (max-width: 600px) {
   .roadmap-page .main-header { flex-wrap: wrap; gap: 12px; padding: 16px; }
   .roadmap-page .main-title { font-size: 18px; }
-  .roadmap-page .goal-button { min-width: 140px; }
+  .roadmap-page .goal-button { min-width: 0; }
   .roadmap-page .main-content { padding-inline: 12px; }
   .roadmap-page .rm-section { flex-direction: column; align-items: stretch; }
   .wp-toolbar-actions { width: 100%; justify-content: flex-end; }
@@ -247,5 +249,37 @@
   .wp-phase-row { gap: 6px; }
   .wp-phase-count { font-size: 11px; }
   .wp-save-bar { bottom: 0; }
-  .wp-save-bar .wp-text-button { margin-left: 0; }
+}
+
+@media (max-width: 760px) {
+  .wp-gantt-card { --wp-label-width: 170px; }
+  .wp-gantt-card--editing { --wp-label-width: 190px; }
+  .wp-gantt-label { flex-wrap: wrap; gap: 4px; padding: 6px; }
+  .wp-week-name { flex: 1 1 90px; }
+  .wp-gantt-label > .wp-field-dot { display: none; }
+  .wp-gantt-label--open .wp-why { flex-basis: 100%; min-width: 0; }
+  .wp-popover { position: static; width: 100%; margin-top: 6px; max-height: min(380px, 50dvh); overflow-wrap: anywhere; }
+  .wp-hours-input { flex-wrap: wrap; }
+  .wp-gantt-scroll { scroll-padding-left: var(--wp-label-width); }
+  .wp-toolbar { align-items: stretch; }
+  .wp-toolbar-actions { flex-wrap: wrap; }
+  .wp-toolbar-actions button, .wp-tabs button, .wp-detail-footer button { min-height: 44px; }
+  .wp-phases { max-height: none; }
+  .wp-phase-header { flex-wrap: wrap; }
+  .wp-phase-progress { flex-basis: 100%; }
+  .wp-week-tasks { padding: 16px; }
+  .wp-save-bar { padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+  .wp-save-summary { flex-basis: 100%; }
+  .wp-completion-change { order: 1; flex-basis: 100%; line-height: 1.6; }
+  .wp-save-actions { width: 100%; }
+  .wp-save-actions > .wp-text-button { flex: 1; min-width: 0; min-height: 44px; text-align: left; font-size: 12px !important; }
+  .wp-save-actions > .wp-button { flex: none; min-height: 44px; }
+  .wp-detail:not(.wp-dialog) { height: auto; max-height: none; }
+  .wp-detail:not(.wp-dialog) .wp-detail-body { flex: none; overflow: visible; }
+  .rm-edit-btn { min-height: 44px; }
+  .wp-dialog { padding-bottom: env(safe-area-inset-bottom); }
+}
+
+@media (max-width: 760px) and (max-height: 700px) {
+  .wp-save-bar { position: static; }
 }

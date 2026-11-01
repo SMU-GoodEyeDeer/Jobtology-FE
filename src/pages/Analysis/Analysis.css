@@ -376,3 +376,17 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+@media (max-width: 760px) {
+  .an-fulfillment-card { padding: 18px; }
+  .an-fulfillment-body { flex-direction: column; gap: 16px; }
+  .an-fulfillment-half { min-width: 0; padding: 0 !important; border: 0; }
+  .an-error-banner { align-items: flex-start; flex-wrap: wrap; line-height: 1.6; }
+  .an-reanalyze-btn { margin: 0 0 0 auto; min-height: 44px; }
+  .an-retry-btn, .an-goto-roadmap-btn { min-height: 44px; }
+}
+
+@media (max-width: 600px) {
+  .analysis-page .main-header > .goal-wrapper { flex-basis: 100%; }
+  .analysis-page .main-header .goal-button { width: 100%; justify-content: flex-start; }
+}

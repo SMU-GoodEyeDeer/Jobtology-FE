@@ -91,4 +91,29 @@
   .resume-dock-actions button { font-size: 11px; padding: 8px; }
 }
 .resume-scanner [hidden] { display: none !important; }
+/* The upload/consent view must remain reachable on short screens. */
+.resume-scanner:not(.resume-scanner--review) { overflow-y: auto; min-height: 0; }
+@media (max-width: 760px) {
+  .resume-mobile-tabs { display: flex; }
+  .resume-workspace { grid-template-columns: minmax(0, 1fr); }
+  .resume-workspace--source .resume-suggestions, .resume-workspace--suggestions .resume-source { display: none; }
+  .resume-dock { gap: 8px; padding-inline: 12px; }
+  .resume-dock .resume-tabs { flex: 1 1 100%; }
+  .resume-dock .resume-tabs button { flex: 1; }
+  .resume-dock-document { min-width: 0; flex-wrap: wrap; }
+  .resume-dock-document small { display: none; }
+  .resume-dock-actions { width: 100%; margin: 0; }
+  .resume-dock-actions button { flex: 1; white-space: normal; }
+  .resume-heading h3 { min-width: 0; flex: 1; }
+  .resume-upload { padding: 14px; }
+  .resume-import-modes { flex-wrap: wrap; }
+  .resume-import-modes button { flex: 1; min-height: 44px; }
+  .resume-dropzone { min-height: 160px; padding: 16px 10px; }
+  .resume-suggestions > h4 { flex-wrap: wrap; }
+  .resume-card-actions button { min-height: 44px; }
+}
+@media (max-height: 500px) {
+  .resume-scanner--review { overflow-y: auto; }
+  .resume-workspace { flex: none; height: 260px; }
+}
 @media (prefers-reduced-motion: reduce) { .resume-scanner *, .resume-scanner *::before { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }

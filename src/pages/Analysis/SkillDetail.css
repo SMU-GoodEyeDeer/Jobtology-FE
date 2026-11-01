@@ -137,3 +137,10 @@
 .sd-link-notice { padding: 12px 16px; border: 1px solid var(--accent-border); background: var(--accent-tint); border-radius: 10px; color: var(--accent-strong); font-size: 13px; line-height: 1.7; }
 .sd-row--linked { box-shadow: inset 3px 0 var(--accent-focus); background: var(--accent-tint); scroll-margin-top: 24px; }
 .sd-modeled-credit { padding: 10px 12px; border-radius: 8px; background: var(--accent-tint); color: var(--text-secondary); font-size: 12px; line-height: 1.7; }
+
+@media (max-width: 760px) {
+  .sd-panel--overlay { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); border-radius: 0; }
+  .sd-panel-header, .sd-panel-body, .sd-panel-footer { padding-inline: 18px; }
+  .sd-filters { flex-wrap: nowrap; gap: 4px; }
+  .sd-filters button, .sd-step-link { min-height: 44px; }
+}

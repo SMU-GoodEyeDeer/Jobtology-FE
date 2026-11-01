@@ -160,10 +160,13 @@ function PlanContent({ saved, skills, onSaved, onComplete }: {
     {drawer && selected && <PlanStepDetail key="drawer" plan={plan} step={selected} skill={selectedSkill} busy={busy || draft !== null} onComplete={() => void mutate("complete")} onClose={() => setDrawer(false)} />}
     </AnimatePresence>
     <AnimatePresence>
-    {draft && <motion.footer className="wp-save-bar wp-card" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }} transition={fade}><span className="wp-chip wp-chip--indigo">변경 {differences.count}건</span><span>완료 예정 {fullDate(saved.completion_date)} → <b>{fullDate(plan.completion_date)}</b></span>{target && <span className={`wp-chip ${late ? "wp-chip--amber" : "wp-chip--green"}`}>{target}</span>}
-      <button className="wp-text-button" disabled={busy} onClick={() => { setResetToRecommendation(true); setDraft({ ...recommendedInput(recommended), expected_version: saved.version }); }}>추천 플랜으로 되돌리기</button>
-      <button className="wp-button" disabled={busy} onClick={() => { setDraft(null); setError(null); }}>취소</button>
-      <button className="wp-button wp-button--primary" disabled={busy || preview.pending || !!preview.error} onClick={() => void mutate("save")}>{busy ? "저장 중..." : preview.pending ? "일정 확인 중..." : "저장"}</button>
+    {draft && <motion.footer className="wp-save-bar wp-card" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }} transition={fade}>
+      <div className="wp-save-summary"><span className="wp-chip wp-chip--indigo">변경 {differences.count}건</span><span className="wp-completion-change">완료 예정 {fullDate(saved.completion_date)} → <b>{fullDate(plan.completion_date)}</b></span>{target && <span className={`wp-chip ${late ? "wp-chip--amber" : "wp-chip--green"}`}>{target}</span>}</div>
+      <div className="wp-save-actions">
+        <button className="wp-text-button" disabled={busy} onClick={() => { setResetToRecommendation(true); setDraft({ ...recommendedInput(recommended), expected_version: saved.version }); }}>추천 플랜으로 되돌리기</button>
+        <button className="wp-button" disabled={busy} onClick={() => { setDraft(null); setError(null); }}>취소</button>
+        <button className="wp-button wp-button--primary" disabled={busy || preview.pending || !!preview.error} onClick={() => void mutate("save")}>{busy ? "저장 중..." : preview.pending ? "일정 확인 중..." : "저장"}</button>
+      </div>
     </motion.footer>}
     </AnimatePresence>
   </div>;

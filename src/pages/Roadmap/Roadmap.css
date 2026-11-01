@@ -328,6 +328,7 @@
   align-items: center;
   justify-content: space-between;
   margin-top: 6px;
+  gap: 12px;
 }
 
 .rm-saved-title {
@@ -335,6 +336,10 @@
   font-weight: 700;
   color: var(--text);
   margin: 0;
+  min-width: 0;
+  line-height: 1.6;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
 
 .rm-saved-sub {
@@ -344,6 +349,8 @@
 }
 
 .rm-edit-btn {
+  flex: none;
+  white-space: nowrap;
   font-size: 13px;
   color: var(--muted);
   background: var(--surface);

@@ -39,6 +39,22 @@ function changeInput(input: HTMLInputElement, value: string) {
   input.dispatchEvent(new Event("input", { bubbles: true }));
 }
 describe("real posting browser", () => {
+  it("toggles mobile search controls without losing the entered filters", async () => {
+    await renderPage("?q=개발&region=서울");
+    const toggle = container.querySelector<HTMLButtonElement>(".postings-filter-toggle")!;
+    const form = container.querySelector<HTMLFormElement>("#postings-filters")!;
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    expect(form.dataset.expanded).toBe("false");
+    expect(toggle.textContent).toContain("적용 중");
+    await act(async () => toggle.click());
+    const input = form.querySelector<HTMLInputElement>("input")!;
+    await act(async () => changeInput(input, "새 검색"));
+    await act(async () => toggle.click());
+    await act(async () => toggle.click());
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    expect(input.value).toBe("새 검색");
+    expect(resourcesApi.postings).toHaveBeenCalledTimes(1);
+  });
   it("reuses a page and its open detail when returning quickly", async () => {
     const query = "?q=개발&posting=urn%3Aposting%3Aa%2Fb";
     await renderPage(query); await revisit(query);
