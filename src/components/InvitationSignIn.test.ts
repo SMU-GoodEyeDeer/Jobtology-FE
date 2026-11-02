@@ -10,8 +10,24 @@ const code = "AAAA-BBBB-CCCC-DDDD-EEEE-FFFF";
 beforeEach(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   window.history.replaceState({}, "", "/");
-  HTMLDialogElement.prototype.showModal = function () { this.open = true; };
-  HTMLDialogElement.prototype.close = function () { this.open = false; this.dispatchEvent(new Event("close")); };
+  const priorFocus = new WeakMap<HTMLDialogElement, HTMLElement>();
+  const nativeFocus = HTMLElement.prototype.focus;
+  vi.spyOn(HTMLElement.prototype, "focus").mockImplementation(function (this: HTMLElement, options?: FocusOptions) {
+    const modal = document.querySelector("dialog[open]");
+    // Native modal dialogs make controls outside them inert, including focus().
+    if (modal && !modal.contains(this)) return;
+    nativeFocus.call(this, options);
+  });
+  HTMLDialogElement.prototype.showModal = function () {
+    priorFocus.set(this, this.contains(document.activeElement) ? document.body : document.activeElement as HTMLElement);
+    this.open = true;
+    this.querySelector<HTMLElement>("button, input")?.focus();
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.open = false;
+    priorFocus.get(this)?.focus();
+    this.dispatchEvent(new Event("close"));
+  };
   host = document.createElement("div"); document.body.append(host); root = createRoot(host);
 });
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.restoreAllMocks(); });
@@ -64,4 +80,22 @@ it("shows a safe expiration message after OAuth and strips callback status", asy
   await render();
   expect(host.querySelector('[role="alert"]')!.textContent).toContain("이용 기간이 끝났어요");
   expect(window.location.search).toBe("");
+});
+
+
+it.each(["close button", "Escape"])("restores trigger focus after closing a QR-opened native modal via %s", async (method) => {
+  window.history.replaceState({}, "", `/#invite=${code}`);
+  await render();
+  const dialog = host.querySelector("dialog")!;
+  expect(dialog.open).toBe(true);
+  const trigger = host.querySelector<HTMLButtonElement>(".landing-cta")!;
+  // A focus attempt while the dialog is open must be ignored like a real browser.
+  await act(async () => trigger.focus());
+  expect(document.activeElement).not.toBe(trigger);
+  await act(async () => {
+    if (method === "close button") host.querySelector<HTMLButtonElement>(".invitation-close")!.click();
+    else dialog.dispatchEvent(new Event("cancel", { cancelable: true }));
+  });
+  expect(host.querySelector("dialog")).toBeNull();
+  expect(document.activeElement).toBe(trigger);
 });

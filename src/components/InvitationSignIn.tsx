@@ -27,6 +27,7 @@ export function InvitationSignIn() {
   const [busy, setBusy] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
+  const restoreTriggerFocus = useRef(false);
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -48,10 +49,16 @@ export function InvitationSignIn() {
     };
   }, [open]);
 
+  useEffect(() => {
+    if (open || !restoreTriggerFocus.current) return;
+    restoreTriggerFocus.current = false;
+    trigger.current?.focus();
+  }, [open]);
+
   function dismiss() {
     if (busy) return;
+    restoreTriggerFocus.current = true;
     setOpen(false); setStep("code"); setCode(""); setAccepted(""); setError("");
-    trigger.current?.focus();
   }
   function continueWithCode(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
