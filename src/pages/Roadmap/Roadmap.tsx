@@ -6,7 +6,7 @@ import "./Roadmap.css";
 import { AppSidebar } from "../../components/AppSidebar";
 import { GoalDropdown } from "../../components/GoalDropdown";
 import { LoadingContent } from "../../components/LoadingContent";
-import { profileApi, roadmapsApi, catalogV2Api } from "../../services/api";
+import { profileApi, roadmapsApi } from "../../services/api";
 import { useGoals } from "../../hooks/useGoals";
 import { useRoadmap } from "../../hooks/useRoadmap";
 import { PARTIAL_ROUTE_NOTICE, usePartialRoute } from "./usePartialRoute";
@@ -17,7 +17,7 @@ import { RouteAvailabilityEditor } from "./RouteAvailabilityEditor";
 import { RoadmapRevisionPanel } from "./RoadmapRevisionPanel";
 import { RoadmapExtras } from "./RoadmapExtras";
 import { useRoutePreferences } from "./useRoutePreferences";
-import type { StepState, Neo4jPublicationResponse } from "../../services/types";
+import type { StepState } from "../../services/types";
 
 const CONDITION_CHIP_KEYS = [
   { label: "교육비 부담이 커요", field: "budget_mode" as const },
@@ -39,18 +39,8 @@ export function Roadmap() {
   const { goals, selectedGoal, selectedGoalId, setSelectedGoalId, selectedGoalName, getGoalName, loading: goalsLoading } = useGoals();
   const { roadmaps, activeRoadmap, loading, error, updateStepState, progressPct, refetch } = useRoadmap(selectedGoalId, !goalsLoading);
   const [readyPlanId, setReadyPlanId] = useState<string | null>(null);
-  const [publicationsLoading, setPublicationsLoading] = useState(true);
 
   const prefs = useRoutePreferences(session?.user_id, !sessionLoading);
-
-  // v2 publications (route_planning 가능한 것만)
-  const [routePublications, setRoutePublications] = useState<Neo4jPublicationResponse[]>([]);
-
-  useEffect(() => {
-    catalogV2Api.listPublications({ limit: 100 }).then((list) => {
-      setRoutePublications(list.filter((p) => p.capabilities.route_planning));
-    }).catch(console.error).finally(() => setPublicationsLoading(false));
-  }, []);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -128,7 +118,7 @@ export function Roadmap() {
         </header>
 
         <main className="main-content">
-          <LoadingContent loading={goalsLoading || loading || publicationsLoading || proposalLoading || (!!activeRoadmap && readyPlanId !== activeRoadmap.roadmap_id)} label="로드맵과 주차 플랜을 불러오는 중이에요">
+          <LoadingContent loading={goalsLoading || loading || proposalLoading || (!!activeRoadmap && readyPlanId !== activeRoadmap.roadmap_id)} label="로드맵과 주차 플랜을 불러오는 중이에요">
           {/* 내 로드맵 조건 */}
           <section className="rm-section">
             <div className="rm-section-header">
@@ -173,7 +163,7 @@ export function Roadmap() {
             </section>
           )}
 
-          <RoadmapExtras roadmaps={roadmaps} publications={routePublications} onArchive={handleArchiveRoadmap} />
+          <RoadmapExtras roadmaps={roadmaps} onArchive={handleArchiveRoadmap} />
 
           <div className="rm-bottom-btns">
             <button className="rm-bottom-btn" onClick={() => navigate("/analysis")}>부족한 역량 보기</button>
