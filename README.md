@@ -105,3 +105,13 @@ type/MMDD_작업내용_순번
 | **refact** | 코드 리팩토링, 포맷팅, 파일/폴더 변경·이동·삭제 등 |
 | **test** | 테스트 추가/수정 |
 | **chore** | 빌드, 패키지, 에셋 추가, 설정 등 그 외 변경 |
+
+### Invitation login
+
+The landing page opens an invitation-code dialog before Google login. Existing
+accounts can choose `이미 가입했어요 · 로그인`. QR links use `/#invite=...` and
+skip manual code entry; the code is kept in memory and removed from browser history.
+The backend enforces access, including fixed account expiry, independently of this UI.
+Deploy the matching BE migration `20261102_01` first and preserve Turnstile settings.
+There are no frontend management secrets. See `Jobtology-BE/docs/invitation-access.md`
+for the matching backend and dashboard configuration.

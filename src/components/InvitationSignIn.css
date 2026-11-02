@@ -1,0 +1,31 @@
+.invitation-dialog {
+  width: min(430px, calc(100vw - 32px)); max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px);
+  margin: auto; padding: 28px; overflow-y: auto; box-sizing: border-box;
+  text-align: left; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 22px;
+  box-shadow: 0 24px 100px #0003; animation: invitation-in .2s ease-out;
+}
+.invitation-dialog::backdrop { background: #14132480; backdrop-filter: blur(5px); }
+.invitation-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.invitation-header .brand-logo { font-size: 23px; }
+.invitation-dialog h2 { margin: 30px 0 24px; font-size: 23px; letter-spacing: -.04em; }
+.invitation-dialog button, .invitation-dialog input { font: inherit; }
+.invitation-close { width: 44px; height: 44px; border: none; border-radius: 50%; background: var(--surface-soft); color: var(--muted); cursor: pointer; font-size: 25px !important; }
+.invitation-dialog form { display: flex; flex-direction: column; gap: 12px; }
+.invitation-dialog label { font-size: 13px; font-weight: 600; }
+.invitation-dialog input { width: 100%; min-height: 48px; box-sizing: border-box; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-soft); color: var(--text); font-size: 14px; letter-spacing: .035em; }
+.invitation-dialog input::placeholder { font-size: 11px; letter-spacing: 0; }
+.invitation-primary { min-height: 48px; border: 0; border-radius: 10px; background: var(--accent-solid); color: white; cursor: pointer; }
+.invitation-existing { width: 100%; min-height: 44px; margin-top: 10px; padding: 8px; border: 0; background: transparent; color: var(--muted); font-size: 12px !important; cursor: pointer; }
+.invitation-caption { color: var(--muted); font-size: 13px; line-height: 1.6; }
+.invitation-error { padding: 12px; color: var(--danger); background: var(--danger-bg); border-radius: 10px; font-size: 13px; line-height: 1.6; }
+.invitation-dialog .landing-cta { margin-top: 10px; background: var(--strong-bg); color: var(--on-accent); border-color: var(--strong-bg); }
+.invitation-dialog .landing-verification-error { color: var(--danger); }
+.invitation-dialog button { transition: background .15s, opacity .15s; }
+.invitation-dialog button:disabled { opacity: .5; cursor: wait; }
+.invitation-dialog :focus-visible { outline: 2px solid var(--accent-focus); outline-offset: 3px; }
+@keyframes invitation-in { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
+@media (max-width: 460px) { .invitation-dialog { padding: 20px; border-radius: 18px; } }
+@media (prefers-reduced-motion: reduce) { .invitation-dialog { animation: none; } .invitation-dialog button { transition: none; } }
+
+.invitation-dialog .landing-turnstile { width: min(100%, 320px); display: flex; justify-content: center; }
+.invitation-dialog .landing-sign-in { width: 100%; }

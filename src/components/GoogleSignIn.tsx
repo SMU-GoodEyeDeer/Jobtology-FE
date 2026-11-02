@@ -4,7 +4,9 @@ import { authApi } from "../services/api";
 import { Turnstile } from "./Turnstile";
 import type { TurnstileHandle } from "./Turnstile";
 
-export function GoogleSignIn({ onNavigate = (url) => window.location.assign(url) }: {
+export function GoogleSignIn({ invitationCode, onBusyChange, onNavigate = (url) => window.location.assign(url) }: {
+  readonly invitationCode?: string;
+  readonly onBusyChange?: (busy: boolean) => void;
   readonly onNavigate?: (url: string) => void;
 }) {
   const { preference } = useTheme();
@@ -22,12 +24,14 @@ export function GoogleSignIn({ onNavigate = (url) => window.location.assign(url)
     window.addEventListener("pageshow", restore);
     return () => window.removeEventListener("pageshow", restore);
   }, []);
+  useEffect(() => { onBusyChange?.(busy); }, [busy, onBusyChange]);
   async function signIn() {
     if (!token || submitting.current) return;
     submitting.current = true;
     setBusy(true); setError(null);
     try {
-      const { authorization_url } = await authApi.startGoogleLogin(token);
+      const { authorization_url } = await (invitationCode
+        ? authApi.startGoogleLogin(token, invitationCode) : authApi.startGoogleLogin(token));
       const target = new URL(authorization_url);
       if (target.protocol !== "https:" || target.hostname !== "accounts.google.com" || target.username || target.password) throw new Error("Invalid login URL");
       onNavigate(target.href);
