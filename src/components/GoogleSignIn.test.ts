@@ -99,3 +99,14 @@ it("allows retrying a failed script load without enabling unverified login", asy
   await act(async () => retry.dispatchEvent(new Event("load")));
   await solve(); expect(button().disabled).toBe(false);
 });
+
+it("uses the compact challenge on narrow phones", async () => {
+  const previous = window.matchMedia;
+  window.matchMedia = vi.fn(() => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() })) as unknown as typeof window.matchMedia;
+  try {
+    await render();
+    expect(options.at(-1)!.size).toBe("compact");
+  } finally {
+    window.matchMedia = previous;
+  }
+});

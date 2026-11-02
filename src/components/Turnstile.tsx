@@ -7,7 +7,7 @@ export interface TurnstileOptions {
   sitekey: string;
   action: string;
   theme: "light" | "dark";
-  size: "flexible";
+  size: "flexible" | "compact";
   "response-field": false;
   callback: (token: string) => void;
   "expired-callback": () => void;
@@ -55,6 +55,14 @@ export function Turnstile({ ref, theme, onToken, onError }: {
   const callbacks = useRef({ onToken, onError });
   callbacks.current = { onToken, onError };
   const [attempt, setAttempt] = useState(0);
+  const [compact, setCompact] = useState(false);
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return;
+    const query = window.matchMedia("(max-width: 380px)");
+    const update = () => setCompact(query.matches);
+    update(); query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
   useImperativeHandle(ref, () => ({ reset() {
     callbacks.current.onToken(null);
     if (widget.current) widget.current.api.reset(widget.current.id);
@@ -68,7 +76,7 @@ export function Turnstile({ ref, theme, onToken, onError }: {
       if (!active || !container.current) return;
       const invalidate = () => { if (active) callbacks.current.onToken(null); };
       const id = api.render(container.current, {
-        sitekey: SITE_KEY, action: "google_login", theme, size: "flexible", "response-field": false,
+        sitekey: SITE_KEY, action: "google_login", theme, size: compact ? "compact" : "flexible", "response-field": false,
         callback: (token) => { if (active) callbacks.current.onToken(token); },
         "expired-callback": invalidate,
         "timeout-callback": invalidate,
@@ -83,6 +91,6 @@ export function Turnstile({ ref, theme, onToken, onError }: {
       active = false;
       if (widget.current) { widget.current.api.remove(widget.current.id); widget.current = null; }
     };
-  }, [theme, attempt]);
+  }, [theme, attempt, compact]);
   return <div className="landing-turnstile" ref={container} aria-label="보안 확인" />;
 }

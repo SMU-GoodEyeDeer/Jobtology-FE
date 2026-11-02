@@ -20,3 +20,13 @@ it("posts the Turnstile token in the request body, never the URL", async () => {
     method: "POST", credentials: "include", body: JSON.stringify({ "cf-turnstile-response": "one-use-token" }),
   }));
 });
+
+it("sends an invitation alongside Turnstile only in the POST body", async () => {
+  const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({ authorization_url: "https://accounts.google.com/" }), { status: 200 }));
+  vi.stubGlobal("fetch", fetcher);
+  const { authApi } = await import("./api");
+  await authApi.startGoogleLogin("turnstile-token", "AAAA-BBBB-CCCC-DDDD-EEEE-FFFF");
+  expect(fetcher).toHaveBeenCalledWith("/api/v1/auth/google/login", expect.objectContaining({
+    body: JSON.stringify({ "cf-turnstile-response": "turnstile-token", invitation_code: "AAAA-BBBB-CCCC-DDDD-EEEE-FFFF" }),
+  }));
+});
